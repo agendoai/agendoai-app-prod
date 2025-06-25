@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1" />
+    <link rel="icon" href="/favicon.png" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
+    <title>AgendoAI - Agendamento de Serviços</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+    <!-- Badge script modificado para evitar conflitos com WebSocket -->
+    <script type="text/javascript">
+      // Aguardar carregamento completo da aplicação antes de adicionar o badge
+      window.addEventListener('load', function() {
+        try {
+          // Verificar se estamos em produção
+          if (window.location.hostname.includes('replit')) {
+            const badgeScript = document.createElement('script');
+            badgeScript.src = 'https://replit.com/public/js/replit-badge-v3.js';
+            badgeScript.onerror = function(e) {
+              console.log('Falha ao carregar badge do Replit:', e);
+            };
+            // Adicionar script ao final da página
+            document.body.appendChild(badgeScript);
+          }
+        } catch (e) {
+          console.log('Erro ao inicializar badge do Replit:', e);
+        }
+      });
+    </script>
+  </body>
+</html>

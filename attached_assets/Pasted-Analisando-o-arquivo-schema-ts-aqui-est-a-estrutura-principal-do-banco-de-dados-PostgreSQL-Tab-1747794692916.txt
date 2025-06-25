@@ -1,0 +1,106 @@
+Analisando o arquivo schema.ts, aqui está a estrutura principal do banco de dados PostgreSQL:
+
+Tabelas Principais:
+
+users (Usuários)
+Campos principais: id, email, password, name, userType (client/provider/admin), isActive, isVerified
+Armazena todos os usuários do sistema
+services (Serviços)
+Campos principais: id, providerId, categoryId, name, description, price, duration
+Serviços oferecidos pelos prestadores
+appointments (Agendamentos)
+Campos principais: id, clientId, providerId, serviceId, date, startTime, endTime, status
+Registra todos os agendamentos
+categories (Categorias)
+Campos principais: id, name, description, nicheId, parentId
+Categoriza os serviços em grupos
+niches (Nichos)
+Campos principais: id, name, description
+Agrupa categorias em nichos maiores
+availability (Disponibilidade)
+Campos principais: id, providerId, dayOfWeek, startTime, endTime
+Controla horários disponíveis dos prestadores
+provider_settings (Configurações do Prestador)
+Campos principais: id, providerId, businessName, description, rating
+Configurações específicas dos prestadores
+reviews (Avaliações)
+Campos principais: id, clientId, providerId, appointmentId, rating, comment
+Avaliações dos serviços prestados
+payment_settings (Configurações de Pagamento)
+Campos principais: id, serviceFeePercentage, stripeEnabled, asaasEnabled
+Configurações gerais de pagamento
+support_tickets (Tickets de Suporte)
+Campos principais: id, userId, subject, status, priority
+Sistema de suporte ao usuário
+Relacionamentos principais:
+
+Usuários (providers) → Serviços
+Serviços → Categorias → Nichos
+Agendamentos → Usuários (clients e providers)
+Avaliações → Agendamentos  > providers
+O banco utiliza PostgreSQL com Drizzle ORM para gerenciamento das operações e relacionamentos.
+
+me passa os nomes da tabela
+
+TD
+
+chasphabi
+Assistant
+just now
+Baseado no arquivo schema.ts, aqui estão todas as tabelas do banco de dados:
+
+users (Usuários)
+userAddresses (Endereços dos usuários)
+niches (Nichos)
+categories (Categorias)
+serviceTemplates (Templates de serviços)
+services (Serviços)
+providerServices (Serviços customizados por prestador)
+availability (Disponibilidade)
+blockedTimeSlots (Horários bloqueados)
+providerBreaks (Intervalos do prestador)
+appointments (Agendamentos)
+providerSettings (Configurações do prestador)
+paymentSettings (Configurações de pagamento)
+integrationsSettings (Configurações de integrações)
+supportTickets (Tickets de suporte)
+supportMessages (Mensagens de suporte)
+reviews (Avaliações)
+onboardingSteps (Etapas de onboarding)
+userOnboardingProgress (Progresso de onboarding)
+userPaymentMethods (Métodos de pagamento)
+notifications (Notificações)
+passwordResetTokens (Tokens de redefinição de senha)
+promotions (Promoções)
+providerBalances (Saldos dos prestadores)
+providerTransactions (Transações financeiras)
+paymentWithdrawals (Solicitações de saque)
+systemSettings (Configurações do sistema)
+Estas tabelas formam a estrutura completa do banco de dados PostgreSQL do sistema.
+
+Tabelas Principais:
+tem mais tabelas?
+
+TD
+
+chasphabi
+Assistant
+just now
+Sim, analisando o arquivo schema.ts, além das tabelas principais mencionadas anteriormente, existem estas tabelas adicionais:
+
+userAddresses - Endereços dos usuários
+blockedTimeSlots - Horários bloqueados
+providerBreaks - Intervalos/pausas dos prestadores
+providerPaymentPreferences - Preferências de pagamento dos prestadores
+clientPaymentPreferences - Preferências de pagamento dos clientes
+userPaymentMethods - Métodos de pagamento dos usuários
+notifications - Notificações do sistema
+passwordResetTokens - Tokens para redefinição de senha
+promotions - Promoções e descontos
+providerBalances - Saldos dos prestadores
+providerTransactions - Transações financeiras
+paymentWithdrawals - Solicitações de saque
+systemSettings - Configurações do sistema
+onboardingSteps - Etapas de onboarding
+userOnboardingProgress - Progresso do onboarding
+integrationsSettings - Configurações de integrações externas

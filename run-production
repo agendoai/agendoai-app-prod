@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Script para execução em produção sem necessidade de build
+# Este script serve como alternativa ao comando padrão 'npm run start'
+
+echo "=== AgendoAI - Iniciando em modo de produção ==="
+echo "Iniciando servidor diretamente (sem build)..."
+
+# Define ambiente de produção
+export NODE_ENV=production
+
+# Executa o servidor com tsx (TypeScript sem compilação)
+npx tsx server/index.ts
