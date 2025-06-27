@@ -88,6 +88,8 @@ import {
   Box,
   Menu,
   AlertCircle,
+  List,
+  CheckCircle,
 } from "lucide-react";
 import { ExecutionTimeDialog } from "@/components/execution-time-dialog";
 
@@ -694,10 +696,19 @@ export default function NewServicesPage() {
               onValueChange={(value) => setActiveTab(value as "all" | "active" | "inactive")}
               className="w-full"
             >
-              <TabsList className="grid w-full grid-cols-3 mb-4">
-                <TabsTrigger value="all">Todos</TabsTrigger>
-                <TabsTrigger value="active">Ativos</TabsTrigger>
-                <TabsTrigger value="inactive">Inativos</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 mb-4">
+                <TabsTrigger value="all" className="text-xs sm:text-sm">
+                  <List className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span>Todos</span>
+                </TabsTrigger>
+                <TabsTrigger value="active" className="text-xs sm:text-sm">
+                  <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span>Ativos</span>
+                </TabsTrigger>
+                <TabsTrigger value="inactive" className="text-xs sm:text-sm">
+                  <XCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                  <span>Inativos</span>
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           </motion.div>

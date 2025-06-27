@@ -89,7 +89,7 @@ export default function AdminSidebar() {
       </Button>
 
       <Dialog open={mobileOpen} onOpenChange={setMobileOpen}>
-        <DialogContent className="sm:max-w-[300px] p-0">
+        <DialogContent className="sm:max-w-[300px] p-0 backdrop-blur-sm backdrop:bg-black/20">
           <div className="bg-white rounded-lg overflow-hidden">
             <div className="p-4 bg-primary text-white flex justify-between items-center">
               <h2 className="font-bold text-xl">Admin</h2>
@@ -194,7 +194,7 @@ export default function AdminSidebar() {
 
       {/* Diálogo de confirmação para sair */}
       <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-        <DialogContent>
+        <DialogContent className="backdrop-blur-sm backdrop:bg-black/20">
           <DialogHeader>
             <DialogTitle>Sair</DialogTitle>
             <DialogDescription>

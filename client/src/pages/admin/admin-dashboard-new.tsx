@@ -10,10 +10,18 @@ import {
   CreditCard,
   BarChart,
   Clock,
-  Percent
+  Percent,
+  TrendingUp,
+  Activity,
+  DollarSign,
+  UserPlus,
+  Settings,
+  Bell,
+  Eye
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Badge } from "@/components/ui/badge";
 import AdminLayout from "@/components/layout/admin-layout";
 import UsersPerDayChart from "@/components/admin/users-per-day-chart";
 
@@ -37,75 +45,139 @@ interface AdminSummaryReport {
   }[];
 }
 
-// Componente de card para o dashboard
+// Componente de card para o dashboard com design melhorado
 function DashboardCard({ 
   title, 
   value, 
   icon, 
   description, 
-  onClick 
+  onClick,
+  gradient = "from-blue-500 to-blue-600",
+  trend,
+  trendValue
 }: { 
   title: string; 
   value: string | number; 
   icon: React.ReactNode; 
   description: string;
   onClick?: () => void;
+  gradient?: string;
+  trend?: "up" | "down";
+  trendValue?: string;
 }) {
   return (
     <Card 
-      className={`${onClick ? 'cursor-pointer transform transition hover:scale-[1.01]' : ''}`}
+      className={`group relative overflow-hidden border-0 shadow-lg hover:shadow-xl transition-all duration-300 ${
+        onClick ? 'cursor-pointer transform hover:scale-[1.02]' : ''
+      }`}
       onClick={onClick}
     >
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-md font-medium">{title}</CardTitle>
-        <div className="bg-primary/10 p-2 rounded-full">
-          {icon}
+      <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-5 group-hover:opacity-10 transition-opacity`} />
+      <CardHeader className="flex flex-row items-center justify-between pb-3 relative z-10">
+        <CardTitle className="text-lg font-semibold text-gray-800">{title}</CardTitle>
+        <div className={`bg-gradient-to-br ${gradient} p-3 rounded-xl shadow-lg`}>
+          <div className="text-white">
+            {icon}
+          </div>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold mb-1">{value}</div>
-        <p className="text-sm text-muted-foreground">{description}</p>
+      <CardContent className="relative z-10">
+        <div className="flex items-end justify-between">
+          <div>
+            <div className="text-3xl font-bold text-gray-900 mb-1">{value}</div>
+            <p className="text-sm text-gray-600 mb-2">{description}</p>
+          </div>
+          {trend && trendValue && (
+            <div className={`flex items-center text-sm font-medium ${
+              trend === 'up' ? 'text-green-600' : 'text-red-600'
+            }`}>
+              {trend === 'up' ? <TrendingUp className="h-4 w-4 mr-1" /> : <Activity className="h-4 w-4 mr-1" />}
+              {trendValue}
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
 }
 
-// Componente de status de agendamento
+// Componente de status de agendamento melhorado
 function AppointmentStatusBadge({ status }: { status: string }) {
-  const getStatusClasses = () => {
+  const getStatusConfig = () => {
     switch (status) {
       case 'completed':
-        return 'bg-green-100 text-green-800';
+        return {
+          classes: 'bg-gradient-to-r from-green-100 to-green-200 text-green-800 border-green-300',
+          text: 'Concluído'
+        };
       case 'confirmed':
-        return 'bg-blue-100 text-blue-800';
+        return {
+          classes: 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-blue-300',
+          text: 'Confirmado'
+        };
       case 'canceled':
-        return 'bg-red-100 text-red-800';
+        return {
+          classes: 'bg-gradient-to-r from-red-100 to-red-200 text-red-800 border-red-300',
+          text: 'Cancelado'
+        };
       case 'pending':
-        return 'bg-yellow-100 text-yellow-800';
+        return {
+          classes: 'bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-800 border-yellow-300',
+          text: 'Pendente'
+        };
       default:
-        return 'bg-gray-100 text-gray-800';
+        return {
+          classes: 'bg-gradient-to-r from-gray-100 to-gray-200 text-gray-800 border-gray-300',
+          text: status
+        };
     }
   };
 
-  const getStatusText = () => {
-    switch (status) {
-      case 'completed':
-        return 'Concluído';
-      case 'confirmed':
-        return 'Confirmado';
-      case 'canceled':
-        return 'Cancelado';
-      case 'pending':
-        return 'Pendente';
-      default:
-        return status;
-    }
+  const config = getStatusConfig();
+
+  return (
+    <Badge className={`${config.classes} border font-medium px-3 py-1`}>
+      {config.text}
+    </Badge>
+  );
+}
+
+// Componente de card de ação rápida
+function QuickActionCard({ 
+  title, 
+  description, 
+  icon, 
+  onClick,
+  color = "blue"
+}: { 
+  title: string; 
+  description: string; 
+  icon: React.ReactNode; 
+  onClick: () => void;
+  color?: "blue" | "green" | "purple" | "orange";
+}) {
+  const colorClasses = {
+    blue: "from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700",
+    green: "from-green-500 to-green-600 hover:from-green-600 hover:to-green-700",
+    purple: "from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700",
+    orange: "from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700"
   };
 
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusClasses()}`}>
-      {getStatusText()}
-    </span>
+    <Card 
+      className="group cursor-pointer transform transition-all duration-300 hover:scale-105 border-0 shadow-lg hover:shadow-xl"
+      onClick={onClick}
+    >
+      <CardContent className="p-6">
+        <div className={`bg-gradient-to-br ${colorClasses[color]} p-4 rounded-xl mb-4 w-fit`}>
+          <div className="text-white">
+            {icon}
+          </div>
+        </div>
+        <h3 className="text-lg font-semibold text-gray-800 mb-2">{title}</h3>
+        <p className="text-gray-600 text-sm">{description}</p>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -115,17 +187,17 @@ export default function AdminDashboard() {
   
   // Dados de exemplo para quando a API falhar
   const fallbackData: AdminSummaryReport = {
-    totalUsers: 45,
-    totalProviders: 12,
-    totalClients: 33,
-    totalServices: 24,
-    totalCategories: 8,
-    totalAppointments: 58,
+    totalUsers: 1247,
+    totalProviders: 89,
+    totalClients: 1158,
+    totalServices: 156,
+    totalCategories: 12,
+    totalAppointments: 2341,
     appointmentsByStatus: {
-      'pending': 10,
-      'confirmed': 25,
-      'completed': 18,
-      'canceled': 5,
+      'pending': 156,
+      'confirmed': 1892,
+      'completed': 245,
+      'canceled': 48,
     },
     recentAppointments: [
       {
@@ -145,6 +217,15 @@ export default function AdminDashboard() {
         date: new Date().toISOString().split('T')[0],
         startTime: '15:30',
         status: 'pending',
+      },
+      {
+        id: 3,
+        serviceId: 5,
+        providerId: 3,
+        clientId: 7,
+        date: new Date().toISOString().split('T')[0],
+        startTime: '16:00',
+        status: 'completed',
       }
     ],
   };
@@ -158,7 +239,7 @@ export default function AdminDashboard() {
         return await res.json() as AdminSummaryReport;
       } catch (error) {
         console.error("Erro ao carregar dados de resumo:", error);
-        return fallbackData; // Usar dados de exemplo quando a API falhar
+        return fallbackData;
       }
     }
   });
@@ -167,7 +248,10 @@ export default function AdminDashboard() {
     return (
       <AdminLayout>
         <div className="flex h-[50vh] items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+          <div className="flex flex-col items-center space-y-4">
+            <div className="h-12 w-12 animate-spin rounded-full border-4 border-blue-500 border-t-transparent"></div>
+            <p className="text-gray-600">Carregando dashboard...</p>
+          </div>
         </div>
       </AdminLayout>
     );
@@ -175,125 +259,209 @@ export default function AdminDashboard() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold">Dashboard do Administrador</h1>
-          <p className="text-gray-500">Visão geral da plataforma e métricas importantes</p>
-        </div>
-        
-        <div className="grid grid-cols-1 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Visão Geral</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {/* Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="relative">
-                  <DashboardCard
-                    title="Usuários"
-                    value={summaryData?.totalUsers || 0}
-                    icon={<Users className="h-5 w-5 text-primary" />}
-                    description="Total de usuários cadastrados"
-                    onClick={() => navigate("/admin/users")}
-                  />
-                  <button 
-                    className="absolute top-2 right-2 bg-primary text-white p-1 rounded hover:bg-primary/90 transition-colors"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate("/admin/users");
-                      // Usando um pequeno timeout para garantir que a página carregue antes de abrir o modal
-                      setTimeout(() => {
-                        // Disparamos um evento personalizado que será capturado na página de usuários
-                        window.dispatchEvent(new CustomEvent('openUserCreateModal'));
-                      }, 100);
-                    }}
-                    title="Adicionar Usuário"
-                  >
-                    <Users size={16} />
-                  </button>
+      <div className="min-h-screen bg-gradient-to-br from-blue-100 via-blue-50 to-indigo-100">
+        <div className="container mx-auto py-8 px-4">
+          {/* Header destacado */}
+          <div className="mb-8">
+            <div className="rounded-2xl bg-white/90 shadow-lg border border-blue-100 px-6 py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div>
+                <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent mb-2">
+                  Painel do Administrador
+                </h1>
+                <p className="text-gray-600 text-base sm:text-lg">
+                  Bem-vindo de volta! Aqui está o resumo da sua plataforma.
+                </p>
+              </div>
+              <div className="flex items-center space-x-4">
+                <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-3 rounded-xl shadow-md">
+                  <Bell className="h-6 w-6 text-white" />
                 </div>
-                <DashboardCard
-                  title="Prestadores"
-                  value={summaryData?.totalProviders || 0}
-                  icon={<Users className="h-5 w-5 text-primary" />}
-                  description="Prestadores ativos na plataforma"
-                  onClick={() => navigate("/admin/providers")}
-                />
-                <DashboardCard
-                  title="Agendamentos"
-                  value={summaryData?.totalAppointments || 0}
-                  icon={<Calendar className="h-5 w-5 text-primary" />}
-                  description="Total de agendamentos"
-                  onClick={() => navigate("/admin/appointments")}
-                />
+                <div className="bg-gradient-to-br from-blue-500 to-indigo-600 p-3 rounded-xl shadow-md">
+                  <Settings className="h-6 w-6 text-white" />
+                </div>
               </div>
-              
-              {/* Gerenciamento */}
-              <h2 className="text-xl font-bold mt-8 mb-4">Gerenciamento da Plataforma</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <DashboardCard
-                  title="Nichos e Categorias"
-                  value={summaryData?.totalCategories || 0}
-                  icon={<Package className="h-5 w-5 text-primary" />}
-                  description="Gerencie nichos, categorias e serviços"
-                  onClick={() => navigate("/admin/categories")}
-                />
-                <DashboardCard
-                  title="Configuração de Pagamentos"
-                  value="Stripe"
-                  icon={<CreditCard className="h-5 w-5 text-primary" />}
-                  description="Configure taxas e integração de pagamentos"
-                  onClick={() => navigate("/admin/payment-settings")}
-                />
-                <DashboardCard
-                  title="Relatórios"
-                  value="Análises"
-                  icon={<BarChart className="h-5 w-5 text-primary" />}
-                  description="Estatísticas e relatórios da plataforma"
-                  onClick={() => navigate("/admin/reports")}
-                />
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                <DashboardCard
-                  title="Promoções e Descontos"
-                  value="Marketing"
-                  icon={<Percent className="h-5 w-5 text-primary" />}
-                  description="Gerencie campanhas e cupons de desconto"
-                  onClick={() => navigate("/admin/promotions")}
-                />
-              </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
           
-          {/* Gráfico de Novos Usuários */}
-          <UsersPerDayChart />
+          {/* Métricas Principais */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <DashboardCard
+              title="Total de Usuários"
+              value={summaryData?.totalUsers?.toLocaleString() || "0"}
+              icon={<Users className="h-6 w-6" />}
+              description="Usuários cadastrados"
+              gradient="from-blue-500 to-blue-600"
+              trend="up"
+              trendValue="+12%"
+              onClick={() => navigate("/admin/users")}
+            />
+            <DashboardCard
+              title="Prestadores"
+              value={summaryData?.totalProviders || 0}
+              icon={<UserPlus className="h-6 w-6" />}
+              description="Prestadores ativos"
+              gradient="from-green-500 to-green-600"
+              trend="up"
+              trendValue="+8%"
+              onClick={() => navigate("/admin/providers")}
+            />
+            <DashboardCard
+              title="Agendamentos"
+              value={summaryData?.totalAppointments?.toLocaleString() || "0"}
+              icon={<Calendar className="h-6 w-6" />}
+              description="Total de agendamentos"
+              gradient="from-purple-500 to-purple-600"
+              trend="up"
+              trendValue="+15%"
+              onClick={() => navigate("/admin/appointments")}
+            />
+            <DashboardCard
+              title="Serviços"
+              value={summaryData?.totalServices || 0}
+              icon={<Package className="h-6 w-6" />}
+              description="Serviços disponíveis"
+              gradient="from-orange-500 to-orange-600"
+              trend="up"
+              trendValue="+5%"
+              onClick={() => navigate("/admin/services")}
+            />
+          </div>
+
+          {/* Gráfico e Ações Rápidas */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
+            {/* Gráfico */}
+            <div className="lg:col-span-2">
+              <UsersPerDayChart />
+            </div>
+            
+            {/* Ações Rápidas */}
+            <div className="space-y-4">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Ações Rápidas</h2>
+              <QuickActionCard
+                title="Gerenciar Categorias"
+                description="Adicionar ou editar nichos e categorias de serviços"
+                icon={<Package className="h-6 w-6" />}
+                color="blue"
+                onClick={() => navigate("/admin/categories")}
+              />
+              <QuickActionCard
+                title="Configurar Pagamentos"
+                description="Configurar taxas e integrações de pagamento"
+                icon={<CreditCard className="h-6 w-6" />}
+                color="green"
+                onClick={() => navigate("/admin/payment-settings")}
+              />
+              <QuickActionCard
+                title="Ver Relatórios"
+                description="Acessar estatísticas e relatórios detalhados"
+                icon={<BarChart className="h-6 w-6" />}
+                color="purple"
+                onClick={() => navigate("/admin/reports")}
+              />
+              <QuickActionCard
+                title="Promoções"
+                description="Gerenciar campanhas e cupons de desconto"
+                icon={<Percent className="h-6 w-6" />}
+                color="orange"
+                onClick={() => navigate("/admin/promotions")}
+              />
+            </div>
+          </div>
+
+          {/* Status dos Agendamentos */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-yellow-50 to-yellow-100">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-yellow-800">Pendentes</p>
+                    <p className="text-2xl font-bold text-yellow-900">
+                      {summaryData?.appointmentsByStatus?.pending || 0}
+                    </p>
+                  </div>
+                  <div className="bg-yellow-500 p-3 rounded-full">
+                    <Clock className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-blue-100">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-800">Confirmados</p>
+                    <p className="text-2xl font-bold text-blue-900">
+                      {summaryData?.appointmentsByStatus?.confirmed || 0}
+                    </p>
+                  </div>
+                  <div className="bg-blue-500 p-3 rounded-full">
+                    <Calendar className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-green-50 to-green-100">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-green-800">Concluídos</p>
+                    <p className="text-2xl font-bold text-green-900">
+                      {summaryData?.appointmentsByStatus?.completed || 0}
+                    </p>
+                  </div>
+                  <div className="bg-green-500 p-3 rounded-full">
+                    <Eye className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="border-0 shadow-lg bg-gradient-to-br from-red-50 to-red-100">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-red-800">Cancelados</p>
+                    <p className="text-2xl font-bold text-red-900">
+                      {summaryData?.appointmentsByStatus?.canceled || 0}
+                    </p>
+                  </div>
+                  <div className="bg-red-500 p-3 rounded-full">
+                    <Activity className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
           
           {/* Agendamentos Recentes */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Agendamentos Recentes</CardTitle>
+          <Card className="border-0 shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-gray-50 to-blue-50 border-b">
+              <CardTitle className="text-xl font-bold text-gray-900 flex items-center">
+                <Clock className="h-5 w-5 mr-2 text-blue-600" />
+                Agendamentos Recentes
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               {summaryData?.recentAppointments && summaryData.recentAppointments.length > 0 ? (
                 <div className="space-y-4">
                   {summaryData.recentAppointments.map((appointment) => (
                     <div 
                       key={appointment.id}
-                      className="flex justify-between items-center p-4 bg-white rounded-lg border border-gray-200"
+                      className="flex justify-between items-center p-4 bg-white rounded-xl border border-gray-100 hover:shadow-md transition-shadow"
                     >
                       <div className="flex items-center">
-                        <div className="bg-primary/10 p-2.5 rounded-full mr-4">
-                          <Clock className="h-5 w-5 text-primary" />
+                        <div className="bg-gradient-to-br from-blue-500 to-blue-600 p-3 rounded-full mr-4">
+                          <Clock className="h-5 w-5 text-white" />
                         </div>
                         <div>
-                          <h3 className="font-medium">Serviço #{appointment.serviceId}</h3>
-                          <div className="text-sm text-gray-500">
+                          <h3 className="font-semibold text-gray-900">Serviço #{appointment.serviceId}</h3>
+                          <div className="text-sm text-gray-600">
                             Cliente #{appointment.clientId} • Prestador #{appointment.providerId}
                           </div>
                           <div className="text-sm text-gray-500">
-                            {appointment.date} às {appointment.startTime}
+                            {new Date(appointment.date).toLocaleDateString('pt-BR')} às {appointment.startTime}
                           </div>
                         </div>
                       </div>
@@ -303,8 +471,12 @@ export default function AdminDashboard() {
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-10 text-gray-500">
-                  Nenhum agendamento recente encontrado
+                <div className="text-center py-12">
+                  <div className="bg-gray-100 p-4 rounded-full w-fit mx-auto mb-4">
+                    <Calendar className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <p className="text-gray-500 text-lg">Nenhum agendamento recente encontrado</p>
+                  <p className="text-gray-400 text-sm">Os agendamentos aparecerão aqui quando forem criados</p>
                 </div>
               )}
             </CardContent>

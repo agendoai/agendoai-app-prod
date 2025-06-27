@@ -431,17 +431,24 @@ export default function ClientAppointmentsPage() {
                   </Card>
                 </div>
                 
-                <TabsList className="grid grid-cols-3 mb-4">
-                  <TabsTrigger value="upcoming">
-                    Próximos
+                <TabsList className="grid grid-cols-1 sm:grid-cols-3 mb-4">
+                  <TabsTrigger value="upcoming" className="text-xs sm:text-sm">
+                    <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span>Próximos</span>
                     {groupedAppointments.upcoming.length > 0 && (
-                      <Badge variant="secondary" className="ml-2">
+                      <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
                         {groupedAppointments.upcoming.length}
                       </Badge>
                     )}
                   </TabsTrigger>
-                  <TabsTrigger value="completed">Concluídos</TabsTrigger>
-                  <TabsTrigger value="canceled">Cancelados</TabsTrigger>
+                  <TabsTrigger value="completed" className="text-xs sm:text-sm">
+                    <Check className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span>Concluídos</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="canceled" className="text-xs sm:text-sm">
+                    <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                    <span>Cancelados</span>
+                  </TabsTrigger>
                 </TabsList>
                 
                 <TabsContent value="upcoming">

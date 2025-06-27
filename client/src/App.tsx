@@ -86,6 +86,7 @@ const ProviderFinancesPage = lazy(() => import("@/pages/provider/provider-financ
 const AdminDashboard = lazy(() => import("@/pages/admin/admin-dashboard-new"));
 const PaymentSettingsPage = lazy(() => import("@/pages/admin/payment-settings-page"));
 const FinancialSettingsPage = lazy(() => import("@/pages/admin/financial-settings-page"));
+const ProviderFeesPage = lazy(() => import("@/pages/admin/provider-fees-page"));
 const CategoryFeesPage = lazy(() => import("@/pages/admin/category-fees-page"));
 const NotificationSettingsPage = lazy(() => import("@/pages/admin/notification-settings-page"));
 const IntegrationsSettingsPage = lazy(() => import("@/pages/admin/integrations-settings-page"));

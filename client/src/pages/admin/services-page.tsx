@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import AdminNavbar from "@/components/layout/admin-navbar";
 import AppHeader from "@/components/layout/app-header";
@@ -52,7 +52,8 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { AlertCircle, Check, Edit, Plus, Trash } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Category, Service } from "@/types";
+import { ServiceCategory as Category, ServiceItem as Service } from "@/types";
+import AdminLayout from "@/components/layout/admin-layout";
 
 // Schema para validação do formulário
 const serviceFormSchema = z.object({
@@ -73,11 +74,29 @@ export default function ServicesPage() {
   // Buscar serviços
   const { data: services, isLoading: isLoadingServices, error: servicesError } = useQuery({
     queryKey: ["/api/services"],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/services');
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao carregar serviços:', error);
+        return [];
+      }
+    }
   });
 
   // Buscar categorias para o select
   const { data: categories, isLoading: isLoadingCategories } = useQuery({
     queryKey: ["/api/categories"],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/categories');
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao carregar categorias:', error);
+        return [];
+      }
+    }
   });
 
   // Formulário para adicionar/editar serviço
@@ -92,7 +111,7 @@ export default function ServicesPage() {
   });
 
   // Reset do formulário quando mudar o serviço em edição
-  useState(() => {
+  useEffect(() => {
     if (editingService) {
       form.reset({
         name: editingService.name,
@@ -108,7 +127,7 @@ export default function ServicesPage() {
         duration: "30",
       });
     }
-  });
+  }, [editingService, form]);
 
   // Mutation para criar serviço
   const createServiceMutation = useMutation({
@@ -253,288 +272,287 @@ export default function ServicesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white pb-20">
-      <AppHeader title="Gerenciar Serviços" />
-
-      <div className="container p-4 max-w-5xl">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Formulário */}
-          <div className="md:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  {editingService ? "Editar Tipo de Serviço" : "Novo Tipo de Serviço"}
-                </CardTitle>
-                <CardDescription>
-                  {editingService
-                    ? "Atualize os detalhes deste tipo de serviço"
-                    : "Adicione um novo tipo de serviço que os prestadores poderão oferecer"}
-                </CardDescription>
-                <div className="mt-2 p-3 bg-blue-50 rounded-md border border-blue-200 text-blue-700 text-sm">
-                  <p><strong>Nota:</strong> Como administrador, você cadastra apenas os tipos de serviços disponíveis na plataforma. Os prestadores selecionarão quais destes serviços oferecem e definirão seus próprios preços e durações específicas.</p>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nome do Serviço</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Ex: Corte de Cabelo" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Descrição</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Descrição do serviço"
-                              {...field}
-                              rows={3}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="categoryId"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Categoria</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                            value={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione uma categoria" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {isLoadingCategories ? (
-                                <SelectItem value="loading" disabled>
-                                  Carregando categorias...
-                                </SelectItem>
-                              ) : categories && categories.length > 0 ? (
-                                categories.map((category: Category) => (
-                                  <SelectItem
-                                    key={category.id}
-                                    value={String(category.id)}
-                                  >
-                                    {category.name}
-                                  </SelectItem>
-                                ))
-                              ) : (
-                                <SelectItem value="empty" disabled>
-                                  Nenhuma categoria disponível
-                                </SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid grid-cols-1 gap-4">
+    <AdminLayout>
+      <div className="min-h-screen bg-white pb-20">
+        <AppHeader title="Gerenciar Serviços" />
+        <div className="container p-4 max-w-5xl">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Formulário */}
+            <div className="md:col-span-1">
+              <Card>
+                <CardHeader>
+                  <CardTitle>
+                    {editingService ? "Editar Tipo de Serviço" : "Novo Tipo de Serviço"}
+                  </CardTitle>
+                  <CardDescription>
+                    {editingService
+                      ? "Atualize os detalhes deste tipo de serviço"
+                      : "Adicione um novo tipo de serviço que os prestadores poderão oferecer"}
+                  </CardDescription>
+                  <div className="mt-2 p-3 bg-blue-50 rounded-md border border-blue-200 text-blue-700 text-sm">
+                    <p><strong>Nota:</strong> Como administrador, você cadastra apenas os tipos de serviços disponíveis na plataforma. Os prestadores selecionarão quais destes serviços oferecem e definirão seus próprios preços e durações específicas.</p>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                       <FormField
                         control={form.control}
-                        name="duration"
+                        name="name"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Duração de Referência (minutos)</FormLabel>
+                            <FormLabel>Nome do Serviço</FormLabel>
                             <FormControl>
-                              <Input
-                                type="number"
-                                min="5"
-                                step="5"
-                                placeholder="30"
-                                {...field}
-                              />
+                              <Input placeholder="Ex: Corte de Cabelo" {...field} />
                             </FormControl>
-                            <FormDescription>
-                              Tempo estimado de referência. Cada prestador poderá definir sua própria duração.
-                            </FormDescription>
                             <FormMessage />
                           </FormItem>
                         )}
                       />
-                    </div>
 
-                    <div className="flex justify-between pt-2">
-                      {editingService && (
-                        <Button type="button" variant="outline" onClick={cancelEdit}>
-                          Cancelar
+                      <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Descrição</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Descrição do serviço"
+                                {...field}
+                                rows={3}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="categoryId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Categoria</FormLabel>
+                            <Select
+                              onValueChange={field.onChange}
+                              defaultValue={field.value}
+                              value={field.value}
+                            >
+                              <FormControl>
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Selecione uma categoria" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                {isLoadingCategories ? (
+                                  <SelectItem value="loading" disabled>
+                                    Carregando categorias...
+                                  </SelectItem>
+                                ) : categories && categories.length > 0 ? (
+                                  categories.map((category: Category) => (
+                                    <SelectItem
+                                      key={category.id}
+                                      value={String(category.id)}
+                                    >
+                                      {category.name}
+                                    </SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="empty" disabled>
+                                    Nenhuma categoria disponível
+                                  </SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="grid grid-cols-1 gap-4">
+                        <FormField
+                          control={form.control}
+                          name="duration"
+                          render={({ field }) => (
+                            <FormItem>
+                              <FormLabel>Duração de Referência (minutos)</FormLabel>
+                              <FormControl>
+                                <Input
+                                  type="number"
+                                  min="5"
+                                  step="5"
+                                  placeholder="30"
+                                  {...field}
+                                />
+                              </FormControl>
+                              <FormDescription>
+                                Tempo estimado de referência. Cada prestador poderá definir sua própria duração.
+                              </FormDescription>
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+
+                      <div className="flex justify-between pt-2">
+                        {editingService && (
+                          <Button type="button" variant="outline" onClick={cancelEdit}>
+                            Cancelar
+                          </Button>
+                        )}
+                        <Button
+                          type="submit"
+                          disabled={
+                            createServiceMutation.isPending ||
+                            updateServiceMutation.isPending
+                          }
+                          className={editingService ? "ml-auto" : "w-full"}
+                        >
+                          {editingService ? "Atualizar" : "Adicionar"} Serviço
                         </Button>
-                      )}
-                      <Button
-                        type="submit"
-                        disabled={
-                          createServiceMutation.isPending ||
-                          updateServiceMutation.isPending
-                        }
-                        className={editingService ? "ml-auto" : "w-full"}
-                      >
-                        {editingService ? "Atualizar" : "Adicionar"} Serviço
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-          </div>
+                      </div>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            </div>
 
-          {/* Lista de Serviços */}
-          <div className="md:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Tipos de Serviços Disponíveis</CardTitle>
-                <CardDescription>
-                  Gerenciar os tipos de serviços que os prestadores poderão oferecer
-                </CardDescription>
-                <div className="mt-2 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-700 text-sm">
-                  <p><strong>Lembre-se:</strong> Os preços mostrados abaixo são apenas valores de referência. Cada prestador pode definir seu próprio preço ao oferecer estes serviços.</p>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {servicesError ? (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Erro</AlertTitle>
-                    <AlertDescription>
-                      Ocorreu um erro ao carregar os serviços.
-                    </AlertDescription>
-                  </Alert>
-                ) : isLoadingServices ? (
-                  <div className="text-center py-6">Carregando serviços...</div>
-                ) : services && services.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Categoria</TableHead>
-                        <TableHead>Preço Base</TableHead>
-                        <TableHead>Duração de Referência</TableHead>
-                        <TableHead>Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {services.map((service: Service) => (
-                        <TableRow key={service.id}>
-                          <TableCell className="font-medium">
-                            {service.name}
-                          </TableCell>
-                          <TableCell>
-                            {getCategoryName(service.categoryId)}
-                          </TableCell>
-                          <TableCell>
-                            {service.price === 0 ? 
-                              <span className="text-gray-500 italic">Definido pelo prestador</span> : 
-                              (service.price / 100).toLocaleString('pt-BR', {
-                                style: 'currency',
-                                currency: 'BRL'
-                              })
-                            }
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex flex-col">
-                              <span>{service.duration} min</span>
-                              <span className="text-xs text-muted-foreground mt-1">Personalizado por prestador</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditService(service)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteService(service)}
-                              >
-                                <Trash className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center py-6 text-muted-foreground">
-                    Nenhum serviço encontrado. Adicione seu primeiro serviço!
+            {/* Lista de Serviços */}
+            <div className="md:col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Tipos de Serviços Disponíveis</CardTitle>
+                  <CardDescription>
+                    Gerenciar os tipos de serviços que os prestadores poderão oferecer
+                  </CardDescription>
+                  <div className="mt-2 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-700 text-sm">
+                    <p><strong>Lembre-se:</strong> Os preços mostrados abaixo são apenas valores de referência. Cada prestador pode definir seu próprio preço ao oferecer estes serviços.</p>
                   </div>
-                )}
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <div className="text-sm text-muted-foreground">
-                  Total: {services ? services.length : 0} serviços
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setEditingService(null);
-                    form.reset();
-                  }}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Novo Serviço
-                </Button>
-              </CardFooter>
-            </Card>
+                </CardHeader>
+                <CardContent>
+                  {servicesError ? (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Erro</AlertTitle>
+                      <AlertDescription>
+                        Ocorreu um erro ao carregar os serviços.
+                      </AlertDescription>
+                    </Alert>
+                  ) : isLoadingServices ? (
+                    <div className="text-center py-6">Carregando serviços...</div>
+                  ) : services && services.length > 0 ? (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Nome</TableHead>
+                          <TableHead>Categoria</TableHead>
+                          <TableHead>Preço Base</TableHead>
+                          <TableHead>Duração de Referência</TableHead>
+                          <TableHead>Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {services.map((service: Service) => (
+                          <TableRow key={service.id}>
+                            <TableCell className="font-medium">
+                              {service.name}
+                            </TableCell>
+                            <TableCell>
+                              {getCategoryName(service.categoryId)}
+                            </TableCell>
+                            <TableCell>
+                              {service.price === 0 ? 
+                                <span className="text-gray-500 italic">Definido pelo prestador</span> : 
+                                (service.price / 100).toLocaleString('pt-BR', {
+                                  style: 'currency',
+                                  currency: 'BRL'
+                                })
+                              }
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col">
+                                <span>{service.duration} min</span>
+                                <span className="text-xs text-muted-foreground mt-1">Personalizado por prestador</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleEditService(service)}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => handleDeleteService(service)}
+                                >
+                                  <Trash className="h-4 w-4 text-destructive" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-6 text-muted-foreground">
+                      Nenhum serviço encontrado. Adicione seu primeiro serviço!
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    Total: {services ? services.length : 0} serviços
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditingService(null);
+                      form.reset();
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Novo Serviço
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
           </div>
         </div>
+
+        {/* Dialog de confirmação de exclusão */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent className="backdrop-blur-sm backdrop:bg-black/20">
+            <DialogHeader>
+              <DialogTitle>Excluir Serviço</DialogTitle>
+              <DialogDescription>
+                Tem certeza que deseja excluir o serviço &quot;
+                {serviceToDelete?.name}&quot;? Esta ação não pode ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setIsDeleteDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={confirmDeleteService}
+                disabled={deleteServiceMutation.isPending}
+              >
+                {deleteServiceMutation.isPending ? "Excluindo..." : "Excluir"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
-
-      {/* Dialog de confirmação de exclusão */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Excluir Serviço</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja excluir o serviço &quot;
-              {serviceToDelete?.name}&quot;? Esta ação não pode ser desfeita.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteDialogOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDeleteService}
-              disabled={deleteServiceMutation.isPending}
-            >
-              {deleteServiceMutation.isPending ? "Excluindo..." : "Excluir"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AdminNavbar />
-    </div>
+    </AdminLayout>
   );
 }

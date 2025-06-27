@@ -21,7 +21,8 @@ import {
   EyeOff,
   Send,
   User,
-  Bot
+  Bot,
+  MessageCircle
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -506,10 +507,22 @@ export default function IntegrationsSettingsPage() {
         </div>
 
         <Tabs defaultValue="email">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="email">Email (SendGrid)</TabsTrigger>
-            <TabsTrigger value="notifications">Notificações Push</TabsTrigger>
-            <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
+            <TabsTrigger value="email" className="text-xs sm:text-sm">
+              <Mail className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Email (SendGrid)</span>
+              <span className="sm:hidden">Email</span>
+            </TabsTrigger>
+            <TabsTrigger value="notifications" className="text-xs sm:text-sm">
+              <Bell className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Notificações Push</span>
+              <span className="sm:hidden">Push</span>
+            </TabsTrigger>
+            <TabsTrigger value="whatsapp" className="text-xs sm:text-sm">
+              <MessageCircle className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">WhatsApp</span>
+              <span className="sm:hidden">WhatsApp</span>
+            </TabsTrigger>
           </TabsList>
 
           <Form {...form}>

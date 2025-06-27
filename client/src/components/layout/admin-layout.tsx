@@ -20,7 +20,12 @@ import {
   FolderOpen,
   Share2,
   Bell,
-  ArrowLeft
+  ArrowLeft,
+  Settings,
+  Package,
+  TrendingUp,
+  MessageSquare,
+  LogOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from "@/components/ui/badge";
@@ -34,6 +39,15 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { UserDropdown } from "@/components/ui/user-dropdown";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Separator } from "@/components/ui/separator";
 
 type AdminLayoutProps = {
   children: ReactNode;
@@ -52,6 +66,7 @@ export default function AdminLayout({
   const { user, logoutMutation } = useAuth();
   const { unreadCount } = useNotifications();
   const [docMenuOpen, setDocMenuOpen] = useState(false);
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   
   // Abrir automaticamente o submenu quando a rota for de documentação
   useEffect(() => {
@@ -74,10 +89,12 @@ export default function AdminLayout({
   };
   
   const handleLogout = () => {
-    // Chamamos logoutMutation para realizar o logout no servidor
+    setLogoutDialogOpen(true);
+  };
+
+  const confirmLogout = () => {
+    setLogoutDialogOpen(false);
     logoutMutation.mutate();
-    // O redirecionamento para a página de autenticação será feito automaticamente
-    // pelo manipulador onSuccess da mutação em useAuth
   };
   
   // Verificar se a rota atual corresponde a algum item de navegação
@@ -85,8 +102,8 @@ export default function AdminLayout({
     return location.startsWith(path);
   };
   
-  // Menu principal
-  const links = [
+  // Menu principal - versão simplificada para mobile
+  const mainLinks = [
     { 
       href: '/admin/dashboard', 
       label: 'Dashboard', 
@@ -107,15 +124,14 @@ export default function AdminLayout({
       label: 'Agendamentos', 
       icon: <Calendar className="h-5 w-5" /> 
     },
+  ];
+
+  // Menu secundário - configurações e relatórios
+  const secondaryLinks = [
     { 
       href: '/admin/reports', 
       label: 'Relatórios', 
-      icon: <BarChart2 className="h-5 w-5" /> 
-    },
-    { 
-      href: '/admin/financial-settings', 
-      label: 'Configurações Financeiras', 
-      icon: <CreditCard className="h-5 w-5" /> 
+      icon: <TrendingUp className="h-5 w-5" /> 
     },
     { 
       href: '/admin/categories', 
@@ -123,14 +139,28 @@ export default function AdminLayout({
       icon: <FolderTree className="h-5 w-5" /> 
     },
     { 
+      href: '/admin/financial-settings', 
+      label: 'Financeiro', 
+      icon: <CreditCard className="h-5 w-5" /> 
+    },
+    { 
       href: '/admin/integrations-settings', 
       label: 'Integrações', 
       icon: <Share2 className="h-5 w-5" /> 
     },
+  ];
+
+  // Menu terciário - suporte e documentação
+  const supportLinks = [
     { 
       href: '/admin/support', 
       label: 'Suporte', 
       icon: <HelpCircle className="h-5 w-5" /> 
+    },
+    { 
+      href: '/admin/documentation', 
+      label: 'Documentação', 
+      icon: <BookOpen className="h-5 w-5" /> 
     },
   ];
   
@@ -164,97 +194,131 @@ export default function AdminLayout({
       .substring(0, 2);
   };
 
+  // Componente do menu mobile otimizado
+  const MobileMenu = () => (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button variant="ghost" size="icon" className="text-white hover:bg-primary/90">
+          <Menu className="h-6 w-6" />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="left" className="w-80 p-0">
+        <div className="h-full flex flex-col">
+          {/* Header */}
+          <SheetHeader className="p-4 border-b bg-gradient-to-r from-primary to-primary/90 text-white">
+            <SheetTitle>
+              <div className="flex items-center space-x-2">
+                <span className="text-xl font-bold">AgendoAI</span>
+                <span className="bg-white text-primary text-xs font-bold px-2 py-1 rounded">ADMIN</span>
+              </div>
+            </SheetTitle>
+            <SheetDescription className="text-white/80">
+              Painel de Administração
+            </SheetDescription>
+          </SheetHeader>
+
+          {/* Conteúdo do menu */}
+          <div className="flex-1 overflow-y-auto">
+            {/* Menu Principal */}
+            <div className="p-4">
+              <h3 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Principal</h3>
+              <div className="space-y-1">
+                {mainLinks.map((link) => (
+                  <button
+                    key={link.href}
+                    onClick={() => setLocation(link.href)}
+                    className={`w-full flex items-center px-3 py-3 rounded-lg text-sm transition-colors ${
+                      isActive(link.href)
+                        ? "bg-primary/10 text-primary font-medium border border-primary/20"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="mr-3">{link.icon}</span>
+                    {link.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Menu Secundário */}
+            <div className="p-4">
+              <h3 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Configurações</h3>
+              <div className="space-y-1">
+                {secondaryLinks.map((link) => (
+                  <button
+                    key={link.href}
+                    onClick={() => setLocation(link.href)}
+                    className={`w-full flex items-center px-3 py-3 rounded-lg text-sm transition-colors ${
+                      isActive(link.href)
+                        ? "bg-primary/10 text-primary font-medium border border-primary/20"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="mr-3">{link.icon}</span>
+                    {link.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Suporte */}
+            <div className="p-4">
+              <h3 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Suporte</h3>
+              <div className="space-y-1">
+                {supportLinks.map((link) => (
+                  <button
+                    key={link.href}
+                    onClick={() => setLocation(link.href)}
+                    className={`w-full flex items-center px-3 py-3 rounded-lg text-sm transition-colors ${
+                      isActive(link.href)
+                        ? "bg-primary/10 text-primary font-medium border border-primary/20"
+                        : "text-gray-700 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="mr-3">{link.icon}</span>
+                    {link.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Footer com logout */}
+          <div className="p-4 border-t bg-gray-50">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center px-3 py-3 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors"
+            >
+              <LogOut className="h-5 w-5 mr-3" />
+              Sair do Sistema
+            </button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* Header principal */}
-      <header className="bg-primary text-white">
+      <header className="bg-gradient-to-r from-blue-800 via-blue-900 to-indigo-900 text-white shadow-lg z-50">
         <div className="container mx-auto py-4 px-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="text-white hover:bg-primary/90">
-                  <Menu className="h-6 w-6" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-72">
-                <SheetHeader>
-                  <SheetTitle>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xl font-bold text-primary">AgendoAI</span>
-                      <span className="bg-primary text-xs font-bold text-primary-foreground px-1 py-0.5 rounded">ADMIN</span>
-                    </div>
-                  </SheetTitle>
-                  <SheetDescription>
-                    Painel de Administração
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="py-4">
-                  <div className="space-y-1">
-                    {links.map((link) => (
-                      <a
-                        key={link.href}
-                        onClick={() => setLocation(link.href)}
-                        className={`flex items-center px-4 py-3 rounded-md text-sm cursor-pointer ${
-                          location.startsWith(link.href)
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "text-neutral-700 hover:bg-primary/5"
-                        }`}
-                      >
-                        <span className="mr-3">{link.icon}</span>
-                        {link.label}
-                      </a>
-                    ))}
-                    
-                    {/* Submenu Documentação */}
-                    <div>
-                      <div
-                        onClick={() => setDocMenuOpen(!docMenuOpen)}
-                        className="flex items-center justify-between px-4 py-3 rounded-md text-sm cursor-pointer text-neutral-700 hover:bg-primary/5"
-                      >
-                        <div className="flex items-center">
-                          <FolderOpen className="h-5 w-5 mr-3" />
-                          <span>Documentação</span>
-                        </div>
-                        {docMenuOpen ? (
-                          <ChevronDown className="h-4 w-4" />
-                        ) : (
-                          <ChevronRight className="h-4 w-4" />
-                        )}
-                      </div>
-                      
-                      {docMenuOpen && (
-                        <div className="pl-4 space-y-1">
-                          {docLinks.map((link) => (
-                            <a
-                              key={link.href}
-                              onClick={() => setLocation(link.href)}
-                              className={`flex items-center px-4 py-3 rounded-md text-sm cursor-pointer ${
-                                location.startsWith(link.href)
-                                  ? "bg-primary/10 text-primary font-medium"
-                                  : "text-neutral-700 hover:bg-primary/5"
-                              }`}
-                            >
-                              <span className="mr-3">{link.icon}</span>
-                              {link.label}
-                            </a>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </SheetContent>
-            </Sheet>
-            <h1 className="text-lg font-bold">{showBackButton ? title : "Painel Admin"}</h1>
+            <MobileMenu />
+            <h1 className="text-lg sm:text-xl font-bold tracking-wide drop-shadow-md select-none">{showBackButton ? title : "Painel Admin"}</h1>
           </div>
 
-          <div className="flex items-center">
+          <div className="flex items-center space-x-2">
             <Button 
               variant="ghost"
-              className="relative p-2 text-white hover:bg-primary/90"
+              className="relative p-2 text-white hover:bg-blue-700/80 focus:bg-blue-700/90"
               onClick={() => setLocation("/admin/notifications")}
             >
-              <Bell className="h-6 w-6" />
+              <Bell className="h-6 w-6 text-white" />
               {unreadCount > 0 && (
                 <Badge
                   variant="destructive"
@@ -264,7 +328,6 @@ export default function AdminLayout({
                 </Badge>
               )}
             </Button>
-            {/* Usando o novo componente UserDropdown para garantir redirecionamento após logout */}
             <UserDropdown userType="admin" />
           </div>
         </div>
@@ -291,12 +354,37 @@ export default function AdminLayout({
       {/* Barra inferior para navegação rápida em dispositivos móveis */}
       <div className="lg:hidden">
         <Navbar 
-          items={links} 
+          items={mainLinks.map(link => ({
+            icon: link.icon,
+            label: link.label,
+            href: link.href,
+            isActive: (currentPath: string, itemPath: string) => currentPath.startsWith(itemPath)
+          }))} 
           layoutId="adminNav" 
           onNavigate={(href) => setLocation(href)}
           className="lg:hidden"
         />
       </div>
+
+      {/* Diálogo de confirmação para sair */}
+      <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <DialogContent className="backdrop-blur-sm backdrop:bg-black/20">
+          <DialogHeader>
+            <DialogTitle>Sair do Sistema</DialogTitle>
+            <DialogDescription>
+              Tem certeza que deseja sair do painel administrativo?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setLogoutDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={confirmLogout}>
+              Sair
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

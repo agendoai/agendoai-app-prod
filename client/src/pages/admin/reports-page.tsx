@@ -46,7 +46,13 @@ import {
   ArrowUpRight,
   Download,
   PieChart as PieChartIcon,
-  TrendingUp
+  TrendingUp,
+  DollarSign,
+  Activity,
+  Target,
+  BarChart3,
+  FileText,
+  RefreshCw
 } from "lucide-react";
 
 // Tipos para os dados de relatórios
@@ -82,7 +88,7 @@ export default function ReportsPage() {
   const [activeTab, setActiveTab] = useState('general');
   const { toast } = useToast();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['/api/admin/reports/dashboard', { period }],
     queryFn: async () => {
       try {
@@ -208,10 +214,14 @@ export default function ReportsPage() {
   if (isLoading) {
     return (
       <AdminLayout>
-        <div className="container mx-auto py-6">
-          <h1 className="text-2xl font-bold mb-6">Relatórios e Análises</h1>
-          <div className="flex justify-center items-center h-64">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+          <div className="container mx-auto py-8 px-6">
+            <div className="flex flex-col items-center justify-center h-64">
+              <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full flex items-center justify-center mb-4">
+                <Loader2 className="h-8 w-8 animate-spin text-white" />
+              </div>
+              <p className="text-gray-600">Carregando relatórios...</p>
+            </div>
           </div>
         </div>
       </AdminLayout>
@@ -220,407 +230,532 @@ export default function ReportsPage() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto py-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Relatórios e Análises</h1>
-          
-          <div className="flex items-center gap-2 mt-4 md:mt-0">
-            <Select
-              value={period}
-              onValueChange={setPeriod}
-            >
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Período" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="7">Últimos 7 dias</SelectItem>
-                <SelectItem value="15">Últimos 15 dias</SelectItem>
-                <SelectItem value="30">Últimos 30 dias</SelectItem>
-                <SelectItem value="60">Últimos 60 dias</SelectItem>
-                <SelectItem value="90">Últimos 90 dias</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Button variant="outline" onClick={exportToCSV}>
-              <Download className="h-4 w-4 mr-2" />
-              Exportar
-            </Button>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        {/* Header da Página */}
+        <div className="bg-white border-b border-blue-100 shadow-sm">
+          <div className="container mx-auto py-8 px-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl">
+                    <BarChart3 className="h-8 w-8 text-white" />
+                  </div>
+                  Relatórios e Análises
+                </h1>
+                <p className="text-gray-600 mt-2">
+                  Visualize métricas e insights sobre o desempenho da plataforma
+                </p>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                <Select
+                  value={period}
+                  onValueChange={setPeriod}
+                >
+                  <SelectTrigger className="w-[180px] rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                    <SelectValue placeholder="Período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="7">Últimos 7 dias</SelectItem>
+                    <SelectItem value="15">Últimos 15 dias</SelectItem>
+                    <SelectItem value="30">Últimos 30 dias</SelectItem>
+                    <SelectItem value="60">Últimos 60 dias</SelectItem>
+                    <SelectItem value="90">Últimos 90 dias</SelectItem>
+                  </SelectContent>
+                </Select>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={() => refetch()}
+                  className="rounded-lg border-blue-200 hover:bg-blue-100"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Atualizar
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  onClick={exportToCSV}
+                  className="rounded-lg border-blue-200 hover:bg-blue-100"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Exportar
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
-        
-        {/* Cards de resumo */}
-        <div className="grid gap-4 mb-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total de Usuários</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-2xl font-bold">{data?.totalUsers || 0}</div>
-                  <p className="text-xs text-muted-foreground flex items-center mt-1">
-                    <span className={data?.userGrowth && data.userGrowth > 0 ? "text-green-500" : "text-red-500"}>
-                      {data?.userGrowth ? (data.userGrowth > 0 ? "+" : "") + data.userGrowth + "%" : "0%"}
-                    </span>
-                    <ArrowUpRight className={`ml-1 h-3 w-3 ${data?.userGrowth && data.userGrowth > 0 ? "text-green-500" : "text-red-500"}`} />
-                    <span className="text-muted-foreground ml-1">vs. período anterior</span>
-                  </p>
-                </div>
-                <div className="p-2 bg-primary/10 rounded-full">
-                  <Users className="h-5 w-5 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Total de Agendamentos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-2xl font-bold">{data?.totalAppointments || 0}</div>
-                  <p className="text-xs text-muted-foreground flex items-center mt-1">
-                    <span className={data?.appointmentGrowth && data.appointmentGrowth > 0 ? "text-green-500" : "text-red-500"}>
-                      {data?.appointmentGrowth ? (data.appointmentGrowth > 0 ? "+" : "") + data.appointmentGrowth + "%" : "0%"}
-                    </span>
-                    <ArrowUpRight className={`ml-1 h-3 w-3 ${data?.appointmentGrowth && data.appointmentGrowth > 0 ? "text-green-500" : "text-red-500"}`} />
-                    <span className="text-muted-foreground ml-1">vs. período anterior</span>
-                  </p>
-                </div>
-                <div className="p-2 bg-primary/10 rounded-full">
-                  <Calendar className="h-5 w-5 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-2xl font-bold">{formatCurrency(data?.totalRevenue || 0)}</div>
-                  <p className="text-xs text-muted-foreground flex items-center mt-1">
-                    <span className={data?.revenueGrowth && data.revenueGrowth > 0 ? "text-green-500" : "text-red-500"}>
-                      {data?.revenueGrowth ? (data.revenueGrowth > 0 ? "+" : "") + data.revenueGrowth + "%" : "0%"}
-                    </span>
-                    <ArrowUpRight className={`ml-1 h-3 w-3 ${data?.revenueGrowth && data.revenueGrowth > 0 ? "text-green-500" : "text-red-500"}`} />
-                    <span className="text-muted-foreground ml-1">vs. período anterior</span>
-                  </p>
-                </div>
-                <div className="p-2 bg-primary/10 rounded-full">
-                  <TrendingUp className="h-5 w-5 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium">Prestadores</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-2xl font-bold">{data?.totalProviders || 0}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Taxa de conversão: {data?.totalProviders && data?.totalUsers ? ((data.totalProviders / data.totalUsers) * 100).toFixed(1) : 0}%
-                  </p>
-                </div>
-                <div className="p-2 bg-primary/10 rounded-full">
-                  <Users className="h-5 w-5 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-        
-        <Tabs defaultValue="general" onValueChange={setActiveTab}>
-          <TabsList className="mb-4">
-            <TabsTrigger value="general" className="flex items-center gap-2">
-              <BarChartIcon className="h-4 w-4" />
-              <span>Geral</span>
-            </TabsTrigger>
-            <TabsTrigger value="services" className="flex items-center gap-2">
-              <PieChartIcon className="h-4 w-4" />
-              <span>Serviços</span>
-            </TabsTrigger>
-            <TabsTrigger value="providers" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              <span>Prestadores</span>
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="general">
-            <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-              {/* Gráfico de agendamentos por dia */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Agendamentos por Dia</CardTitle>
-                  <CardDescription>
-                    Número de agendamentos realizados por dia
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={data?.appointmentsPerDay.map(item => ({
-                          ...item,
-                          date: formatDate(item.date)
-                        }))}
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip 
-                          formatter={(value) => [`${value} agendamentos`, 'Quantidade']}
-                          labelFormatter={(label) => `Data: ${label}`}
-                        />
-                        <Legend />
-                        <Line 
-                          type="monotone"
-                          dataKey="count"
-                          name="Agendamentos"
-                          stroke="#8884d8"
-                          activeDot={{ r: 8 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+
+        <div className="container mx-auto py-8 px-6">
+          {/* Cards de resumo */}
+          <div className="grid gap-6 mb-8 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+            <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-blue-50 hover:shadow-2xl transition-all">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-blue-800 flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Total de Usuários
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-3xl font-bold text-gray-900">{data?.totalUsers || 0}</div>
+                    <p className="text-xs text-gray-600 flex items-center mt-2">
+                      <span className={`font-semibold ${data?.userGrowth && data.userGrowth > 0 ? "text-green-600" : "text-red-600"}`}>
+                        {data?.userGrowth ? (data.userGrowth > 0 ? "+" : "") + data.userGrowth + "%" : "0%"}
+                      </span>
+                      <ArrowUpRight className={`ml-1 h-3 w-3 ${data?.userGrowth && data.userGrowth > 0 ? "text-green-600" : "text-red-600"}`} />
+                      <span className="text-gray-500 ml-1">vs. período anterior</span>
+                    </p>
                   </div>
-                </CardContent>
-              </Card>
-              
-              {/* Gráfico de receita por dia */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Receita por Dia</CardTitle>
-                  <CardDescription>
-                    Valor total de agendamentos por dia
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={data?.revenuePerDay.map(item => ({
-                          ...item,
-                          date: formatDate(item.date),
-                          formattedAmount: item.amount / 100
-                        }))}
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip 
-                          formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Valor']}
-                          labelFormatter={(label) => `Data: ${label}`}
-                        />
-                        <Legend />
-                        <Line 
-                          type="monotone"
-                          dataKey="formattedAmount"
-                          name="Receita"
-                          stroke="#82ca9d"
-                          activeDot={{ r: 8 }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
+                  <div className="p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-full shadow-lg">
+                    <Users className="h-6 w-6 text-white" />
                   </div>
-                </CardContent>
-              </Card>
-              
-              {/* Distribuição de status */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Distribuição por Status</CardTitle>
-                  <CardDescription>
-                    Distribuição dos agendamentos por status
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={data?.statusDistribution.map(item => ({
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-green-50 hover:shadow-2xl transition-all">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-green-800 flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Total de Agendamentos
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-3xl font-bold text-gray-900">{data?.totalAppointments || 0}</div>
+                    <p className="text-xs text-gray-600 flex items-center mt-2">
+                      <span className={`font-semibold ${data?.appointmentGrowth && data.appointmentGrowth > 0 ? "text-green-600" : "text-red-600"}`}>
+                        {data?.appointmentGrowth ? (data.appointmentGrowth > 0 ? "+" : "") + data.appointmentGrowth + "%" : "0%"}
+                      </span>
+                      <ArrowUpRight className={`ml-1 h-3 w-3 ${data?.appointmentGrowth && data.appointmentGrowth > 0 ? "text-green-600" : "text-red-600"}`} />
+                      <span className="text-gray-500 ml-1">vs. período anterior</span>
+                    </p>
+                  </div>
+                  <div className="p-3 bg-gradient-to-r from-green-500 to-emerald-600 rounded-full shadow-lg">
+                    <Calendar className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-purple-50 hover:shadow-2xl transition-all">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-purple-800 flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Receita Total
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-3xl font-bold text-gray-900">{formatCurrency(data?.totalRevenue || 0)}</div>
+                    <p className="text-xs text-gray-600 flex items-center mt-2">
+                      <span className={`font-semibold ${data?.revenueGrowth && data.revenueGrowth > 0 ? "text-green-600" : "text-red-600"}`}>
+                        {data?.revenueGrowth ? (data.revenueGrowth > 0 ? "+" : "") + data.revenueGrowth + "%" : "0%"}
+                      </span>
+                      <ArrowUpRight className={`ml-1 h-3 w-3 ${data?.revenueGrowth && data.revenueGrowth > 0 ? "text-green-600" : "text-red-600"}`} />
+                      <span className="text-gray-500 ml-1">vs. período anterior</span>
+                    </p>
+                  </div>
+                  <div className="p-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-full shadow-lg">
+                    <DollarSign className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-orange-50 hover:shadow-2xl transition-all">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-sm font-semibold text-orange-800 flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Prestadores
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-3xl font-bold text-gray-900">{data?.totalProviders || 0}</div>
+                    <p className="text-xs text-gray-600 mt-2">
+                      Taxa de conversão: <span className="font-semibold text-orange-600">
+                        {data?.totalProviders && data?.totalUsers ? ((data.totalProviders / data.totalUsers) * 100).toFixed(1) : 0}%
+                      </span>
+                    </p>
+                  </div>
+                  <div className="p-3 bg-gradient-to-r from-orange-500 to-red-600 rounded-full shadow-lg">
+                    <Target className="h-6 w-6 text-white" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <Tabs defaultValue="general" onValueChange={setActiveTab} className="space-y-6">
+            <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 bg-white shadow-lg rounded-xl p-1">
+              <TabsTrigger 
+                value="general" 
+                className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500 data-[state=active]:to-indigo-600 data-[state=active]:text-white data-[state=active]:shadow-md text-xs sm:text-sm"
+              >
+                <BarChartIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Geral</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="services" 
+                className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-green-500 data-[state=active]:to-emerald-600 data-[state=active]:text-white data-[state=active]:shadow-md text-xs sm:text-sm"
+              >
+                <PieChartIcon className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Serviços</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="providers" 
+                className="flex items-center gap-2 rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-600 data-[state=active]:text-white data-[state=active]:shadow-md text-xs sm:text-sm"
+              >
+                <Users className="h-3 w-3 sm:h-4 sm:w-4" />
+                <span>Prestadores</span>
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="general" className="space-y-6">
+              <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+                {/* Gráfico de agendamentos por dia */}
+                <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-blue-50">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold text-blue-900 flex items-center gap-2">
+                      <Activity className="h-5 w-5 text-blue-500" />
+                      Agendamentos por Dia
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">
+                      Número de agendamentos realizados por dia
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={data?.appointmentsPerDay.map(item => ({
                             ...item,
-                            name: STATUS_NAMES[item.status] || item.status
+                            date: formatDate(item.date)
                           }))}
-                          cx="50%"
-                          cy="50%"
-                          labelLine={false}
-                          outerRadius={80}
-                          fill="#8884d8"
-                          dataKey="count"
-                          nameKey="name"
-                          label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
                         >
-                          {data?.statusDistribution.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Pie>
-                        <Tooltip
-                          formatter={(value) => [`${value} agendamentos`, 'Quantidade']}
-                        />
-                        <Legend />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {/* Novos usuários por dia */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Novos Usuários por Dia</CardTitle>
-                  <CardDescription>
-                    Número de novos cadastros por dia
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={data?.usersPerDay.map(item => ({
-                          ...item,
-                          date: formatDate(item.date)
-                        }))}
-                        margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="date" />
-                        <YAxis />
-                        <Tooltip 
-                          formatter={(value) => [`${value} usuários`, 'Quantidade']}
-                          labelFormatter={(label) => `Data: ${label}`}
-                        />
-                        <Legend />
-                        <Bar dataKey="count" name="Novos Usuários" fill="#0088FE" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="services">
-            <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-              {/* Top serviços */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Serviços Mais Populares</CardTitle>
-                  <CardDescription>
-                    Serviços com maior número de agendamentos
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        layout="vertical"
-                        data={data?.topServices || []}
-                        margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" />
-                        <YAxis 
-                          type="category" 
-                          dataKey="name" 
-                          width={80}
-                          tick={{ fontSize: 12 }}
-                        />
-                        <Tooltip
-                          formatter={(value) => [`${value} agendamentos`, 'Quantidade']}
-                        />
-                        <Legend />
-                        <Bar dataKey="count" name="Agendamentos" fill="#00C49F" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {/* Distribuição por categorias (fictício) */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Distribuição por Categoria</CardTitle>
-                  <CardDescription>
-                    Agendamentos por categoria de serviço
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col items-center justify-center h-80">
-                  <div className="text-center text-muted-foreground">
-                    <p>Dados para esta visualização ainda não estão disponíveis.</p>
-                    <p className="mt-2">Por favor, verifique novamente mais tarde.</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="providers">
-            <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
-              {/* Top prestadores */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Prestadores Mais Ativos</CardTitle>
-                  <CardDescription>
-                    Prestadores com maior número de agendamentos
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="h-80">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        layout="vertical"
-                        data={data?.topProviders || []}
-                        margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis type="number" />
-                        <YAxis 
-                          type="category" 
-                          dataKey="name" 
-                          width={80}
-                          tick={{ fontSize: 12 }}
-                        />
-                        <Tooltip
-                          formatter={(value) => [`${value} agendamentos`, 'Quantidade']}
-                        />
-                        <Legend />
-                        <Bar dataKey="count" name="Agendamentos" fill="#FFBB28" />
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              {/* Taxa de conversão (fictício) */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Estatísticas de Prestadores</CardTitle>
-                  <CardDescription>
-                    Métricas adicionais sobre prestadores
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-col items-center justify-center h-80">
-                  <div className="text-center text-muted-foreground">
-                    <p>Dados para esta visualização ainda não estão disponíveis.</p>
-                    <p className="mt-2">Por favor, verifique novamente mais tarde.</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis dataKey="date" stroke="#6b7280" />
+                          <YAxis stroke="#6b7280" />
+                          <Tooltip 
+                            formatter={(value) => [`${value} agendamentos`, 'Quantidade']}
+                            labelFormatter={(label) => `Data: ${label}`}
+                            contentStyle={{
+                              backgroundColor: 'white',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
+                          <Legend />
+                          <Line 
+                            type="monotone"
+                            dataKey="count"
+                            name="Agendamentos"
+                            stroke="#3b82f6"
+                            strokeWidth={3}
+                            activeDot={{ r: 8, fill: '#3b82f6' }}
+                            dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Gráfico de receita por dia */}
+                <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-green-50">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold text-green-900 flex items-center gap-2">
+                      <TrendingUp className="h-5 w-5 text-green-500" />
+                      Receita por Dia
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">
+                      Valor total de agendamentos por dia
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart
+                          data={data?.revenuePerDay.map(item => ({
+                            ...item,
+                            date: formatDate(item.date),
+                            formattedAmount: item.amount / 100
+                          }))}
+                          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis dataKey="date" stroke="#6b7280" />
+                          <YAxis stroke="#6b7280" />
+                          <Tooltip 
+                            formatter={(value) => [`R$ ${Number(value).toFixed(2).replace('.', ',')}`, 'Valor']}
+                            labelFormatter={(label) => `Data: ${label}`}
+                            contentStyle={{
+                              backgroundColor: 'white',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
+                          <Legend />
+                          <Line 
+                            type="monotone"
+                            dataKey="formattedAmount"
+                            name="Receita"
+                            stroke="#10b981"
+                            strokeWidth={3}
+                            activeDot={{ r: 8, fill: '#10b981' }}
+                            dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Distribuição de status */}
+                <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-purple-50">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold text-purple-900 flex items-center gap-2">
+                      <PieChartIcon className="h-5 w-5 text-purple-500" />
+                      Distribuição por Status
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">
+                      Distribuição dos agendamentos por status
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={data?.statusDistribution.map(item => ({
+                              ...item,
+                              name: STATUS_NAMES[item.status] || item.status
+                            }))}
+                            cx="50%"
+                            cy="50%"
+                            labelLine={false}
+                            outerRadius={80}
+                            fill="#8884d8"
+                            dataKey="count"
+                            nameKey="name"
+                            label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                          >
+                            {data?.statusDistribution.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip
+                            formatter={(value) => [`${value} agendamentos`, 'Quantidade']}
+                            contentStyle={{
+                              backgroundColor: 'white',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
+                          <Legend />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Novos usuários por dia */}
+                <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-orange-50">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold text-orange-900 flex items-center gap-2">
+                      <Users className="h-5 w-5 text-orange-500" />
+                      Novos Usuários por Dia
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">
+                      Número de novos cadastros por dia
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          data={data?.usersPerDay.map(item => ({
+                            ...item,
+                            date: formatDate(item.date)
+                          }))}
+                          margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis dataKey="date" stroke="#6b7280" />
+                          <YAxis stroke="#6b7280" />
+                          <Tooltip 
+                            formatter={(value) => [`${value} usuários`, 'Quantidade']}
+                            labelFormatter={(label) => `Data: ${label}`}
+                            contentStyle={{
+                              backgroundColor: 'white',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
+                          <Legend />
+                          <Bar dataKey="count" name="Novos Usuários" fill="#f97316" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="services" className="space-y-6">
+              <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+                {/* Top serviços */}
+                <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-green-50">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold text-green-900 flex items-center gap-2">
+                      <BarChartIcon className="h-5 w-5 text-green-500" />
+                      Serviços Mais Populares
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">
+                      Serviços com maior número de agendamentos
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          layout="vertical"
+                          data={data?.topServices || []}
+                          margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis type="number" stroke="#6b7280" />
+                          <YAxis 
+                            type="category" 
+                            dataKey="name" 
+                            width={80}
+                            tick={{ fontSize: 12 }}
+                            stroke="#6b7280"
+                          />
+                          <Tooltip
+                            formatter={(value) => [`${value} agendamentos`, 'Quantidade']}
+                            contentStyle={{
+                              backgroundColor: 'white',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
+                          <Legend />
+                          <Bar dataKey="count" name="Agendamentos" fill="#10b981" radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Distribuição por categorias (fictício) */}
+                <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-blue-50">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold text-blue-900 flex items-center gap-2">
+                      <PieChartIcon className="h-5 w-5 text-blue-500" />
+                      Distribuição por Categoria
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">
+                      Agendamentos por categoria de serviço
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col items-center justify-center h-80">
+                    <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-4">
+                      <FileText className="h-12 w-12 text-blue-500" />
+                    </div>
+                    <div className="text-center text-gray-600">
+                      <p className="font-semibold">Dados em desenvolvimento</p>
+                      <p className="mt-2 text-sm">Esta visualização estará disponível em breve.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="providers" className="space-y-6">
+              <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+                {/* Top prestadores */}
+                <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-purple-50">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold text-purple-900 flex items-center gap-2">
+                      <Users className="h-5 w-5 text-purple-500" />
+                      Prestadores Mais Ativos
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">
+                      Prestadores com maior número de agendamentos
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-80">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart
+                          layout="vertical"
+                          data={data?.topProviders || []}
+                          margin={{ top: 5, right: 30, left: 80, bottom: 5 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis type="number" stroke="#6b7280" />
+                          <YAxis 
+                            type="category" 
+                            dataKey="name" 
+                            width={80}
+                            tick={{ fontSize: 12 }}
+                            stroke="#6b7280"
+                          />
+                          <Tooltip
+                            formatter={(value) => [`${value} agendamentos`, 'Quantidade']}
+                            contentStyle={{
+                              backgroundColor: 'white',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                            }}
+                          />
+                          <Legend />
+                          <Bar dataKey="count" name="Agendamentos" fill="#8b5cf6" radius={[0, 4, 4, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </CardContent>
+                </Card>
+                
+                {/* Taxa de conversão (fictício) */}
+                <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-pink-50">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl font-bold text-pink-900 flex items-center gap-2">
+                      <Target className="h-5 w-5 text-pink-500" />
+                      Estatísticas de Prestadores
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">
+                      Métricas adicionais sobre prestadores
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="flex flex-col items-center justify-center h-80">
+                    <div className="w-24 h-24 bg-pink-100 rounded-full flex items-center justify-center mb-4">
+                      <BarChart3 className="h-12 w-12 text-pink-500" />
+                    </div>
+                    <div className="text-center text-gray-600">
+                      <p className="font-semibold">Dados em desenvolvimento</p>
+                      <p className="mt-2 text-sm">Esta visualização estará disponível em breve.</p>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </AdminLayout>
   );

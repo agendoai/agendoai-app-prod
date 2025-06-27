@@ -1,5 +1,6 @@
-import { and, desc, eq, gte, isNull, lte, or } from "drizzle-orm"
+import { and, desc, eq, gte, isNull, lte, or, count } from "drizzle-orm"
 import { db } from "./db"
+import { sql } from "drizzle-orm"
 
 import {
 	Appointment,
@@ -341,6 +342,15 @@ export interface IStorage {
 
 	// Adiciona ou substitui todos os horários disponíveis de um provedor para uma data específica
 	setAvailabilityByDate(providerId: number, date: string, slots: { startTime: string, endTime: string }[]): Promise<void>
+
+	// Métodos para relatórios administrativos
+	getUsersCount(userType?: string): Promise<number>
+	getServicesCount(): Promise<number>
+	getCategoriesCount(): Promise<number>
+	getAppointmentsCount(status?: string): Promise<number>
+	getRecentAppointments(limit: number): Promise<any[]>
+	getNewUsersByDay(startDate: Date, endDate: Date): Promise<{ date: string, count: number }[]>
+	getAllAppointments(): Promise<Appointment[]>
 }
 
 // Memory storage implementation for testing
@@ -1365,6 +1375,123 @@ export class MemStorage implements IStorage {
 				dayOfWeek: new Date(date).getDay(),
 			});
 		}
+	}
+
+	// Métodos para relatórios administrativos
+	async getUsersCount(userType?: string): Promise<number> {
+		try {
+			if (userType) {
+				const result = await db
+					.select({ count: count() })
+					.from(users)
+					.where(eq(users.userType, userType));
+				return Number(result[0]?.count) || 0;
+			}
+			
+			const result = await db
+				.select({ count: count() })
+				.from(users);
+			return Number(result[0]?.count) || 0;
+		} catch (error) {
+			console.error('Erro ao contar usuários:', error);
+			return 0;
+		}
+	}
+
+	async getServicesCount(): Promise<number> {
+		try {
+			const result = await db
+				.select({ count: count() })
+				.from(services);
+			return Number(result[0]?.count) || 0;
+		} catch (error) {
+			console.error('Erro ao contar serviços:', error);
+			return 0;
+		}
+	}
+
+	async getCategoriesCount(): Promise<number> {
+		try {
+			const result = await db
+				.select({ count: count() })
+				.from(categories);
+			return Number(result[0]?.count) || 0;
+		} catch (error) {
+			console.error('Erro ao contar categorias:', error);
+			return 0;
+		}
+	}
+
+	async getAppointmentsCount(status?: string): Promise<number> {
+		try {
+			if (status) {
+				const result = await db
+					.select({ count: count() })
+					.from(appointments)
+					.where(eq(appointments.status, status));
+				return Number(result[0]?.count) || 0;
+			}
+			
+			const result = await db
+				.select({ count: count() })
+				.from(appointments);
+			return Number(result[0]?.count) || 0;
+		} catch (error) {
+			console.error('Erro ao contar agendamentos:', error);
+			return 0;
+		}
+	}
+
+	async getRecentAppointments(limit: number): Promise<any[]> {
+		try {
+			const result = await db
+				.select({
+					id: appointments.id,
+					date: appointments.date,
+					startTime: appointments.startTime,
+					endTime: appointments.endTime,
+					status: appointments.status,
+					totalPrice: appointments.totalPrice,
+					clientId: appointments.clientId,
+					providerId: appointments.providerId,
+					serviceId: appointments.serviceId,
+					createdAt: appointments.createdAt
+				})
+				.from(appointments)
+				.orderBy(desc(appointments.createdAt))
+				.limit(limit);
+			
+			return result;
+		} catch (error) {
+			console.error('Erro ao buscar agendamentos recentes:', error);
+			return [];
+		}
+	}
+
+	async getNewUsersByDay(startDate: Date, endDate: Date): Promise<{ date: string, count: number }[]> {
+		try {
+			const result = await db.execute(sql`
+				SELECT 
+					DATE(created_at) as date,
+					COUNT(*) as count
+				FROM users
+				WHERE created_at BETWEEN ${startDate} AND ${endDate}
+				GROUP BY DATE(created_at)
+				ORDER BY date
+			`);
+			
+			return result.rows.map((row: any) => ({
+				date: typeof row.date === 'string' ? row.date : (row.date?.toISOString?.().split('T')[0] || String(row.date)),
+				count: Number(row.count)
+			}));
+		} catch (error) {
+			console.error('Erro ao buscar novos usuários por dia:', error);
+			return [];
+		}
+	}
+
+	async getAllAppointments(): Promise<Appointment[]> {
+		return this.appointments;
 	}
 }
 
@@ -2835,6 +2962,215 @@ async getBlockedTimeSlotsByDate(
 				dayOfWeek: new Date(date).getDay(),
 			});
 		}
+	}
+
+	// Métodos para relatórios administrativos
+	async getUsersCount(userType?: string): Promise<number> {
+		try {
+			if (userType) {
+				const result = await db
+					.select({ count: count() })
+					.from(users)
+					.where(eq(users.userType, userType));
+				return Number(result[0]?.count) || 0;
+			}
+			
+			const result = await db
+				.select({ count: count() })
+				.from(users);
+			return Number(result[0]?.count) || 0;
+		} catch (error) {
+			console.error('Erro ao contar usuários:', error);
+			return 0;
+		}
+	}
+
+	async getServicesCount(): Promise<number> {
+		try {
+			const result = await db
+				.select({ count: count() })
+				.from(services);
+			return Number(result[0]?.count) || 0;
+		} catch (error) {
+			console.error('Erro ao contar serviços:', error);
+			return 0;
+		}
+	}
+
+	async getCategoriesCount(): Promise<number> {
+		try {
+			const result = await db
+				.select({ count: count() })
+				.from(categories);
+			return Number(result[0]?.count) || 0;
+		} catch (error) {
+			console.error('Erro ao contar categorias:', error);
+			return 0;
+		}
+	}
+
+	async getAppointmentsCount(status?: string): Promise<number> {
+		try {
+			if (status) {
+				const result = await db
+					.select({ count: count() })
+					.from(appointments)
+					.where(eq(appointments.status, status));
+				return Number(result[0]?.count) || 0;
+			}
+			
+			const result = await db
+				.select({ count: count() })
+				.from(appointments);
+			return Number(result[0]?.count) || 0;
+		} catch (error) {
+			console.error('Erro ao contar agendamentos:', error);
+			return 0;
+		}
+	}
+
+	async getRecentAppointments(limit: number): Promise<any[]> {
+		try {
+			const result = await db
+				.select({
+					id: appointments.id,
+					date: appointments.date,
+					startTime: appointments.startTime,
+					endTime: appointments.endTime,
+					status: appointments.status,
+					totalPrice: appointments.totalPrice,
+					clientId: appointments.clientId,
+					providerId: appointments.providerId,
+					serviceId: appointments.serviceId,
+					createdAt: appointments.createdAt
+				})
+				.from(appointments)
+				.orderBy(desc(appointments.createdAt))
+				.limit(limit);
+			
+			return result;
+		} catch (error) {
+			console.error('Erro ao buscar agendamentos recentes:', error);
+			return [];
+		}
+	}
+
+	async getNewUsersByDay(startDate: Date, endDate: Date): Promise<{ date: string, count: number }[]> {
+		try {
+			const result = await db.execute(sql`
+				SELECT 
+					DATE(created_at) as date,
+					COUNT(*) as count
+				FROM users
+				WHERE created_at BETWEEN ${startDate} AND ${endDate}
+				GROUP BY DATE(created_at)
+				ORDER BY date
+			`);
+			
+			return result.rows.map((row: any) => ({
+				date: typeof row.date === 'string' ? row.date : (row.date?.toISOString?.().split('T')[0] || String(row.date)),
+				count: Number(row.count)
+			}));
+		} catch (error) {
+			console.error('Erro ao buscar novos usuários por dia:', error);
+			return [];
+		}
+	}
+
+	async getAllAppointments(): Promise<Appointment[]> {
+		try {
+			return await db
+				.select()
+				.from(appointments)
+				.orderBy(desc(appointments.createdAt));
+		} catch (error) {
+			console.error('Erro ao buscar todos os agendamentos:', error);
+			return [];
+		}
+	}
+
+	// Alias para getAppointmentById para manter compatibilidade
+	async getAppointment(id: number): Promise<Appointment | undefined> {
+		return this.getAppointmentById(id);
+	}
+
+	// Alias para getServiceById para manter compatibilidade
+	async getService(id: number): Promise<Service | undefined> {
+		return this.getServiceById(id);
+	}
+
+	// Alias para getUserById para manter compatibilidade (providers são usuários)
+	async getProvider(id: number): Promise<User | undefined> {
+		const user = await this.getUserById(id);
+		if (user && user.userType === 'provider') {
+			return user;
+		}
+		return undefined;
+	}
+
+	// Alias para getNicheById para manter compatibilidade
+	async getNiche(id: number): Promise<Niche | undefined> {
+		return this.getNicheById(id);
+	}
+
+	// Alias para getCategoryById para manter compatibilidade
+	async getCategory(id: number): Promise<Category | undefined> {
+		return this.getCategoryById(id);
+	}
+
+	// Alias para getServiceTemplateById para manter compatibilidade
+	async getServiceTemplate(id: number): Promise<ServiceTemplate | undefined> {
+		return this.getServiceTemplateById(id);
+	}
+
+	// Alias para getProviderServiceById para manter compatibilidade
+	async getProviderService(id: number): Promise<ProviderService | undefined> {
+		return this.getProviderServiceById(id);
+	}
+
+	// Alias para getAppointmentsByProviderId para manter compatibilidade
+	async getProviderAppointments(providerId: number): Promise<Appointment[]> {
+		return this.getAppointmentsByProviderId(providerId);
+	}
+
+	// Alias para getProviderServicesByProviderId para manter compatibilidade
+	async getServicesByProvider(providerId: number): Promise<ProviderService[]> {
+		return this.getProviderServicesByProviderId(providerId);
+	}
+
+	// Alias para getServicesByCategoryId para manter compatibilidade
+	async getServicesByCategory(categoryId: number): Promise<Service[]> {
+		return this.getServicesByCategoryId(categoryId);
+	}
+
+	// Alias para getUsers para manter compatibilidade
+	async getAllUsers(): Promise<User[]> {
+		return this.getUsers();
+	}
+
+	// Alias para getServiceTemplates para manter compatibilidade
+	async getAllServiceTemplates(): Promise<ServiceTemplate[]> {
+		return this.getServiceTemplates();
+	}
+
+	// Alias para getAllProviderFees para manter compatibilidade
+	async getAllProviderFees(): Promise<ProviderServiceFee[]> {
+		return this.getAllProviderFees();
+	}
+
+	// Alias para getUsersByType("provider") para manter compatibilidade
+	async getAllProviders(): Promise<User[]> {
+		return this.getUsersByType("provider");
+	}
+
+	// Alias para getReviews para manter compatibilidade
+	async getAllReviews(): Promise<Review[]> {
+		return this.getReviews();
+	}
+
+	// Alias para getProviderServices para manter compatibilidade
+	async getAllProviderServices(): Promise<ProviderService[]> {
+		return this.getProviderServices();
 	}
 }
 
