@@ -1,4 +1,4 @@
-import React, { ReactNode, useState, useEffect } from 'react';
+import React, { ReactNode, useState, useEffect, useRef } from 'react';
 import { useLocation } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useNotifications } from '@/hooks/use-notifications';
@@ -25,7 +25,8 @@ import {
   Package,
   TrendingUp,
   MessageSquare,
-  LogOut
+  LogOut,
+  X
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from "@/components/ui/badge";
@@ -67,6 +68,8 @@ export default function AdminLayout({
   const { unreadCount } = useNotifications();
   const [docMenuOpen, setDocMenuOpen] = useState(false);
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement>(null);
   
   // Abrir automaticamente o submenu quando a rota for de documentação
   useEffect(() => {
@@ -78,6 +81,21 @@ export default function AdminLayout({
       setDocMenuOpen(true);
     }
   }, [location]);
+  
+  // Fecha o menu ao clicar fora
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        setShowSidebar(false);
+      }
+    }
+    if (showSidebar) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSidebar]);
   
   const handleBackButton = () => {
     if (backButtonAction) {
@@ -194,121 +212,15 @@ export default function AdminLayout({
       .substring(0, 2);
   };
 
-  // Componente do menu mobile otimizado
-  const MobileMenu = () => (
-    <Sheet>
-      <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="text-white hover:bg-primary/90">
-          <Menu className="h-6 w-6" />
-        </Button>
-      </SheetTrigger>
-      <SheetContent side="left" className="w-80 p-0">
-        <div className="h-full flex flex-col">
-          {/* Header */}
-          <SheetHeader className="p-4 border-b bg-gradient-to-r from-primary to-primary/90 text-white">
-            <SheetTitle>
-              <div className="flex items-center space-x-2">
-                <span className="text-xl font-bold">AgendoAI</span>
-                <span className="bg-white text-primary text-xs font-bold px-2 py-1 rounded">ADMIN</span>
-              </div>
-            </SheetTitle>
-            <SheetDescription className="text-white/80">
-              Painel de Administração
-            </SheetDescription>
-          </SheetHeader>
-
-          {/* Conteúdo do menu */}
-          <div className="flex-1 overflow-y-auto">
-            {/* Menu Principal */}
-            <div className="p-4">
-              <h3 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Principal</h3>
-              <div className="space-y-1">
-                {mainLinks.map((link) => (
-                  <button
-                    key={link.href}
-                    onClick={() => setLocation(link.href)}
-                    className={`w-full flex items-center px-3 py-3 rounded-lg text-sm transition-colors ${
-                      isActive(link.href)
-                        ? "bg-primary/10 text-primary font-medium border border-primary/20"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    <span className="mr-3">{link.icon}</span>
-                    {link.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Menu Secundário */}
-            <div className="p-4">
-              <h3 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Configurações</h3>
-              <div className="space-y-1">
-                {secondaryLinks.map((link) => (
-                  <button
-                    key={link.href}
-                    onClick={() => setLocation(link.href)}
-                    className={`w-full flex items-center px-3 py-3 rounded-lg text-sm transition-colors ${
-                      isActive(link.href)
-                        ? "bg-primary/10 text-primary font-medium border border-primary/20"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    <span className="mr-3">{link.icon}</span>
-                    {link.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <Separator />
-
-            {/* Suporte */}
-            <div className="p-4">
-              <h3 className="text-sm font-semibold text-gray-600 mb-3 uppercase tracking-wide">Suporte</h3>
-              <div className="space-y-1">
-                {supportLinks.map((link) => (
-                  <button
-                    key={link.href}
-                    onClick={() => setLocation(link.href)}
-                    className={`w-full flex items-center px-3 py-3 rounded-lg text-sm transition-colors ${
-                      isActive(link.href)
-                        ? "bg-primary/10 text-primary font-medium border border-primary/20"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    <span className="mr-3">{link.icon}</span>
-                    {link.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Footer com logout */}
-          <div className="p-4 border-t bg-gray-50">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center px-3 py-3 rounded-lg text-sm text-red-600 hover:bg-red-50 transition-colors"
-            >
-              <LogOut className="h-5 w-5 mr-3" />
-              Sair do Sistema
-            </button>
-          </div>
-        </div>
-      </SheetContent>
-    </Sheet>
-  );
-
   return (
     <div className="flex flex-col min-h-screen bg-background">
       {/* Header principal */}
       <header className="bg-gradient-to-r from-blue-800 via-blue-900 to-indigo-900 text-white shadow-lg z-50">
         <div className="container mx-auto py-4 px-4 flex justify-between items-center">
           <div className="flex items-center space-x-4">
-            <MobileMenu />
+            <Button variant="ghost" size="icon" className="text-white" onClick={() => setShowSidebar(true)}>
+              <Menu className="h-6 w-6" />
+            </Button>
             <h1 className="text-lg sm:text-xl font-bold tracking-wide drop-shadow-md select-none">{showBackButton ? title : "Painel Admin"}</h1>
           </div>
 
@@ -346,6 +258,47 @@ export default function AdminLayout({
         </div>
       )}
 
+      {/* Novo Sidebar customizado */}
+      {showSidebar && (
+        <div className="fixed inset-0 z-50 flex">
+          <div ref={sidebarRef} className="w-80 h-full bg-white shadow-2xl flex flex-col animate-slide-in">
+            <div className="flex items-center justify-between p-6 border-b border-gray-100">
+              <span className="text-2xl font-bold text-indigo-700 select-none">AgendoAI</span>
+              <Button variant="ghost" size="icon" onClick={() => setShowSidebar(false)}>
+                <X className="h-6 w-6 text-gray-500" />
+              </Button>
+            </div>
+            <nav className="flex-1 py-6 px-4 space-y-2">
+              {[...mainLinks, ...secondaryLinks, ...supportLinks].map((item) => (
+                <button
+                  key={item.href}
+                  onClick={() => { setLocation(item.href); setShowSidebar(false); }}
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium transition-colors
+                    ${isActive(item.href)
+                      ? "bg-indigo-50 text-indigo-700"
+                      : "text-gray-700 hover:bg-gray-50"}
+                  `}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </nav>
+            <div className="mt-auto p-6 border-t border-gray-100">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium text-red-600 hover:bg-red-50 transition-colors"
+              >
+                <LogOut className="h-5 w-5" />
+                <span>Sair</span>
+              </button>
+            </div>
+          </div>
+          {/* Área de fundo transparente para fechar ao clicar fora */}
+          <div className="flex-1" onClick={() => setShowSidebar(false)} />
+        </div>
+      )}
+
       {/* Conteúdo principal */}
       <main className={cn("flex-1", showBackButton && "pt-2")}>
         {children}
@@ -368,7 +321,7 @@ export default function AdminLayout({
 
       {/* Diálogo de confirmação para sair */}
       <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-        <DialogContent className="backdrop-blur-sm backdrop:bg-black/20">
+        <DialogContent className="bg-white">
           <DialogHeader>
             <DialogTitle>Sair do Sistema</DialogTitle>
             <DialogDescription>

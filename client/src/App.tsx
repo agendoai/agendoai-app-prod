@@ -32,7 +32,7 @@ const ClientDashboard = lazy(() => import("@/pages/client/client-dashboard"));
 
 const NichesPage = lazy(() => import("@/pages/client/niches-page"));
 const CategoriesPage = lazy(() => import("@/pages/client/categories-page"));
-const ServicesPage = lazy(() => import("@/pages/client/services-page"));
+const ClientServicesPage = lazy(() => import("@/pages/client/services-page"));
 const ServiceProvidersPage = lazy(() => import("@/pages/client/service-providers-page"));
 const ClientProviderSchedulePage = lazy(() => import("@/pages/client/provider-schedule-page"));
 const BookTimeSlotPage = lazy(() => import("@/pages/client/book-time-slot-page"));
@@ -103,6 +103,7 @@ const ProvidersPage = lazy(() => import("@/pages/admin/providers-page"));
 const AppointmentsPage = lazy(() => import("@/pages/admin/appointments-page"));
 const ReportsPage = lazy(() => import("@/pages/admin/reports-page"));
 const PromotionsManagementPage = lazy(() => import("@/pages/admin/promotions-management-page"));
+const ServicesPage = lazy(() => import("@/pages/admin/services-page"));
 
 // Páginas de suporte
 const SupportDashboardPage = lazy(() => import("@/pages/support/support-dashboard-page"));
@@ -131,7 +132,6 @@ function RouterWithTransitions() {
         <Route path="/" component={() => <LazyWrapper component={LandingPage} />} />
         <Route path="/welcome" component={() => <LazyWrapper component={OnboardingPage} />} />
         <Route path="/new-dashboard" component={DashboardRedirectPage} />
-        <Route path="/dashboard-demo" component={() => <LazyWrapper component={DashboardPage} />} />
         <Route path="/onboarding-wizard" component={() => <LazyWrapper component={OnboardingWizardPage} />} />
         <Route path="/auth" component={() => <LazyWrapper component={AuthPage} />} />
         <Route path="/password-recovery" component={() => <LazyWrapper component={PasswordRecoveryPage} />} />
@@ -165,12 +165,12 @@ function RouterWithTransitions() {
         />
         <ProtectedRoute
           path="/client/services/:categoryId"
-          component={() => <LazyWrapper component={ServicesPage} />}
+          component={() => <LazyWrapper component={ClientServicesPage} />}
           userType="client"
         />
         <ProtectedRoute
           path="/client/categories/:categoryId/services/:serviceId"
-          component={() => <LazyWrapper component={ServicesPage} />}
+          component={() => <LazyWrapper component={ClientServicesPage} />}
           userType="client"
         />
         <ProtectedRoute
@@ -476,7 +476,7 @@ function RouterWithTransitions() {
           userType="admin"
         />
         <ProtectedRoute
-          path="/admin/notification-settings"
+          path="/admin/notifications"
           component={() => <LazyWrapper component={NotificationSettingsPage} />}
           userType="admin"
         />
@@ -518,6 +518,16 @@ function RouterWithTransitions() {
         <ProtectedRoute
           path="/admin/testing-documentation"
           component={() => <LazyWrapper component={TestingDocumentationPage} />}
+          userType="admin"
+        />
+        <ProtectedRoute
+          path="/admin/services"
+          component={() => <LazyWrapper component={ServicesPage} />}
+          userType="admin"
+        />
+        <ProtectedRoute
+          path="/admin/profile"
+          component={() => <LazyWrapper component={ProfilePage} />}
           userType="admin"
         />
 

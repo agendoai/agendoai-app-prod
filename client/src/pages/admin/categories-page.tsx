@@ -118,6 +118,7 @@ export default function CategoriesPage() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(null);
+  const [showCategoryDialog, setShowCategoryDialog] = useState(false);
 
   // Buscar categorias
   const { data: categories, isLoading, error } = useQuery({
@@ -295,9 +296,15 @@ export default function CategoriesPage() {
                   Organize e gerencie todos os nichos de mercado da plataforma
                 </p>
               </div>
-              
-              {/* Estatísticas */}
-              <div className="flex gap-4">
+              {/* Botão de adicionar categoria */}
+              <div className="flex gap-4 items-center">
+                <Button
+                  className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold px-6 py-3 rounded-xl shadow flex items-center gap-2"
+                  onClick={() => { setEditingCategory(null); setShowCategoryDialog(true); }}
+                >
+                  <Plus className="h-5 w-5" /> Adicionar Categoria
+                </Button>
+                {/* Estatísticas */}
                 <div className="text-center">
                   <div className="text-2xl font-bold text-blue-600">
                     {categories ? categories.length : 0}
@@ -315,120 +322,105 @@ export default function CategoriesPage() {
           </div>
         </div>
 
+        {/* Dialog de criar/editar categoria */}
+        <Dialog open={showCategoryDialog} onOpenChange={setShowCategoryDialog}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-bold text-blue-900 flex items-center gap-2">
+                {editingCategory ? <Edit className="h-5 w-5 text-blue-500" /> : <Plus className="h-5 w-5 text-green-500" />}
+                {editingCategory ? "Editar Nicho/Categoria" : "Nova Categoria"}
+              </DialogTitle>
+              <DialogDescription className="text-gray-600">
+                {editingCategory
+                  ? "Atualize os detalhes do nicho/categoria."
+                  : "Crie um novo nicho/categoria para serviços."}
+              </DialogDescription>
+            </DialogHeader>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold text-blue-800">Nome do Nicho/Categoria *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Ex: Beleza e Estética" {...field} className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold text-blue-800">Descrição</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Descreva este nicho de mercado..."
+                          {...field}
+                          rows={3}
+                          className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="icon"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold text-blue-800">Ícone *</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Selecione um ícone" {...field} className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                      </FormControl>
+                      <FormDescription>
+                        Nome do ícone para exibição (ex: 'scissors', 'car', 'pet')
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="color"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="font-semibold text-blue-800">Cor</FormLabel>
+                      <div className="flex items-center gap-2">
+                        <FormControl>
+                          <Input type="color" {...field} className="w-10 h-10 rounded-full border-2 border-blue-200" />
+                        </FormControl>
+                        <Input
+                          placeholder="Código da cor"
+                          value={field.value}
+                          onChange={field.onChange}
+                          className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 w-28"
+                        />
+                      </div>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <div className="flex justify-end gap-2 pt-2">
+                  {editingCategory && (
+                    <Button type="button" variant="outline" onClick={cancelEdit} className="rounded-lg">Cancelar</Button>
+                  )}
+                  <Button type="submit" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold px-6 py-2 rounded-lg shadow">
+                    {editingCategory ? "Salvar Alterações" : "Criar Categoria"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </DialogContent>
+        </Dialog>
+
         <div className="container mx-auto py-8 px-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Formulário */}
-            <div className="lg:col-span-1">
-              <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-blue-50 sticky top-6">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-2xl font-bold text-blue-900 flex items-center gap-2">
-                    {editingCategory ? <Edit className="h-5 w-5 text-blue-500" /> : <Plus className="h-5 w-5 text-green-500" />}
-                    {editingCategory ? "Editar Nicho/Categoria" : "Novo Nicho/Categoria"}
-                  </CardTitle>
-                  <CardDescription className="text-gray-600">
-                    {editingCategory
-                      ? "Atualize os detalhes do nicho/categoria."
-                      : "Crie um novo nicho/categoria para serviços."}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-                      <FormField
-                        control={form.control}
-                        name="name"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="font-semibold text-blue-800">Nome do Nicho/Categoria *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Ex: Beleza e Estética" {...field} className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="description"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="font-semibold text-blue-800">Descrição</FormLabel>
-                            <FormControl>
-                              <Textarea
-                                placeholder="Descreva este nicho de mercado..."
-                                {...field}
-                                rows={3}
-                                className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="icon"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="font-semibold text-blue-800">Ícone *</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Selecione um ícone" {...field} className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
-                            </FormControl>
-                            <FormDescription>
-                              Nome do ícone para exibição (ex: 'scissors', 'car', 'pet')
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="color"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="font-semibold text-blue-800">Cor</FormLabel>
-                            <div className="flex items-center gap-2">
-                              <FormControl>
-                                <Input type="color" {...field} className="w-10 h-10 rounded-full border-2 border-blue-200" />
-                              </FormControl>
-                              <Input
-                                placeholder="Código da cor"
-                                value={field.value}
-                                onChange={field.onChange}
-                                className="flex-1 rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                              />
-                            </div>
-                            <FormDescription>
-                              Cor de fundo para o ícone do nicho/categoria
-                            </FormDescription>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <div className="flex justify-between pt-2 gap-2">
-                        {editingCategory && (
-                          <Button type="button" variant="outline" onClick={cancelEdit} className="rounded-lg">
-                            Cancelar
-                          </Button>
-                        )}
-                        <Button
-                          type="submit"
-                          disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending}
-                          className={`rounded-lg font-semibold shadow-md transition-all ${editingCategory ? "ml-auto bg-blue-600 hover:bg-blue-700" : "w-full bg-green-600 hover:bg-green-700"}`}
-                        >
-                          {editingCategory ? "Atualizar" : "Criar Nicho/Categoria"}
-                        </Button>
-                      </div>
-                    </form>
-                  </Form>
-                </CardContent>
-              </Card>
-            </div>
-
             {/* Lista de Categorias */}
             <div className="lg:col-span-2">
               <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-blue-50">

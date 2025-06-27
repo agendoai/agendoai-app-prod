@@ -18,6 +18,7 @@ import { Loader2, Send, MessageSquare, CheckCircle, Clock, AlertCircle, Search, 
 import AdminLayout from "@/components/layout/admin-layout";
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { MessageSquare as MessageSquareIcon } from "lucide-react";
 
 interface SupportMessageWithUser extends SupportMessage {
   user?: User;
@@ -211,190 +212,175 @@ export default function SupportManagement() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto py-6">
-        <h1 className="text-2xl font-bold mb-6">Central de Suporte</h1>
-        
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Painel esquerdo: Lista de mensagens */}
-          <div className="md:col-span-1">
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle>Mensagens</CardTitle>
-                
-                <div className="relative mb-2">
-                  <Input
-                    placeholder="Pesquisar usuário..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pr-8"
-                  />
-                  <Search className="absolute right-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  
-                  {searchResults.length > 0 && (
-                    <div className="absolute z-10 mt-1 w-full bg-background border rounded-md shadow-md">
-                      {searchResults.map(user => (
-                        <div 
-                          key={user.id}
-                          className="p-2 hover:bg-accent cursor-pointer flex items-center"
-                          onClick={() => selectUser(user.id)}
-                        >
-                          <Avatar className="h-6 w-6 mr-2">
-                            <AvatarImage src={user.profileImage || ''} />
-                            <AvatarFallback>
-                              <UserIcon className="h-4 w-4" />
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="text-sm">
-                            <div>{user.name || 'Sem nome'}</div>
-                            <div className="text-xs text-muted-foreground">{user.email}</div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                
-                <Tabs defaultValue="pending" value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
-                    <TabsTrigger value="pending" className="text-xs sm:text-sm">
-                      <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                      <span className="hidden sm:inline">Pendentes</span>
-                      <span className="sm:hidden">Pendentes</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="all" className="text-xs sm:text-sm">
-                      <List className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                      <span className="hidden sm:inline">Todos</span>
-                      <span className="sm:hidden">Todos</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="user" disabled={!selectedUserId} className="text-xs sm:text-sm">
-                      <UserIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                      <span className="hidden sm:inline">Por Usuário</span>
-                      <span className="sm:hidden">Usuário</span>
-                    </TabsTrigger>
-                  </TabsList>
-                </Tabs>
-              </CardHeader>
-              <CardContent className="h-[calc(100vh-300px)] overflow-y-auto">
-                {renderMessages()}
-              </CardContent>
-            </Card>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 py-8">
+        <div className="container mx-auto">
+          <div className="flex items-center gap-3 mb-8">
+            <MessageSquareIcon className="h-8 w-8 text-indigo-600" />
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">Central de Suporte</h1>
           </div>
-          
-          {/* Painel direito: Detalhes da mensagem e formulário de resposta */}
-          <div className="md:col-span-2">
-            <Card className="h-[calc(100vh-150px)] flex flex-col">
-              {selectedMessage ? (
-                <>
-                  <CardHeader className="pb-3">
-                    <div className="flex justify-between items-center">
-                      <CardTitle>Detalhes da Mensagem #{selectedMessage.id}</CardTitle>
-                      <Badge variant={getStatusBadgeVariant(selectedMessage.status)}>
-                        {getStatusIcon(selectedMessage.status)}
-                        {selectedMessage.status === "pending" ? "Pendente" : 
-                         selectedMessage.status === "in-progress" ? "Em andamento" : 
-                         selectedMessage.status === "resolved" ? "Resolvido" : selectedMessage.status}
-                      </Badge>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      Enviado {selectedMessage.createdAt ? formatDistanceToNow(new Date(selectedMessage.createdAt), { addSuffix: true, locale: ptBR }) : 'em data desconhecida'}
-                      {selectedMessage.resolvedAt && (
-                        <span> • Resolvido {formatDistanceToNow(new Date(selectedMessage.resolvedAt), { addSuffix: true, locale: ptBR })}</span>
-                      )}
-                    </div>
-                  </CardHeader>
-                  
-                  <CardContent className="flex-grow overflow-y-auto">
-                    <div className="space-y-6">
-                      {/* Informações do usuário */}
-                      <div>
-                        <h3 className="text-lg font-medium">Informações do usuário</h3>
-                        <div className="mt-2 p-3 bg-accent rounded-md">
-                          <p><span className="font-medium">ID:</span> {selectedMessage.userId}</p>
-                          {selectedMessage.user && (
-                            <>
-                              <p><span className="font-medium">Nome:</span> {selectedMessage.user.name || 'Não informado'}</p>
-                              <p><span className="font-medium">Email:</span> {selectedMessage.user.email}</p>
-                              <p><span className="font-medium">Tipo:</span> {
-                                selectedMessage.user.userType === 'client' ? 'Cliente' :
-                                selectedMessage.user.userType === 'provider' ? 'Prestador de Serviços' :
-                                selectedMessage.user.userType === 'admin' ? 'Administrador' :
-                                selectedMessage.user.userType
-                              }</p>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                      
-                      {/* Mensagem do usuário */}
-                      <div>
-                        <h3 className="text-lg font-medium">Assunto da mensagem</h3>
-                        <p className="mt-1">{selectedMessage.subject}</p>
-                      </div>
-                      
-                      <div>
-                        <h3 className="text-lg font-medium">Mensagem</h3>
-                        <div className="mt-1 p-4 bg-accent rounded-md whitespace-pre-wrap">
-                          {selectedMessage.message}
-                        </div>
-                      </div>
-                      
-                      {/* Resposta (caso exista) */}
-                      {selectedMessage.response && (
-                        <div>
-                          <h3 className="text-lg font-medium">Resposta do Administrador</h3>
-                          <div className="mt-1 p-4 bg-muted rounded-md whitespace-pre-wrap">
-                            {selectedMessage.response}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Painel esquerdo: Lista de mensagens */}
+            <div className="md:col-span-1">
+              <Card className="bg-white shadow-lg rounded-2xl">
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center gap-2 text-indigo-700 text-xl">Mensagens</CardTitle>
+                  <div className="relative mb-2">
+                    <Input
+                      placeholder="Pesquisar usuário..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pr-10 rounded-full border-blue-100 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200 shadow-sm"
+                    />
+                    <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-indigo-400" />
+                    {searchResults.length > 0 && (
+                      <div className="absolute z-10 mt-1 w-full bg-white border rounded-md shadow-lg">
+                        {searchResults.map(user => (
+                          <div 
+                            key={user.id}
+                            className="p-2 hover:bg-indigo-50 cursor-pointer flex items-center rounded-md"
+                            onClick={() => selectUser(user.id)}
+                          >
+                            <Avatar className="h-7 w-7 mr-2">
+                              <AvatarImage src={user.profileImage || ''} />
+                              <AvatarFallback>
+                                <UserIcon className="h-4 w-4" />
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="text-sm">
+                              <div className="font-semibold text-indigo-700">{user.name || 'Sem nome'}</div>
+                              <div className="text-xs text-gray-400">{user.email}</div>
+                            </div>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            Respondido por: Admin ID {selectedMessage.adminId}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                  
-                  {/* Formulário de resposta (apenas para mensagens pendentes) */}
-                  {selectedMessage.status === "pending" && (
-                    <div className="p-4 border-t">
-                      <h3 className="text-lg font-medium mb-2">Responder Mensagem</h3>
-                      <Textarea
-                        placeholder="Digite sua resposta para o usuário..."
-                        value={response}
-                        onChange={(e) => setResponse(e.target.value)}
-                        className="mb-2"
-                        rows={4}
-                      />
-                      <div className="flex justify-end">
-                        <Button 
-                          onClick={() => resolveMessageMutation.mutate({ 
-                            messageId: selectedMessage.id,
-                            response 
-                          })}
-                          disabled={!response.trim() || resolveMessageMutation.isPending}
-                        >
-                          {resolveMessageMutation.isPending ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Enviando...
-                            </>
-                          ) : (
-                            <>
-                              <Send className="mr-2 h-4 w-4" />
-                              Enviar Resposta
-                            </>
-                          )}
-                        </Button>
+                        ))}
                       </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
-                  <MessageSquare className="h-16 w-16 mb-4" />
-                  <p>Selecione uma mensagem para visualizar os detalhes</p>
-                </div>
-              )}
-            </Card>
+                    )}
+                  </div>
+                  <Tabs defaultValue="pending" value={activeTab} onValueChange={setActiveTab}>
+                    <TabsList className="grid w-full grid-cols-3 bg-white rounded-full shadow-sm border border-blue-100">
+                      <TabsTrigger value="pending" className="text-xs sm:text-sm rounded-full data-[state=active]:bg-indigo-100 data-[state=active]:text-indigo-700"> <Clock className="h-4 w-4 mr-1" /> Pendentes </TabsTrigger>
+                      <TabsTrigger value="all" className="text-xs sm:text-sm rounded-full data-[state=active]:bg-indigo-100 data-[state=active]:text-indigo-700"> <List className="h-4 w-4 mr-1" /> Todos </TabsTrigger>
+                      <TabsTrigger value="user" disabled={!selectedUserId} className="text-xs sm:text-sm rounded-full data-[state=active]:bg-indigo-100 data-[state=active]:text-indigo-700"> <UserIcon className="h-4 w-4 mr-1" /> Usuário </TabsTrigger>
+                    </TabsList>
+                  </Tabs>
+                </CardHeader>
+                <CardContent className="h-[calc(100vh-300px)] overflow-y-auto">
+                  {/* Mensagens */}
+                  <div className="space-y-4">
+                    {renderMessages()}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+            {/* Painel direito: Detalhes da mensagem e formulário de resposta */}
+            <div className="md:col-span-2">
+              <Card className="h-[calc(100vh-150px)] flex flex-col bg-white shadow-lg rounded-2xl">
+                {selectedMessage ? (
+                  <>
+                    <CardHeader className="pb-3">
+                      <div className="flex justify-between items-center">
+                        <CardTitle className="text-indigo-700 text-xl">Detalhes da Mensagem #{selectedMessage.id}</CardTitle>
+                        <Badge variant={getStatusBadgeVariant(selectedMessage.status)} className="text-base px-3 py-1 rounded-full">
+                          {getStatusIcon(selectedMessage.status)}
+                          {selectedMessage.status === "pending" ? "Pendente" : 
+                           selectedMessage.status === "in-progress" ? "Em andamento" : 
+                           selectedMessage.status === "resolved" ? "Resolvido" : selectedMessage.status}
+                        </Badge>
+                      </div>
+                      <div className="text-sm text-gray-400">
+                        Enviado {selectedMessage.createdAt ? formatDistanceToNow(new Date(selectedMessage.createdAt), { addSuffix: true, locale: ptBR }) : 'em data desconhecida'}
+                        {selectedMessage.resolvedAt && (
+                          <span> • Resolvido {formatDistanceToNow(new Date(selectedMessage.resolvedAt), { addSuffix: true, locale: ptBR })}</span>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent className="flex-grow overflow-y-auto">
+                      <div className="space-y-6">
+                        {/* Informações do usuário */}
+                        <div>
+                          <h3 className="text-lg font-semibold text-indigo-700">Informações do usuário</h3>
+                          <div className="mt-2 flex items-center gap-4 p-4 bg-indigo-50 rounded-xl">
+                            <Avatar className="h-16 w-16">
+                              <AvatarImage src={selectedMessage.user?.profileImage || ''} />
+                              <AvatarFallback>
+                                <UserIcon className="h-8 w-8 text-indigo-400" />
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-semibold text-lg text-indigo-800">{selectedMessage.user?.name || 'Não informado'}</p>
+                              <p className="text-gray-500">{selectedMessage.user?.email}</p>
+                              <p className="text-xs text-gray-400 mt-1">ID: {selectedMessage.userId} • Tipo: {selectedMessage.user?.userType === 'client' ? 'Cliente' : selectedMessage.user?.userType === 'provider' ? 'Prestador de Serviços' : selectedMessage.user?.userType === 'admin' ? 'Administrador' : selectedMessage.user?.userType}</p>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Mensagem do usuário */}
+                        <div>
+                          <h3 className="text-lg font-semibold text-indigo-700">Assunto da mensagem</h3>
+                          <p className="mt-1 text-base text-gray-800">{selectedMessage.subject}</p>
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-indigo-700">Mensagem</h3>
+                          <div className="mt-1 p-4 bg-indigo-50 rounded-xl text-base text-gray-800 whitespace-pre-wrap">
+                            {selectedMessage.message}
+                          </div>
+                        </div>
+                        {/* Resposta (caso exista) */}
+                        {selectedMessage.response && (
+                          <div>
+                            <h3 className="text-lg font-semibold text-green-700">Resposta do Administrador</h3>
+                            <div className="mt-1 p-4 bg-green-50 rounded-xl text-base text-gray-800 whitespace-pre-wrap">
+                              {selectedMessage.response}
+                            </div>
+                            <p className="text-xs text-gray-400 mt-1">
+                              Respondido por: Admin ID {selectedMessage.adminId}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                    {/* Formulário de resposta (apenas para mensagens pendentes) */}
+                    {selectedMessage.status === "pending" && (
+                      <div className="p-6 border-t bg-gray-50 rounded-b-2xl">
+                        <h3 className="text-lg font-semibold text-indigo-700 mb-2">Responder Mensagem</h3>
+                        <Textarea
+                          placeholder="Digite sua resposta para o usuário..."
+                          value={response}
+                          onChange={(e) => setResponse(e.target.value)}
+                          className="mb-2 rounded-xl border-blue-100 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-200"
+                          rows={4}
+                        />
+                        <div className="flex justify-end">
+                          <Button 
+                            onClick={() => resolveMessageMutation.mutate({ 
+                              messageId: selectedMessage.id,
+                              response 
+                            })}
+                            disabled={!response.trim() || resolveMessageMutation.isPending}
+                            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold px-6 py-2 rounded-xl shadow"
+                          >
+                            {resolveMessageMutation.isPending ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Enviando...
+                              </>
+                            ) : (
+                              <>
+                                <Send className="mr-2 h-4 w-4" />
+                                Enviar Resposta
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                    <MessageSquare className="h-16 w-16 mb-4 text-indigo-200" />
+                    <p>Selecione uma mensagem para visualizar os detalhes</p>
+                  </div>
+                )}
+              </Card>
+            </div>
           </div>
         </div>
       </div>

@@ -8,6 +8,9 @@ interface User {
   email: string;
   role: 'client' | 'provider' | 'admin';
   profileImage: string | null;
+  userType: string;
+  phone?: string;
+  address?: string;
 }
 
 export interface AuthContextType {

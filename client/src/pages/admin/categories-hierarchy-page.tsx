@@ -541,7 +541,7 @@ export default function CategoriesHierarchyPage() {
                 <div className="text-center">
                   <div className="text-2xl font-bold text-purple-600">
                     {niches ? niches.reduce((acc, niche) => 
-                      acc + (niche.categories?.reduce((catAcc, cat) => catAcc + (cat.services?.length || 0), 0) || 0), 0) : 0}
+                      acc + (niche.categories?.reduce((catAcc: number, cat: Category) => catAcc + (cat.services?.length || 0), 0) || 0), 0) : 0}
                   </div>
                   <div className="text-sm text-gray-500">Serviços</div>
                 </div>
@@ -583,6 +583,14 @@ export default function CategoriesHierarchyPage() {
                   <p className="text-gray-600">
                     Gerencie a hierarquia completa de nichos, categorias e serviços
                   </p>
+                  <div className="mt-4 flex justify-end">
+                    <Button
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold px-6 py-2 rounded-xl shadow flex items-center gap-2"
+                      onClick={() => { setCategoryForm({ id: 0, name: '', description: '', icon: '', color: '#38bdf8', nicheId: 0 }); setIsCategoryDialogOpen(true); }}
+                    >
+                      <Plus className="h-5 w-5" /> Adicionar Categoria
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
                   <Accordion type="multiple" className="w-full space-y-2">
@@ -607,7 +615,7 @@ export default function CategoriesHierarchyPage() {
                                       {niche.categories?.length || 0} categorias
                                     </Badge>
                                     <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-0">
-                                      {niche.categories?.reduce((acc, cat) => acc + (cat.services?.length || 0), 0) || 0} serviços
+                                      {niche.categories?.reduce((acc: number, cat: Category) => acc + (cat.services?.length || 0), 0) || 0} serviços
                                     </Badge>
                                   </div>
                                 </div>
@@ -886,114 +894,132 @@ export default function CategoriesHierarchyPage() {
 
         {/* Modal para criar/editar categoria */}
         <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
-          <DialogContent className="backdrop-blur-md backdrop:bg-blue-100/60 border-0 shadow-2xl rounded-2xl max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-bold text-blue-900 flex items-center gap-2">
-                {categoryForm.id ? <Pencil className="h-5 w-5 text-blue-500" /> : <Plus className="h-5 w-5 text-green-500" />}
-                {categoryForm.id ? "Editar Categoria" : "Criar Nova Categoria"}
-              </DialogTitle>
-              <DialogDescription className="text-gray-600">
-                {categoryForm.id
-                  ? "Atualize as informações da categoria existente."
-                  : "Preencha as informações para criar uma nova categoria."}
-              </DialogDescription>
-            </DialogHeader>
-
-            <form onSubmit={handleCategorySubmit}>
-              <div className="space-y-5 py-2">
-                <div className="space-y-2">
-                  <Label htmlFor="category-name" className="font-semibold text-blue-800">Nome da Categoria *</Label>
-                  <Input
-                    id="category-name"
-                    name="name"
-                    value={categoryForm.name}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
-                    placeholder="Ex: Cabelo"
-                    className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                    required
-                  />
+          {/* Overlay transparente apenas para este modal via style inline */}
+          <DialogContent
+            className="fixed left-1/2 top-1/2 z-50 flex w-full max-w-lg -translate-x-1/2 -translate-y-1/2 flex-col border-2 border-blue-100 bg-white shadow-2xl rounded-3xl p-0 overflow-hidden max-h-[90vh]"
+            style={{ '--radix-dialog-overlay-background': 'transparent', '--radix-dialog-overlay-backdrop-filter': 'none', padding: 0 } as React.CSSProperties }
+          >
+            <div className="absolute top-0 left-0 w-full h-3 bg-gradient-to-r from-blue-400 via-sky-300 to-indigo-400 rounded-t-3xl" />
+            <div className="p-6 pt-6 overflow-y-auto max-h-[80vh]">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="bg-gradient-to-r from-blue-500 to-indigo-500 p-4 rounded-xl shadow-lg">
+                  <Plus className="h-8 w-8 text-white" />
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="category-description" className="font-semibold text-blue-800">Descrição</Label>
-                  <Textarea
-                    id="category-description"
-                    name="description"
-                    value={categoryForm.description}
-                    onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
-                    placeholder="Descreva esta categoria..."
-                    rows={3}
-                    className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                  />
+                <div>
+                  <h2 className="text-2xl font-extrabold text-blue-900 leading-tight">
+                    {categoryForm.id ? "Editar Categoria" : "Criar Nova Categoria"}
+                  </h2>
+                  <p className="text-gray-500 text-sm mt-1">
+                    {categoryForm.id ? "Atualize as informações da categoria existente." : "Preencha as informações para criar uma nova categoria."}
+                  </p>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
+              </div>
+              <form onSubmit={handleCategorySubmit} className="space-y-6">
+                <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="category-icon" className="font-semibold text-blue-800">Ícone *</Label>
-                    <Select
-                      onValueChange={(e) => setCategoryForm({ ...categoryForm, icon: e })}
-                      defaultValue={categoryForm.icon}
-                    >
-                      <SelectTrigger className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
-                        <SelectValue placeholder="Selecione um ícone" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.keys(icons || {}).map((iconName) => (
-                          <SelectItem key={iconName} value={iconName}>
-                            {iconName}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <Label htmlFor="category-name" className="font-semibold text-blue-800">Nome da Categoria *</Label>
+                    <Input
+                      id="category-name"
+                      name="name"
+                      value={categoryForm.name}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                      placeholder="Ex: Cabelo"
+                      className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                      required
+                    />
                   </div>
-
                   <div className="space-y-2">
-                    <Label htmlFor="category-color" className="font-semibold text-blue-800">Cor *</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        id="category-color"
-                        name="color"
-                        type="color"
-                        value={categoryForm.color}
-                        onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
-                        className="w-12 h-10 rounded-lg border-2 border-blue-200"
-                      />
-                      <Input
-                        type="text"
-                        value={categoryForm.color}
-                        onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
-                        className="flex-1 rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-                      />
+                    <Label htmlFor="category-description" className="font-semibold text-blue-800">Descrição</Label>
+                    <Textarea
+                      id="category-description"
+                      name="description"
+                      value={categoryForm.description}
+                      onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                      placeholder="Descreva esta categoria..."
+                      rows={3}
+                      className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="category-icon" className="font-semibold text-blue-800">Ícone *</Label>
+                      <Select
+                        onValueChange={(e) => setCategoryForm({ ...categoryForm, icon: e })}
+                        defaultValue={categoryForm.icon}
+                      >
+                        <SelectTrigger className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all bg-white">
+                          <div className="flex items-center gap-2">
+                            {categoryForm.icon && getIconComponent(categoryForm.icon) ? (
+                              <span className="inline-flex items-center justify-center w-5 h-5">
+                                {getIconComponent(categoryForm.icon)({ className: "w-5 h-5 text-blue-500" })}
+                              </span>
+                            ) : null}
+                            <SelectValue placeholder="Selecione um ícone" />
+                          </div>
+                        </SelectTrigger>
+                        {/* Força o fundo branco e sombra forte no dropdown do select de ícones */}
+                        <SelectContent className="bg-white border-2 border-blue-100 shadow-2xl rounded-lg">
+                          {Object.keys(icons || {}).map((iconName) => {
+                            const Icon = getIconComponent(iconName);
+                            return (
+                              <SelectItem key={iconName} value={iconName} className="flex items-center gap-2 px-3 py-2 hover:bg-blue-50">
+                                <span className="inline-flex items-center justify-center w-5 h-5">
+                                  {Icon ? <Icon className="w-5 h-5 text-blue-500" /> : null}
+                                </span>
+                                <span className="text-gray-700">{iconName}</span>
+                              </SelectItem>
+                            );
+                          })}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="category-color" className="font-semibold text-blue-800">Cor *</Label>
+                      <div className="flex gap-2 items-center">
+                        <Input
+                          id="category-color"
+                          name="color"
+                          type="color"
+                          value={categoryForm.color}
+                          onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
+                          className="w-12 h-10 rounded-lg border-2 border-blue-200"
+                        />
+                        <Input
+                          type="text"
+                          value={categoryForm.color}
+                          onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
+                          className="flex-1 rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-
-              <DialogFooter className="mt-6 gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setIsCategoryDialogOpen(false)}
-                  className="rounded-lg border-blue-200 hover:bg-blue-100"
-                >
-                  Cancelar
-                </Button>
-                <Button 
-                  type="submit" 
-                  disabled={categoriesMutation.isPending}
-                  className="rounded-lg font-semibold shadow-md bg-blue-600 hover:bg-blue-700"
-                >
-                  {categoriesMutation.isPending ? (
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                  ) : (
-                    <>
-                      <Save className="mr-2 h-4 w-4" />
-                      {categoryForm.id ? "Atualizar" : "Criar"} Categoria
-                    </>
-                  )}
-                </Button>
-              </DialogFooter>
-            </form>
+                <DialogFooter className="mt-8 gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsCategoryDialogOpen(false)}
+                    className="rounded-lg border-blue-200 hover:bg-blue-50"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={categoriesMutation.isPending}
+                    className="rounded-lg font-semibold shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-8 py-2 text-base"
+                  >
+                    {categoriesMutation.isPending ? (
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                    ) : (
+                      <>
+                        <Save className="mr-2 h-4 w-4" />
+                        {categoryForm.id ? "Atualizar" : "Criar"} Categoria
+                      </>
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </div>
           </DialogContent>
         </Dialog>
 

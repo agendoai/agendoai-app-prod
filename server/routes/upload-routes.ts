@@ -52,7 +52,7 @@ export function registerUploadRoutes(app: Express) {
       
       try {
         // Obter caminho da imagem antiga
-        const user = await storage.getUser(userId);
+        const user = await storage.getUserById(userId);
         const oldImagePath = user?.profileImage;
         
         // Atualizar o perfil do usuário com o novo caminho da imagem
@@ -60,6 +60,8 @@ export function registerUploadRoutes(app: Express) {
         const publicUrl = getPublicUrl(filePath);
         
         await storage.updateUser(userId, { profileImage: publicUrl });
+        // Buscar usuário atualizado
+        const updatedUser = await storage.getUserById(userId);
         
         // Excluir imagem antiga se existir
         if (oldImagePath) {
@@ -68,7 +70,8 @@ export function registerUploadRoutes(app: Express) {
         
         return res.status(200).json({ 
           success: true, 
-          profileImage: publicUrl 
+          profileImage: publicUrl,
+          user: updatedUser
         });
       } catch (error) {
         console.error('Erro ao atualizar perfil com nova imagem:', error);

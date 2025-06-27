@@ -55,6 +55,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
+import { API_BASE_URL } from "@/lib/api";
 
 // Schema para validação do formulário de criação de usuário
 const userFormSchema = z.object({
@@ -76,6 +77,12 @@ const userFormSchema = z.object({
 });
 
 type UserFormValues = z.infer<typeof userFormSchema>;
+
+function getProfileImageUrl(url?: string | null) {
+  if (!url) return undefined;
+  if (url.startsWith('http')) return url;
+  return `${API_BASE_URL}${url}`;
+}
 
 export default function UserManagementPage() {
   const { toast } = useToast();
@@ -556,7 +563,7 @@ export default function UserManagementPage() {
                     <div className="flex items-center justify-center mb-4">
                       <Avatar className="h-20 w-20">
                         {currentUser?.profileImage ? (
-                          <AvatarImage src={currentUser.profileImage} alt={currentUser.name || "Avatar"} />
+                          <AvatarImage src={getProfileImageUrl(currentUser.profileImage) || ''} alt={currentUser.name || "Avatar"} />
                         ) : (
                           <AvatarFallback>
                             <UserCircle className="h-16 w-16 text-muted-foreground" />
@@ -895,7 +902,7 @@ export default function UserManagementPage() {
               <div className="space-y-6">
                 <div className="flex flex-col items-center space-y-4">
                   <Avatar className="h-24 w-24">
-                    <AvatarImage src={currentUser.profileImage || ''} alt={currentUser.name} />
+                    <AvatarImage src={getProfileImageUrl(currentUser.profileImage) || ''} alt={currentUser.name} />
                     <AvatarFallback>{currentUser.name?.charAt(0) || '?'}</AvatarFallback>
                   </Avatar>
                   <div className="text-center">

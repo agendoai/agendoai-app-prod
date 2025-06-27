@@ -83,38 +83,54 @@ export function AdminNavbar() {
           </AvatarFallback>
         </Avatar>
         <div>
-          <p className="text-sm font-semibold">{user?.name || "Administrador"}</p>
-          <p className="text-xs text-muted-foreground">Administrador</p>
+          <p className="text-sm font-semibold text-white">{user?.name || "Administrador"}</p>
+          <p className="text-xs text-blue-200">Administrador</p>
         </div>
       </div>
-      <Separator />
+      <Separator className="bg-blue-800/60" />
       <ScrollArea className="flex-1 px-6">
         <div className="flex flex-col gap-y-2 py-4">
-          {routes.map((route) => (
+          <p className="text-xs font-bold uppercase tracking-wider text-blue-200 mb-2">PRINCIPAL</p>
+          {routes.slice(0, 4).map((route) => (
             <Button
               key={route.href}
               asChild
               variant={route.active ? "default" : "ghost"}
-              className="justify-start"
+              className={`justify-start text-white hover:bg-blue-800/70 hover:text-blue-100 transition-colors ${route.active ? 'bg-blue-800/80' : ''}`}
               onClick={() => setOpen(false)}
             >
-              <Link href={route.href}>
-                <route.icon className="mr-2 h-4 w-4" />
-                {route.label}
+              <Link href={route.href} className="flex items-center">
+                <route.icon className="mr-2 h-4 w-4 text-blue-100" />
+                <span className="text-white">{route.label}</span>
+              </Link>
+            </Button>
+          ))}
+          <p className="text-xs font-bold uppercase tracking-wider text-blue-200 mt-4 mb-2">CONFIGURAÇÕES</p>
+          {routes.slice(4, 7).map((route) => (
+            <Button
+              key={route.href}
+              asChild
+              variant={route.active ? "default" : "ghost"}
+              className={`justify-start text-white hover:bg-blue-800/70 hover:text-blue-100 transition-colors ${route.active ? 'bg-blue-800/80' : ''}`}
+              onClick={() => setOpen(false)}
+            >
+              <Link href={route.href} className="flex items-center">
+                <route.icon className="mr-2 h-4 w-4 text-blue-100" />
+                <span className="text-white">{route.label}</span>
               </Link>
             </Button>
           ))}
         </div>
       </ScrollArea>
-      <Separator />
+      <Separator className="bg-blue-800/60" />
       <div className="p-6">
         <Button
           variant="outline"
-          className="w-full justify-start"
+          className="w-full justify-start text-white border-red-500 hover:bg-red-600 hover:text-white bg-red-500/80"
           onClick={handleLogout}
         >
-          <LogOut className="mr-2 h-4 w-4" />
-          Sair
+          <LogOut className="mr-2 h-4 w-4 text-white" />
+          Sair do Sistema
         </Button>
       </div>
     </>
@@ -152,13 +168,13 @@ export function AdminNavbar() {
       </Sheet>
 
       {/* Desktop version - Sidebar always visible */}
-      <div className="hidden lg:flex h-screen w-64 flex-col fixed inset-y-0 z-50 border-r bg-white">
+      <div className="hidden lg:flex h-screen w-64 flex-col fixed inset-y-0 z-50 border-r bg-gradient-to-b from-blue-900 via-blue-800 to-indigo-900 text-white">
         <div className="p-6">
-          <h1 className="text-xl font-bold">AgendoAI Admin</h1>
+          <h1 className="text-xl font-bold text-white drop-shadow">AgendoAI Admin</h1>
         </div>
         <Separator />
         <div className="flex flex-col flex-1">
-          <NavItems />
+          <div className="text-white"><NavItems /></div>
         </div>
       </div>
       <div className="lg:pl-64">

@@ -5,7 +5,7 @@ import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Loader2, Camera, User, AtSign, Phone, MapPin, Lock, AlertCircle, 
-  Bell, CreditCard, History, Upload, BellOff, Check, X, Info, Calendar
+  Bell, CreditCard, History, Upload, BellOff, Check, X, Info, Calendar, Settings
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,15 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Badge } from "@/components/ui/badge";
 import ProviderNavbar from "@/components/layout/provider-navbar";
 import ClientNavbar from "@/components/layout/client-navbar";
+import AdminLayout from "@/components/layouts/AdminLayout";
+import { API_BASE_URL } from "@/lib/api";
+
+// Helper para montar a URL da imagem de perfil
+function getProfileImageUrl(url?: string | null) {
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
+  return `${API_BASE_URL}${url}`;
+}
 
 // Interface estendida para o tipo de agendamento com campos adicionais
 interface AppointmentExtended {
@@ -48,7 +57,7 @@ export default function ProfilePage() {
   
   // Estado para armazenar a imagem selecionada
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(user?.profileImage || null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(getProfileImageUrl(user?.profileImage));
   const [uploadProgress, setUploadProgress] = useState(0);
   
   // Estado para armazenar os dados do formulário
@@ -82,7 +91,7 @@ export default function ProfilePage() {
         address: user.address || "",
         defaultPaymentMethod: savedPaymentMethod
       }));
-      setPreviewUrl(user.profileImage || null);
+      setPreviewUrl(getProfileImageUrl(user.profileImage));
     }
   }, [user]);
 
@@ -223,7 +232,7 @@ export default function ProfilePage() {
     fileInputRef.current?.click();
   };
   
-  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     
@@ -256,47 +265,415 @@ export default function ProfilePage() {
     };
     reader.readAsDataURL(file);
     
-    // Simular upload
-    simulateUpload();
-  };
-  
-  const simulateUpload = () => {
-    setUploadProgress(0);
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        const newProgress = prev + 10;
-        if (newProgress >= 100) {
-          clearInterval(interval);
-          
-          // Aqui seria onde enviaríamos a imagem para o servidor usando formData
-          // Em um ambiente real, usaríamos o código abaixo:
-          
-          /*
-          const formData = new FormData();
-          if (selectedImage) {
-            formData.append('profileImage', selectedImage);
-          }
-          */
-          
-          // Como temos apenas o updateProfileMutation para uso atual, simulamos com uma URL
-          if (previewUrl) {
-            updateProfileMutation.mutate({
-              profileImage: previewUrl
-            });
-          }
-          
-          return 100;
-        }
-        return newProgress;
+    // Enviar para o servidor
+    setUploadProgress(10);
+    try {
+      const formData = new FormData();
+      formData.append('profileImage', file);
+      const response = await fetch(`http://localhost:5000/api/users/${user?.id}/profile-image`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include',
       });
-    }, 300);
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao fazer upload da imagem');
+      }
+      const result = await response.json();
+      setUploadProgress(100);
+      // Atualizar o usuário no cache
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      toast({
+        title: "Imagem atualizada",
+        description: "Sua foto de perfil foi atualizada com sucesso.",
+      });
+    } catch (error: any) {
+      setUploadProgress(0);
+      toast({
+        title: "Erro no upload",
+        description: error.message || "Não foi possível enviar a imagem.",
+        variant: "destructive",
+      });
+    }
   };
+
+  const isAdmin = user?.userType === "admin";
 
   if (!user) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
+    );
+  }
+
+  if (isAdmin) {
+    return (
+      <AdminLayout>
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 via-blue-100 to-white py-10 px-2">
+          <div className="max-w-3xl mx-auto">
+            <div className="flex flex-col items-center mb-8">
+              <div className="relative mb-4">
+                <Avatar className="h-32 w-32 border-4 border-blue-500 shadow-lg">
+                  {user.profileImage ? (
+                    <AvatarImage src={user.profileImage} alt={user.name || "Administrador"} />
+                  ) : (
+                    <AvatarFallback className="bg-blue-500 text-white text-4xl">
+                      {user.name ? user.name.charAt(0).toUpperCase() : <User />}
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <span className="absolute -bottom-3 right-2 bg-blue-600 text-white text-xs px-3 py-1 rounded-full shadow-md font-semibold flex items-center gap-1">
+                  <Settings className="h-4 w-4 mr-1" /> Admin
+                </span>
+              </div>
+              <h1 className="text-3xl font-bold text-blue-900 mb-1">Perfil do Administrador</h1>
+              <p className="text-blue-700 text-sm mb-2">Gerencie suas informações administrativas</p>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-base font-medium text-blue-800">{user.name || "Nome não definido"}</span>
+                <span className="text-sm text-blue-600">{user.email}</span>
+              </div>
+            </div>
+            <div className="bg-white border border-blue-100 rounded-2xl shadow-xl p-8">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="mb-6 bg-blue-50 rounded-lg p-1 flex gap-2 overflow-x-auto">
+                  <TabsTrigger value="personal" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg px-4 py-2 font-semibold">Informações Pessoais</TabsTrigger>
+                  <TabsTrigger value="password" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg px-4 py-2 font-semibold">Senha</TabsTrigger>
+                  <TabsTrigger value="photo" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg px-4 py-2 font-semibold">Foto</TabsTrigger>
+                  <TabsTrigger value="notifications" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg px-4 py-2 font-semibold">Notificações</TabsTrigger>
+                  <TabsTrigger value="payment" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg px-4 py-2 font-semibold">Pagamento</TabsTrigger>
+                  <TabsTrigger value="history" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg px-4 py-2 font-semibold">Histórico</TabsTrigger>
+                </TabsList>
+                <TabsContent value="personal">
+                  <form id="personal-info-form" onSubmit={handlePersonalInfoSubmit} className="space-y-6">
+                    <div className="grid gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="name">Nome completo</Label>
+                        <Input 
+                          id="name" 
+                          name="name" 
+                          value={formData.name}
+                          onChange={handleInputChange}
+                          placeholder="Seu nome completo"
+                          className="bg-blue-50 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="email">E-mail</Label>
+                        <Input 
+                          id="email" 
+                          name="email" 
+                          value={formData.email}
+                          disabled
+                          className="bg-blue-50 border-blue-200 rounded-lg"
+                        />
+                        <p className="text-xs text-muted-foreground">O e-mail não pode ser alterado</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Telefone</Label>
+                        <Input 
+                          id="phone" 
+                          name="phone" 
+                          value={formData.phone}
+                          onChange={handleInputChange}
+                          placeholder="(00) 00000-0000"
+                          className="bg-blue-50 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button 
+                        type="submit"
+                        form="personal-info-form"
+                        disabled={updateProfileMutation.isPending}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-lg shadow-md"
+                      >
+                        {updateProfileMutation.isPending ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Salvando...</>
+                        ) : "Salvar alterações"}
+                      </Button>
+                    </div>
+                  </form>
+                </TabsContent>
+                <TabsContent value="password">
+                  <form id="password-form" onSubmit={handlePasswordSubmit} className="space-y-6">
+                    <div className="grid gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="currentPassword">Senha atual</Label>
+                        <Input 
+                          id="currentPassword" 
+                          name="currentPassword" 
+                          type="password"
+                          value={formData.currentPassword}
+                          onChange={handleInputChange}
+                          placeholder="Digite sua senha atual"
+                          className="bg-blue-50 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="newPassword">Nova senha</Label>
+                        <Input 
+                          id="newPassword" 
+                          name="newPassword" 
+                          type="password"
+                          value={formData.newPassword}
+                          onChange={handleInputChange}
+                          placeholder="Digite a nova senha"
+                          className="bg-blue-50 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword">Confirme a nova senha</Label>
+                        <Input 
+                          id="confirmPassword" 
+                          name="confirmPassword" 
+                          type="password"
+                          value={formData.confirmPassword}
+                          onChange={handleInputChange}
+                          placeholder="Confirme a nova senha"
+                          className="bg-blue-50 border-blue-200 focus:border-blue-500 focus:ring-blue-500 rounded-lg"
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button 
+                        type="submit"
+                        form="password-form"
+                        disabled={changePasswordMutation.isPending}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2 rounded-lg shadow-md"
+                      >
+                        {changePasswordMutation.isPending ? (
+                          <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Alterando...</>
+                        ) : (
+                          <><Lock className="h-4 w-4 mr-2" />Alterar senha</>
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                </TabsContent>
+                <TabsContent value="photo">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Foto de Perfil</CardTitle>
+                      <CardDescription>
+                        Atualize sua foto de perfil
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex flex-col items-center mb-6">
+                        <Avatar className="h-32 w-32 mb-4">
+                          {previewUrl ? (
+                            <AvatarImage src={previewUrl} alt={user.name || "Usuário"} />
+                          ) : (
+                            <AvatarFallback className="bg-primary text-white text-3xl">
+                              {user.name ? user.name.charAt(0).toUpperCase() : <User />}
+                            </AvatarFallback>
+                          )}
+                        </Avatar>
+                        
+                        {uploadProgress > 0 && uploadProgress < 100 && (
+                          <div className="w-full max-w-xs mb-4">
+                            <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-primary"
+                                style={{ width: `${uploadProgress}%` }}
+                              />
+                            </div>
+                            <p className="text-xs text-center text-muted-foreground mt-1">
+                              Enviando... {uploadProgress}%
+                            </p>
+                          </div>
+                        )}
+                        
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={handleFileInputChange}
+                        />
+                        
+                        <Button 
+                          variant="outline" 
+                          onClick={handleProfilePhotoClick}
+                          className="mt-2"
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          <span>Escolher Foto</span>
+                        </Button>
+                      </div>
+                      
+                      <div className="text-sm text-muted-foreground space-y-2">
+                        <p>• Tamanho máximo: 2MB</p>
+                        <p>• Formatos aceitos: JPG, PNG</p>
+                        <p>• Dimensões ideais: 200x200 pixels</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="notifications">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Notificações</CardTitle>
+                      <CardDescription>
+                        Gerencie suas preferências de notificações
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="email-notifications">Notificações por E-mail</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Receba atualizações de seus agendamentos por e-mail
+                          </p>
+                        </div>
+                        <Switch
+                          id="email-notifications"
+                          checked={formData.emailNotifications}
+                          onCheckedChange={(checked) => handleNotificationToggle('emailNotifications', checked)}
+                        />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="push-notifications">Notificações Push</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Receba notificações em tempo real no navegador
+                          </p>
+                        </div>
+                        <Switch
+                          id="push-notifications"
+                          checked={formData.pushNotifications}
+                          onCheckedChange={(checked) => handleNotificationToggle('pushNotifications', checked)}
+                        />
+                      </div>
+                      
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="sms-notifications">Notificações SMS</Label>
+                          <p className="text-sm text-muted-foreground">
+                            Receba lembretes de agendamentos via SMS
+                          </p>
+                        </div>
+                        <Switch
+                          id="sms-notifications"
+                          checked={formData.smsNotifications}
+                          onCheckedChange={(checked) => handleNotificationToggle('smsNotifications', checked)}
+                        />
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="payment">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Métodos de Pagamento</CardTitle>
+                      <CardDescription>
+                        Gerencie suas preferências de pagamento
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <RadioGroup 
+                        value={formData.defaultPaymentMethod}
+                        onValueChange={handlePaymentMethodChange}
+                        className="space-y-4"
+                      >
+                        <div className="flex items-center space-x-2 border p-4 rounded-md">
+                          <RadioGroupItem value="credit_card" id="creditCard" />
+                          <Label htmlFor="creditCard" className="flex items-center">
+                            <CreditCard className="h-4 w-4 mr-2 text-primary" />
+                            <span>Cartão de Crédito</span>
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2 border p-4 rounded-md">
+                          <RadioGroupItem value="pix" id="pix" />
+                          <Label htmlFor="pix" className="flex items-center">
+                            <img 
+                              src="https://logospng.org/download/pix/logo-pix-icone-512.png" 
+                              alt="PIX" 
+                              className="h-4 w-4 mr-2" 
+                            />
+                            <span>PIX</span>
+                          </Label>
+                        </div>
+                        
+                        <div className="flex items-center space-x-2 border p-4 rounded-md">
+                          <RadioGroupItem value="local" id="local" />
+                          <Label htmlFor="local" className="flex items-center">
+                            <span className="h-4 w-4 mr-2 flex items-center justify-center text-primary">$</span>
+                            <span>Pagamento no Local</span>
+                          </Label>
+                        </div>
+                      </RadioGroup>
+                      
+                      <div className="mt-6 bg-muted p-3 rounded-md">
+                        <p className="text-sm flex items-center">
+                          <Info className="h-4 w-4 mr-2 text-muted-foreground" />
+                          Esta é sua preferência de pagamento padrão, mas você poderá escolher um método diferente durante o agendamento.
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+                <TabsContent value="history">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Histórico de Agendamentos</CardTitle>
+                      <CardDescription>
+                        Visualize seus agendamentos anteriores e atuais
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      {isLoadingAppointments ? (
+                        <div className="py-10 flex justify-center">
+                          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        </div>
+                      ) : appointments.length === 0 ? (
+                        <div className="py-10 text-center">
+                          <Calendar className="h-10 w-10 text-muted-foreground/50 mx-auto mb-3" />
+                          <p className="text-muted-foreground">Você ainda não possui agendamentos</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {appointments.map((appointment) => (
+                            <div 
+                              key={appointment.id} 
+                              className="border rounded-md p-4 hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="font-medium">{appointment.serviceName}</h4>
+                                <Badge 
+                                  variant={
+                                    appointment.status === 'confirmed' ? 'default' : 
+                                    appointment.status === 'completed' ? 'outline' : 
+                                    appointment.status === 'canceled' ? 'destructive' : 
+                                    'secondary'
+                                  }
+                                >
+                                  {appointment.status === 'confirmed' ? 'Confirmado' : 
+                                   appointment.status === 'completed' ? 'Concluído' : 
+                                   appointment.status === 'canceled' ? 'Cancelado' : 
+                                   'Pendente'}
+                                </Badge>
+                              </div>
+                              <div className="text-sm text-muted-foreground space-y-1">
+                                <p>Prestador: {appointment.providerName}</p>
+                                <p>Data: {new Date(appointment.date).toLocaleDateString('pt-BR')}</p>
+                                <p>Horário: {appointment.startTime} - {appointment.endTime}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              </Tabs>
+            </div>
+          </div>
+        </div>
+      </AdminLayout>
     );
   }
 
