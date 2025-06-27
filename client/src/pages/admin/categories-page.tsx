@@ -43,7 +43,29 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { AlertCircle, Edit, Plus, Trash } from "lucide-react";
+import { 
+  AlertCircle, 
+  Edit, 
+  Plus, 
+  Trash, 
+  Package, 
+  Scissors, 
+  Car, 
+  Heart, 
+  Home, 
+  Briefcase, 
+  Camera, 
+  Music, 
+  Utensils, 
+  Dumbbell,
+  Palette,
+  BookOpen,
+  Zap,
+  Star,
+  TrendingUp,
+  Users,
+  FolderOpen
+} from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Definindo interface Category
@@ -66,6 +88,31 @@ const categoryFormSchema = z.object({
 
 type CategoryFormValues = z.infer<typeof categoryFormSchema>;
 
+// Função para obter ícone baseado no nome
+const getCategoryIcon = (iconName: string) => {
+  const iconMap: { [key: string]: any } = {
+    scissors: Scissors,
+    car: Car,
+    heart: Heart,
+    home: Home,
+    briefcase: Briefcase,
+    camera: Camera,
+    music: Music,
+    utensils: Utensils,
+    dumbbell: Dumbbell,
+    palette: Palette,
+    book: BookOpen,
+    zap: Zap,
+    star: Star,
+    trending: TrendingUp,
+    users: Users,
+    folder: FolderOpen,
+    default: Package
+  };
+  
+  return iconMap[iconName?.toLowerCase()] || iconMap.default;
+};
+
 export default function CategoriesPage() {
   const { toast } = useToast();
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -75,6 +122,15 @@ export default function CategoriesPage() {
   // Buscar categorias
   const { data: categories, isLoading, error } = useQuery({
     queryKey: ["/api/categories"],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('GET', '/api/categories');
+        return await response.json();
+      } catch (error) {
+        console.error('Erro ao carregar categorias:', error);
+        return [];
+      }
+    }
   });
 
   // Formulário para adicionar/editar categoria
@@ -223,244 +279,307 @@ export default function CategoriesPage() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto py-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Formulário */}
-          <div className="md:col-span-1">
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  {editingCategory ? "Editar Categoria" : "Nova Categoria"}
-                </CardTitle>
-                <CardDescription>
-                  {editingCategory
-                    ? "Atualize os detalhes da categoria"
-                    : "Crie uma nova categoria para serviços"}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Form {...form}>
-                  <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Nome</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Ex: Barbearia" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="description"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Descrição</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Descrição da categoria"
-                              {...field}
-                              rows={3}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="icon"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Ícone</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Nome do ícone" {...field} />
-                          </FormControl>
-                          <FormDescription>
-                            Nome do ícone para exibição (por exemplo: 'scissors', 'car', 'pet')
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="color"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Cor</FormLabel>
-                          <div className="flex items-center gap-2">
-                            <FormControl>
-                              <Input type="color" {...field} className="w-12 h-10" />
-                            </FormControl>
-                            <Input
-                              placeholder="Código da cor"
-                              value={field.value}
-                              onChange={field.onChange}
-                              className="flex-1"
-                            />
-                          </div>
-                          <FormDescription>
-                            Cor de fundo para o ícone da categoria
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="flex justify-between pt-2">
-                      {editingCategory && (
-                        <Button type="button" variant="outline" onClick={cancelEdit}>
-                          Cancelar
-                        </Button>
-                      )}
-                      <Button
-                        type="submit"
-                        disabled={
-                          createCategoryMutation.isPending ||
-                          updateCategoryMutation.isPending
-                        }
-                        className={editingCategory ? "ml-auto" : "w-full"}
-                      >
-                        {editingCategory ? "Atualizar" : "Adicionar"} Categoria
-                      </Button>
-                    </div>
-                  </form>
-                </Form>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Lista de Categorias */}
-          <div className="md:col-span-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Categorias de Serviços</CardTitle>
-                <CardDescription>
-                  Gerenciar todas as categorias de serviços disponíveis
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {error ? (
-                  <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Erro</AlertTitle>
-                    <AlertDescription>
-                      Ocorreu um erro ao carregar as categorias.
-                    </AlertDescription>
-                  </Alert>
-                ) : isLoading ? (
-                  <div className="text-center py-6">Carregando categorias...</div>
-                ) : categories && categories.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Descrição</TableHead>
-                        <TableHead>Ações</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {categories.map((category: Category) => (
-                        <TableRow key={category.id}>
-                          <TableCell className="font-medium">
-                            <div className="flex items-center">
-                              <div
-                                className="w-6 h-6 rounded-full mr-2 flex items-center justify-center"
-                                style={{ backgroundColor: category.color || "#3B82F6" }}
-                              >
-                                {/* Aqui poderia renderizar um ícone */}
-                              </div>
-                              {category.name}
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {category.description || "Sem descrição"}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center space-x-2">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleEditCategory(category)}
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteCategory(category)}
-                              >
-                                <Trash className="h-4 w-4 text-destructive" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center py-6 text-muted-foreground">
-                    Nenhuma categoria encontrada. Adicione sua primeira categoria!
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        {/* Header da Página */}
+        <div className="bg-white border-b border-blue-100 shadow-sm">
+          <div className="container mx-auto py-8 px-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                  <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl">
+                    <Package className="h-8 w-8 text-white" />
                   </div>
-                )}
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <div className="text-sm text-muted-foreground">
-                  Total: {categories ? categories.length : 0} categorias
+                  Gerenciar Categorias & Nichos
+                </h1>
+                <p className="text-gray-600 mt-2">
+                  Organize e gerencie todos os nichos de mercado da plataforma
+                </p>
+              </div>
+              
+              {/* Estatísticas */}
+              <div className="flex gap-4">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {categories ? categories.length : 0}
+                  </div>
+                  <div className="text-sm text-gray-500">Total de Categorias</div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setEditingCategory(null);
-                    form.reset();
-                  }}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Nova Categoria
-                </Button>
-              </CardFooter>
-            </Card>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {categories ? categories.filter(c => c.description).length : 0}
+                  </div>
+                  <div className="text-sm text-gray-500">Com Descrição</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
+
+        <div className="container mx-auto py-8 px-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Formulário */}
+            <div className="lg:col-span-1">
+              <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-blue-50 sticky top-6">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-2xl font-bold text-blue-900 flex items-center gap-2">
+                    {editingCategory ? <Edit className="h-5 w-5 text-blue-500" /> : <Plus className="h-5 w-5 text-green-500" />}
+                    {editingCategory ? "Editar Nicho/Categoria" : "Novo Nicho/Categoria"}
+                  </CardTitle>
+                  <CardDescription className="text-gray-600">
+                    {editingCategory
+                      ? "Atualize os detalhes do nicho/categoria."
+                      : "Crie um novo nicho/categoria para serviços."}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  <Form {...form}>
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+                      <FormField
+                        control={form.control}
+                        name="name"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-semibold text-blue-800">Nome do Nicho/Categoria *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Ex: Beleza e Estética" {...field} className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="description"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-semibold text-blue-800">Descrição</FormLabel>
+                            <FormControl>
+                              <Textarea
+                                placeholder="Descreva este nicho de mercado..."
+                                {...field}
+                                rows={3}
+                                className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="icon"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-semibold text-blue-800">Ícone *</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Selecione um ícone" {...field} className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100" />
+                            </FormControl>
+                            <FormDescription>
+                              Nome do ícone para exibição (ex: 'scissors', 'car', 'pet')
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={form.control}
+                        name="color"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="font-semibold text-blue-800">Cor</FormLabel>
+                            <div className="flex items-center gap-2">
+                              <FormControl>
+                                <Input type="color" {...field} className="w-10 h-10 rounded-full border-2 border-blue-200" />
+                              </FormControl>
+                              <Input
+                                placeholder="Código da cor"
+                                value={field.value}
+                                onChange={field.onChange}
+                                className="flex-1 rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                              />
+                            </div>
+                            <FormDescription>
+                              Cor de fundo para o ícone do nicho/categoria
+                            </FormDescription>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <div className="flex justify-between pt-2 gap-2">
+                        {editingCategory && (
+                          <Button type="button" variant="outline" onClick={cancelEdit} className="rounded-lg">
+                            Cancelar
+                          </Button>
+                        )}
+                        <Button
+                          type="submit"
+                          disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending}
+                          className={`rounded-lg font-semibold shadow-md transition-all ${editingCategory ? "ml-auto bg-blue-600 hover:bg-blue-700" : "w-full bg-green-600 hover:bg-green-700"}`}
+                        >
+                          {editingCategory ? "Atualizar" : "Criar Nicho/Categoria"}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Lista de Categorias */}
+            <div className="lg:col-span-2">
+              <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-blue-50">
+                <CardHeader>
+                  <CardTitle className="text-2xl font-bold text-blue-900 flex items-center gap-2">
+                    <Package className="h-6 w-6 text-blue-500" /> Categorias & Nichos
+                  </CardTitle>
+                  <CardDescription className="text-gray-600">
+                    Gerencie todos os nichos e categorias disponíveis na plataforma.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {error ? (
+                    <Alert variant="destructive">
+                      <AlertCircle className="h-4 w-4" />
+                      <AlertTitle>Erro</AlertTitle>
+                      <AlertDescription>
+                        Ocorreu um erro ao carregar as categorias.
+                      </AlertDescription>
+                    </Alert>
+                  ) : isLoading ? (
+                    <div className="text-center py-12">
+                      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
+                      <p className="text-gray-600">Carregando categorias...</p>
+                    </div>
+                  ) : categories && categories.length > 0 ? (
+                    <Table className="rounded-xl overflow-hidden shadow-md">
+                      <TableHeader className="bg-gradient-to-r from-blue-100 to-indigo-100">
+                        <TableRow>
+                          <TableHead className="text-blue-900 font-bold">Nome</TableHead>
+                          <TableHead className="text-blue-900 font-bold">Descrição</TableHead>
+                          <TableHead className="text-blue-900 font-bold">Ações</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {categories.map((category: Category) => {
+                          const IconComponent = getCategoryIcon(category.icon || 'default');
+                          return (
+                            <TableRow key={category.id} className="hover:bg-blue-50 transition-all">
+                              <TableCell className="font-medium">
+                                <div className="flex items-center">
+                                  <div
+                                    className="w-8 h-8 rounded-full mr-3 flex items-center justify-center border-2 border-blue-200 shadow-lg"
+                                    style={{ backgroundColor: category.color || "#3B82F6" }}
+                                  >
+                                    <IconComponent className="h-4 w-4 text-white" />
+                                  </div>
+                                  <span className="text-blue-900 font-semibold">{category.name}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-sm text-gray-600">
+                                {category.description || "Sem descrição"}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center space-x-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleEditCategory(category)}
+                                    className="hover:bg-blue-100"
+                                  >
+                                    <Edit className="h-4 w-4 text-blue-600" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => handleDeleteCategory(category)}
+                                    className="hover:bg-red-100"
+                                  >
+                                    <Trash className="h-4 w-4 text-red-600" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  ) : (
+                    <div className="text-center py-16">
+                      <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <Package className="h-12 w-12 text-blue-500" />
+                      </div>
+                      <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhuma categoria encontrada</h3>
+                      <p className="text-gray-600 mb-6">Comece criando sua primeira categoria para organizar os serviços.</p>
+                      <Button
+                        onClick={() => {
+                          setEditingCategory(null);
+                          form.reset();
+                        }}
+                        className="bg-blue-600 hover:bg-blue-700 rounded-lg"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Criar Primeira Categoria
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+                <CardFooter className="flex justify-between items-center bg-gradient-to-r from-blue-50 to-indigo-50 rounded-b-xl">
+                  <div className="text-sm text-gray-600">
+                    Total: {categories ? categories.length : 0} categorias
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="rounded-lg border-blue-200 hover:bg-blue-100"
+                    onClick={() => {
+                      setEditingCategory(null);
+                      form.reset();
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-1 text-blue-600" />
+                    Nova Categoria
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+          </div>
+        </div>
+
+        {/* Dialog de confirmação de exclusão */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent className="backdrop-blur-md backdrop:bg-blue-100/60 border-0 shadow-2xl rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-red-700 flex items-center gap-2">
+                <Trash className="h-5 w-5 text-red-500" /> Excluir Nicho/Categoria
+              </DialogTitle>
+              <DialogDescription className="text-gray-700">
+                Tem certeza que deseja excluir a categoria &quot;<span className="font-semibold text-red-700">{categoryToDelete?.name}</span>&quot;? Esta ação não pode ser desfeita.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="gap-2">
+              <Button
+                variant="outline"
+                className="rounded-lg border-blue-200 hover:bg-blue-100"
+                onClick={() => setIsDeleteDialogOpen(false)}
+              >
+                Cancelar
+              </Button>
+              <Button
+                variant="destructive"
+                className="rounded-lg font-semibold shadow-md bg-red-600 hover:bg-red-700"
+                onClick={confirmDeleteCategory}
+                disabled={deleteCategoryMutation.isPending}
+              >
+                {deleteCategoryMutation.isPending ? "Excluindo..." : "Excluir"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
-
-      {/* Dialog de confirmação de exclusão */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Excluir Categoria</DialogTitle>
-            <DialogDescription>
-              Tem certeza que deseja excluir a categoria &quot;
-              {categoryToDelete?.name}&quot;? Esta ação não pode ser desfeita.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteDialogOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={confirmDeleteCategory}
-              disabled={deleteCategoryMutation.isPending}
-            >
-              {deleteCategoryMutation.isPending ? "Excluindo..." : "Excluir"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
     </AdminLayout>
   );
 }

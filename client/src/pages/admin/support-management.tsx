@@ -14,7 +14,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
-import { Loader2, Send, MessageSquare, CheckCircle, Clock, AlertCircle, Search, User as UserIcon } from "lucide-react";
+import { Loader2, Send, MessageSquare, CheckCircle, Clock, AlertCircle, Search, User as UserIcon, List } from "lucide-react";
 import AdminLayout from "@/components/layout/admin-layout";
 import { formatDistanceToNow } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -255,10 +255,22 @@ export default function SupportManagement() {
                 </div>
                 
                 <Tabs defaultValue="pending" value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="pending">Pendentes</TabsTrigger>
-                    <TabsTrigger value="all">Todos</TabsTrigger>
-                    <TabsTrigger value="user" disabled={!selectedUserId}>Por Usuário</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
+                    <TabsTrigger value="pending" className="text-xs sm:text-sm">
+                      <Clock className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Pendentes</span>
+                      <span className="sm:hidden">Pendentes</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="all" className="text-xs sm:text-sm">
+                      <List className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Todos</span>
+                      <span className="sm:hidden">Todos</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="user" disabled={!selectedUserId} className="text-xs sm:text-sm">
+                      <UserIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Por Usuário</span>
+                      <span className="sm:hidden">Usuário</span>
+                    </TabsTrigger>
                   </TabsList>
                 </Tabs>
               </CardHeader>

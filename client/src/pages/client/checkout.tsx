@@ -413,18 +413,21 @@ export default function Checkout() {
                 onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}
                 className="w-full"
               >
-                <TabsList className="grid grid-cols-3 mb-6">
-                  <TabsTrigger value="card" className="flex items-center gap-1">
-                    <CreditCard className="h-4 w-4" />
+                <TabsList className="grid grid-cols-1 sm:grid-cols-3 mb-6">
+                  <TabsTrigger value="card" className="flex items-center gap-1 text-xs sm:text-sm">
+                    <CreditCard className="h-3 w-3 sm:h-4 sm:w-4" />
                     <span className="hidden sm:inline">Cartão</span>
+                    <span className="sm:hidden">Cartão</span>
                   </TabsTrigger>
-                  <TabsTrigger value="pix" className="flex items-center gap-1">
-                    <QrCode className="h-4 w-4" />
+                  <TabsTrigger value="pix" className="flex items-center gap-1 text-xs sm:text-sm">
+                    <QrCode className="h-3 w-3 sm:h-4 sm:w-4" />
                     <span className="hidden sm:inline">PIX</span>
+                    <span className="sm:hidden">PIX</span>
                   </TabsTrigger>
-                  <TabsTrigger value="cash" className="flex items-center gap-1">
-                    <Banknote className="h-4 w-4" />
+                  <TabsTrigger value="cash" className="flex items-center gap-1 text-xs sm:text-sm">
+                    <Banknote className="h-3 w-3 sm:h-4 sm:w-4" />
                     <span className="hidden sm:inline">Dinheiro</span>
+                    <span className="sm:hidden">Dinheiro</span>
                   </TabsTrigger>
                 </TabsList>
                 

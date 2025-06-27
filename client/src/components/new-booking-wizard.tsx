@@ -2355,27 +2355,30 @@ export function NewBookingWizard({
               </CardHeader>
               <CardContent>
                 <Tabs defaultValue="morning" className="w-full">
-                  <TabsList className="grid grid-cols-3 mb-4">
-                    <TabsTrigger value="morning">
-                      Manhã
+                  <TabsList className="grid grid-cols-1 sm:grid-cols-3 mb-4">
+                    <TabsTrigger value="morning" className="text-xs sm:text-sm">
+                      <Sun className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      <span>Manhã</span>
                       {periods.morning.length > 0 && (
-                        <Badge variant="secondary" className="ml-1">
+                        <Badge variant="secondary" className="ml-1 text-xs">
                           {periods.morning.length}
                         </Badge>
                       )}
                     </TabsTrigger>
-                    <TabsTrigger value="afternoon">
-                      Tarde
+                    <TabsTrigger value="afternoon" className="text-xs sm:text-sm">
+                      <Sun className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      <span>Tarde</span>
                       {periods.afternoon.length > 0 && (
-                        <Badge variant="secondary" className="ml-1">
+                        <Badge variant="secondary" className="ml-1 text-xs">
                           {periods.afternoon.length}
                         </Badge>
                       )}
                     </TabsTrigger>
-                    <TabsTrigger value="evening">
-                      Noite
+                    <TabsTrigger value="evening" className="text-xs sm:text-sm">
+                      <Moon className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+                      <span>Noite</span>
                       {periods.evening.length > 0 && (
-                        <Badge variant="secondary" className="ml-1">
+                        <Badge variant="secondary" className="ml-1 text-xs">
                           {periods.evening.length}
                         </Badge>
                       )}

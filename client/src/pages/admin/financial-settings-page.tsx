@@ -827,18 +827,21 @@ export default function FinancialSettingsPage() {
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="payment-providers">
-              <CreditCard className="h-4 w-4 mr-2" />
-              <span>Gateways de Pagamento</span>
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
+            <TabsTrigger value="payment-providers" className="text-xs sm:text-sm">
+              <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Gateways de Pagamento</span>
+              <span className="sm:hidden">Pagamentos</span>
             </TabsTrigger>
-            <TabsTrigger value="fees">
-              <Percent className="h-4 w-4 mr-2" />
-              <span>Taxas e Pagamentos</span>
+            <TabsTrigger value="fees" className="text-xs sm:text-sm">
+              <Percent className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Taxas e Pagamentos</span>
+              <span className="sm:hidden">Taxas</span>
             </TabsTrigger>
-            <TabsTrigger value="coupons">
-              <Ticket className="h-4 w-4 mr-2" />
-              <span>Cupons de Desconto</span>
+            <TabsTrigger value="coupons" className="text-xs sm:text-sm">
+              <Ticket className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Cupons de Desconto</span>
+              <span className="sm:hidden">Cupons</span>
             </TabsTrigger>
           </TabsList>
 

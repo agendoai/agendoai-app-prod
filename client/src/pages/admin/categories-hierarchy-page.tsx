@@ -13,6 +13,26 @@ import {
   ChevronDown,
   ChevronRight,
   Save,
+  Scissors,
+  Car,
+  Heart,
+  Home,
+  Briefcase,
+  Camera,
+  Music,
+  Utensils,
+  Dumbbell,
+  Palette,
+  BookOpen,
+  Zap,
+  Star,
+  TrendingUp,
+  Users,
+  FolderOpen,
+  Clock,
+  Layers,
+  Target,
+  BarChart3
 } from "lucide-react";
 import AdminLayout from "@/components/layout/admin-layout";
 
@@ -73,6 +93,35 @@ interface Service {
   duration: number; // duração em minutos
   categoryId: number;
 }
+
+// Função para obter ícone baseado no nome
+const getIconComponent = (iconName: string) => {
+  const iconMap: { [key: string]: any } = {
+    scissors: Scissors,
+    car: Car,
+    heart: Heart,
+    home: Home,
+    briefcase: Briefcase,
+    camera: Camera,
+    music: Music,
+    utensils: Utensils,
+    dumbbell: Dumbbell,
+    palette: Palette,
+    book: BookOpen,
+    zap: Zap,
+    star: Star,
+    trending: TrendingUp,
+    users: Users,
+    folder: FolderOpen,
+    clock: Clock,
+    layers: Layers,
+    target: Target,
+    chart: BarChart3,
+    default: Package
+  };
+  
+  return iconMap[iconName?.toLowerCase()] || iconMap.default;
+};
 
 export default function CategoriesHierarchyPage() {
   const [, setLocation] = useLocation();
@@ -448,412 +497,352 @@ export default function CategoriesHierarchyPage() {
 
   return (
     <AdminLayout>
-      <div className="container mx-auto py-6">
-        <div className="mb-6 flex items-center justify-between lg:px-6">
-          <div className="flex items-center">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setLocation("/admin/dashboard")}
-              className="mr-2"
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <h1 className="text-2xl font-bold">
-              Gerenciar Nichos e Categorias
-            </h1>
-          </div>
-
-          <Button onClick={() => openNicheDialog()} className="bg-primary">
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Nicho
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-1 gap-6">
-          {niches.length === 0 ? (
-            <Card>
-              <CardContent className="flex flex-col items-center justify-center p-6">
-                <Package className="h-16 w-16 text-gray-400 mb-4" />
-                <h3 className="text-xl font-medium mb-2">
-                  Nenhum nicho cadastrado
-                </h3>
-                <p className="text-gray-500 text-center mb-4">
-                  Comece criando um nicho para organizar suas categorias e
-                  serviços.
-                </p>
-                <Button onClick={() => openNicheDialog()}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  Criar Primeiro Nicho
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardHeader>
-                <CardTitle>
-                  Estrutura de Nichos, Categorias e Serviços
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Accordion type="multiple" className="w-full">
-                  {niches.map((niche: Niche) => (
-                    <AccordionItem
-                      value={`niche-${niche.id}`}
-                      key={`niche-${niche.id}`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <AccordionTrigger className="flex-1 hover:no-underline">
-                          <div className="flex items-center">
-                            <div className="bg-primary/10 p-2 rounded-full mr-3">
-                              <Package className="h-5 w-5 text-primary" />
-                            </div>
-                            <div>
-                              <span className="font-medium">{niche.name}</span>
-                              <Badge className="ml-2 bg-primary/20 text-primary hover:bg-primary/30">
-                                {niche.categories?.length || 0} categorias
-                              </Badge>
-                            </div>
-                          </div>
-                        </AccordionTrigger>
-
-                        <div className="flex mr-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openNicheDialog(niche);
-                            }}
-                            className="h-8 w-8 mr-1"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              confirmDelete("niche", niche.id);
-                            }}
-                            className="h-8 w-8 text-red-500"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-
-                      <AccordionContent>
-                        <div className="ml-10 border-l-2 border-gray-200 pl-4">
-                          {/* Botão para adicionar categoria */}
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() =>
-                              openCategoryDialog(undefined, niche.id)
-                            }
-                            className="mb-4"
-                          >
-                            <Plus className="mr-2 h-4 w-4" />
-                            Adicionar Categoria
-                          </Button>
-
-                          {niche.categories?.length > 0 ? (
-                            <Accordion type="multiple" className="w-full">
-                              {niche.categories.map((category: Category) => (
-                                <AccordionItem
-                                  value={`category-${category.id}`}
-                                  key={`category-${category.id}`}
-                                >
-                                  <div className="flex items-center justify-between">
-                                    <AccordionTrigger className="flex-1 hover:no-underline">
-                                      <div className="flex items-center">
-                                        <div className="bg-primary/10 p-2 rounded-full mr-3">
-                                          <Grid3X3 className="h-5 w-5 text-primary" />
-                                        </div>
-                                        <div>
-                                          <span className="font-medium">
-                                            {category.name}
-                                          </span>
-                                          <Badge className="ml-2 bg-primary/20 text-primary hover:bg-primary/30">
-                                            {category.services?.length || 0}{" "}
-                                            serviços
-                                          </Badge>
-                                        </div>
-                                      </div>
-                                    </AccordionTrigger>
-
-                                    <div className="flex mr-2">
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          openCategoryDialog(category);
-                                        }}
-                                        className="h-8 w-8 mr-1"
-                                      >
-                                        <Pencil className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          confirmDelete(
-                                            "category",
-                                            category.id,
-                                          );
-                                        }}
-                                        className="h-8 w-8 text-red-500"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </div>
-
-                                  <AccordionContent>
-                                    <div className="ml-10 border-l-2 border-gray-200 pl-4">
-                                      {/* Botão para adicionar serviço */}
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() =>
-                                          openServiceDialog(
-                                            undefined,
-                                            category.id,
-                                          )
-                                        }
-                                        className="mb-4"
-                                      >
-                                        <Plus className="mr-2 h-4 w-4" />
-                                        Adicionar Serviço
-                                      </Button>
-
-                                      {category.services?.length > 0 ? (
-                                        <div className="space-y-3">
-                                          {category.services.map(
-                                            (service: Service) => (
-                                              <div
-                                                key={`service-${service.id}`}
-                                                className="flex items-center justify-between p-3 rounded-lg bg-white border border-gray-200"
-                                              >
-                                                <div className="flex items-center">
-                                                  <div className="mr-3">
-                                                    <h4 className="font-medium">
-                                                      {service.name}
-                                                    </h4>
-                                                    <div className="flex items-center text-sm text-gray-500">
-                                                      <span>
-                                                        {service.duration} min
-                                                      </span>
-                                                    </div>
-                                                  </div>
-                                                </div>
-
-                                                <div className="flex">
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() =>
-                                                      openServiceDialog(service)
-                                                    }
-                                                    className="h-8 w-8 mr-1"
-                                                  >
-                                                    <Pencil className="h-4 w-4" />
-                                                  </Button>
-                                                  <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    onClick={() =>
-                                                      confirmDelete(
-                                                        "service",
-                                                        service.id,
-                                                      )
-                                                    }
-                                                    className="h-8 w-8 text-red-500"
-                                                  >
-                                                    <Trash2 className="h-4 w-4" />
-                                                  </Button>
-                                                </div>
-                                              </div>
-                                            ),
-                                          )}
-                                        </div>
-                                      ) : (
-                                        <div className="text-center p-4 text-gray-500">
-                                          Nenhum serviço cadastrado nesta
-                                          categoria.
-                                        </div>
-                                      )}
-                                    </div>
-                                  </AccordionContent>
-                                </AccordionItem>
-                              ))}
-                            </Accordion>
-                          ) : (
-                            <div className="text-center p-4 text-gray-500">
-                              Nenhuma categoria cadastrada neste nicho.
-                            </div>
-                          )}
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
-
-      {/* Modal para criar/editar nicho */}
-      <Dialog open={isNicheDialogOpen} onOpenChange={setIsNicheDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {nicheForm.id ? "Editar Nicho" : "Criar Novo Nicho"}
-            </DialogTitle>
-            <DialogDescription>
-              {nicheForm.id
-                ? "Atualize as informações do nicho existente."
-                : "Preencha as informações para criar um novo nicho."}
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleNicheSubmit}>
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label htmlFor="niche-name">Nome do Nicho *</Label>
-                <Input
-                  id="niche-name"
-                  name="name"
-                  value={nicheForm.name}
-                  onChange={(e) =>
-                    setNicheForm({ ...nicheForm, name: e.target.value })
-                  }
-                  placeholder="Ex: Beleza e Estética"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="niche-description">Descrição</Label>
-                <Textarea
-                  id="niche-description"
-                  name="description"
-                  value={nicheForm.description}
-                  onChange={(e) =>
-                    setNicheForm({ ...nicheForm, description: e.target.value })
-                  }
-                  placeholder="Descreva este nicho de mercado..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="niche-icon">Ícone *</Label>
-                <Select
-                  onValueChange={(e) => setNicheForm({ ...nicheForm, icon: e })}
-                  defaultValue={nicheForm.icon}
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50">
+        {/* Header da Página */}
+        <div className="bg-white border-b border-blue-100 shadow-sm">
+          <div className="container mx-auto py-8 px-6">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setLocation("/admin/dashboard")}
+                  className="mr-4 hover:bg-blue-100"
                 >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um ícone" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {Object.keys(icons || {}).map((iconName) => (
-                      <SelectItem key={iconName} value={iconName}>
-                        {iconName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <ArrowLeft className="h-5 w-5 text-blue-600" />
+                </Button>
+                <div>
+                  <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                    <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl">
+                      <Layers className="h-8 w-8 text-white" />
+                    </div>
+                    Hierarquia de Categorias
+                  </h1>
+                  <p className="text-gray-600 mt-2">
+                    Organize nichos, categorias e serviços em uma estrutura hierárquica
+                  </p>
+                </div>
+              </div>
+              
+              {/* Estatísticas */}
+              <div className="flex gap-6">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-blue-600">
+                    {niches ? niches.length : 0}
+                  </div>
+                  <div className="text-sm text-gray-500">Nichos</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">
+                    {niches ? niches.reduce((acc, niche) => acc + (niche.categories?.length || 0), 0) : 0}
+                  </div>
+                  <div className="text-sm text-gray-500">Categorias</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600">
+                    {niches ? niches.reduce((acc, niche) => 
+                      acc + (niche.categories?.reduce((catAcc, cat) => catAcc + (cat.services?.length || 0), 0) || 0), 0) : 0}
+                  </div>
+                  <div className="text-sm text-gray-500">Serviços</div>
+                </div>
               </div>
             </div>
+          </div>
+        </div>
 
-            <DialogFooter className="mt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsNicheDialogOpen(false)}
-              >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={nichesMutation.isPending}>
-                {nichesMutation.isPending ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    {nicheForm.id ? "Atualizar" : "Criar"} Nicho
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal para criar/editar categoria */}
-      <Dialog
-        open={isCategoryDialogOpen}
-        onOpenChange={setIsCategoryDialogOpen}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {categoryForm.id ? "Editar Categoria" : "Criar Nova Categoria"}
-            </DialogTitle>
-            <DialogDescription>
-              {categoryForm.id
-                ? "Atualize as informações da categoria existente."
-                : "Preencha as informações para criar uma nova categoria."}
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleCategorySubmit}>
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label htmlFor="category-name">Nome da Categoria *</Label>
-                <Input
-                  id="category-name"
-                  name="name"
-                  value={categoryForm.name}
-                  onChange={(e) =>
-                    setCategoryForm({ ...categoryForm, name: e.target.value })
-                  }
-                  placeholder="Ex: Cabelo"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="category-description">Descrição</Label>
-                <Textarea
-                  id="category-description"
-                  name="description"
-                  value={categoryForm.description}
-                  onChange={(e) =>
-                    setCategoryForm({
-                      ...categoryForm,
-                      description: e.target.value,
-                    })
-                  }
-                  placeholder="Descreva esta categoria..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="category-icon">Ícone *</Label>
-                  <Select
-                    onValueChange={(e) =>
-                      setCategoryForm({ ...categoryForm, icon: e })
-                    }
-                    defaultValue={categoryForm.icon}
+        <div className="container mx-auto py-8 px-6">
+          <div className="grid grid-cols-1 gap-6">
+            {niches.length === 0 ? (
+              <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-blue-50">
+                <CardContent className="flex flex-col items-center justify-center p-16">
+                  <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mb-6">
+                    <Layers className="h-12 w-12 text-blue-500" />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-3">
+                    Nenhum nicho cadastrado
+                  </h3>
+                  <p className="text-gray-600 text-center mb-8 max-w-md">
+                    Comece criando um nicho para organizar suas categorias e serviços em uma estrutura hierárquica.
+                  </p>
+                  <Button 
+                    onClick={() => openNicheDialog()} 
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-lg px-8 py-3"
                   >
-                    <SelectTrigger>
+                    <Plus className="mr-2 h-5 w-5" />
+                    Criar Primeiro Nicho
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="shadow-xl border-0 bg-gradient-to-br from-white to-blue-50">
+                <CardHeader className="pb-4">
+                  <CardTitle className="text-2xl font-bold text-blue-900 flex items-center gap-2">
+                    <Layers className="h-6 w-6 text-blue-500" />
+                    Estrutura Hierárquica
+                  </CardTitle>
+                  <p className="text-gray-600">
+                    Gerencie a hierarquia completa de nichos, categorias e serviços
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <Accordion type="multiple" className="w-full space-y-2">
+                    {niches.map((niche: Niche) => {
+                      const NicheIcon = getIconComponent(niche.icon || 'default');
+                      return (
+                        <AccordionItem
+                          value={`niche-${niche.id}`}
+                          key={`niche-${niche.id}`}
+                          className="border-2 border-blue-100 rounded-xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-all"
+                        >
+                          <div className="flex items-center justify-between p-4">
+                            <AccordionTrigger className="flex-1 hover:no-underline [&[data-state=open]>div>div]:rotate-180">
+                              <div className="flex items-center">
+                                <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-3 rounded-full mr-4 shadow-lg">
+                                  <NicheIcon className="h-6 w-6 text-white" />
+                                </div>
+                                <div>
+                                  <span className="font-bold text-lg text-gray-900">{niche.name}</span>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-200 border-0">
+                                      {niche.categories?.length || 0} categorias
+                                    </Badge>
+                                    <Badge className="bg-green-100 text-green-700 hover:bg-green-200 border-0">
+                                      {niche.categories?.reduce((acc, cat) => acc + (cat.services?.length || 0), 0) || 0} serviços
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                            </AccordionTrigger>
+
+                            <div className="flex mr-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  openNicheDialog(niche);
+                                }}
+                                className="h-10 w-10 mr-2 hover:bg-blue-100"
+                              >
+                                <Pencil className="h-4 w-4 text-blue-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  confirmDelete("niche", niche.id);
+                                }}
+                                className="h-10 w-10 text-red-500 hover:bg-red-100"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          <AccordionContent className="px-6 pb-6">
+                            <div className="ml-6 border-l-2 border-blue-200 pl-6">
+                              {/* Botão para adicionar categoria */}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openCategoryDialog(undefined, niche.id)}
+                                className="mb-6 bg-white hover:bg-blue-50 border-blue-200 text-blue-700 rounded-lg"
+                              >
+                                <Plus className="mr-2 h-4 w-4" />
+                                Adicionar Categoria
+                              </Button>
+
+                              {niche.categories?.length > 0 ? (
+                                <Accordion type="multiple" className="w-full space-y-3">
+                                  {niche.categories.map((category: Category) => {
+                                    const CategoryIcon = getIconComponent(category.icon || 'default');
+                                    return (
+                                      <AccordionItem
+                                        value={`category-${category.id}`}
+                                        key={`category-${category.id}`}
+                                        className="border border-gray-200 rounded-lg overflow-hidden bg-gray-50 hover:bg-gray-100 transition-all"
+                                      >
+                                        <div className="flex items-center justify-between p-4">
+                                          <AccordionTrigger className="flex-1 hover:no-underline [&[data-state=open]>div>div]:rotate-180">
+                                            <div className="flex items-center">
+                                              <div 
+                                                className="p-2 rounded-full mr-3 shadow-md"
+                                                style={{ backgroundColor: category.color || "#3B82F6" }}
+                                              >
+                                                <CategoryIcon className="h-5 w-5 text-white" />
+                                              </div>
+                                              <div>
+                                                <span className="font-semibold text-gray-900">{category.name}</span>
+                                                <Badge className="ml-2 bg-purple-100 text-purple-700 hover:bg-purple-200 border-0">
+                                                  {category.services?.length || 0} serviços
+                                                </Badge>
+                                              </div>
+                                            </div>
+                                          </AccordionTrigger>
+
+                                          <div className="flex mr-2">
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                openCategoryDialog(category);
+                                              }}
+                                              className="h-8 w-8 mr-1 hover:bg-blue-100"
+                                            >
+                                              <Pencil className="h-4 w-4 text-blue-600" />
+                                            </Button>
+                                            <Button
+                                              variant="ghost"
+                                              size="icon"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                confirmDelete("category", category.id);
+                                              }}
+                                              className="h-8 w-8 text-red-500 hover:bg-red-100"
+                                            >
+                                              <Trash2 className="h-4 w-4" />
+                                            </Button>
+                                          </div>
+                                        </div>
+
+                                        <AccordionContent className="px-4 pb-4">
+                                          <div className="ml-4 border-l-2 border-gray-300 pl-4">
+                                            {/* Botão para adicionar serviço */}
+                                            <Button
+                                              variant="outline"
+                                              size="sm"
+                                              onClick={() => openServiceDialog(undefined, category.id)}
+                                              className="mb-4 bg-white hover:bg-gray-50 border-gray-300 text-gray-700 rounded-lg"
+                                            >
+                                              <Plus className="mr-2 h-4 w-4" />
+                                              Adicionar Serviço
+                                            </Button>
+
+                                            {category.services?.length > 0 ? (
+                                              <div className="space-y-3">
+                                                {category.services.map((service: Service) => (
+                                                  <div
+                                                    key={`service-${service.id}`}
+                                                    className="flex items-center justify-between p-4 rounded-lg bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all"
+                                                  >
+                                                    <div className="flex items-center">
+                                                      <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-2 rounded-full mr-3">
+                                                        <Clock className="h-4 w-4 text-white" />
+                                                      </div>
+                                                      <div>
+                                                        <h4 className="font-semibold text-gray-900">
+                                                          {service.name}
+                                                        </h4>
+                                                        <div className="flex items-center text-sm text-gray-500">
+                                                          <Clock className="h-3 w-3 mr-1" />
+                                                          <span>{service.duration} minutos</span>
+                                                        </div>
+                                                      </div>
+                                                    </div>
+
+                                                    <div className="flex">
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => openServiceDialog(service)}
+                                                        className="h-8 w-8 mr-1 hover:bg-blue-100"
+                                                      >
+                                                        <Pencil className="h-4 w-4 text-blue-600" />
+                                                      </Button>
+                                                      <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => confirmDelete("service", service.id)}
+                                                        className="h-8 w-8 text-red-500 hover:bg-red-100"
+                                                      >
+                                                        <Trash2 className="h-4 w-4" />
+                                                      </Button>
+                                                    </div>
+                                                  </div>
+                                                ))}
+                                              </div>
+                                            ) : (
+                                              <div className="text-center p-6 bg-gray-50 rounded-lg">
+                                                <Clock className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                                                <p className="text-gray-500">Nenhum serviço cadastrado nesta categoria.</p>
+                                              </div>
+                                            )}
+                                          </div>
+                                        </AccordionContent>
+                                      </AccordionItem>
+                                    );
+                                  })}
+                                </Accordion>
+                              ) : (
+                                <div className="text-center p-8 bg-gray-50 rounded-lg">
+                                  <Grid3X3 className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                                  <p className="text-gray-500">Nenhuma categoria cadastrada neste nicho.</p>
+                                </div>
+                              )}
+                            </div>
+                          </AccordionContent>
+                        </AccordionItem>
+                      );
+                    })}
+                  </Accordion>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+
+        {/* Modal para criar/editar nicho */}
+        <Dialog open={isNicheDialogOpen} onOpenChange={setIsNicheDialogOpen}>
+          <DialogContent className="backdrop-blur-md backdrop:bg-blue-100/60 border-0 shadow-2xl rounded-2xl max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-blue-900 flex items-center gap-2">
+                {nicheForm.id ? <Pencil className="h-5 w-5 text-blue-500" /> : <Plus className="h-5 w-5 text-green-500" />}
+                {nicheForm.id ? "Editar Nicho" : "Criar Novo Nicho"}
+              </DialogTitle>
+              <DialogDescription className="text-gray-600">
+                {nicheForm.id
+                  ? "Atualize as informações do nicho existente."
+                  : "Preencha as informações para criar um novo nicho."}
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleNicheSubmit}>
+              <div className="space-y-5 py-2">
+                <div className="space-y-2">
+                  <Label htmlFor="niche-name" className="font-semibold text-blue-800">Nome do Nicho *</Label>
+                  <Input
+                    id="niche-name"
+                    name="name"
+                    value={nicheForm.name}
+                    onChange={(e) => setNicheForm({ ...nicheForm, name: e.target.value })}
+                    placeholder="Ex: Beleza e Estética"
+                    className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="niche-description" className="font-semibold text-blue-800">Descrição</Label>
+                  <Textarea
+                    id="niche-description"
+                    name="description"
+                    value={nicheForm.description}
+                    onChange={(e) => setNicheForm({ ...nicheForm, description: e.target.value })}
+                    placeholder="Descreva este nicho de mercado..."
+                    rows={3}
+                    className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="niche-icon" className="font-semibold text-blue-800">Ícone *</Label>
+                  <Select
+                    onValueChange={(e) => setNicheForm({ ...nicheForm, icon: e })}
+                    defaultValue={nicheForm.icon}
+                  >
+                    <SelectTrigger className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
                       <SelectValue placeholder="Selecione um ícone" />
                     </SelectTrigger>
                     <SelectContent>
@@ -865,185 +854,275 @@ export default function CategoriesHierarchyPage() {
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <DialogFooter className="mt-6 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsNicheDialogOpen(false)}
+                  className="rounded-lg border-blue-200 hover:bg-blue-100"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={nichesMutation.isPending}
+                  className="rounded-lg font-semibold shadow-md bg-blue-600 hover:bg-blue-700"
+                >
+                  {nichesMutation.isPending ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      {nicheForm.id ? "Atualizar" : "Criar"} Nicho
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal para criar/editar categoria */}
+        <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+          <DialogContent className="backdrop-blur-md backdrop:bg-blue-100/60 border-0 shadow-2xl rounded-2xl max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-blue-900 flex items-center gap-2">
+                {categoryForm.id ? <Pencil className="h-5 w-5 text-blue-500" /> : <Plus className="h-5 w-5 text-green-500" />}
+                {categoryForm.id ? "Editar Categoria" : "Criar Nova Categoria"}
+              </DialogTitle>
+              <DialogDescription className="text-gray-600">
+                {categoryForm.id
+                  ? "Atualize as informações da categoria existente."
+                  : "Preencha as informações para criar uma nova categoria."}
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleCategorySubmit}>
+              <div className="space-y-5 py-2">
+                <div className="space-y-2">
+                  <Label htmlFor="category-name" className="font-semibold text-blue-800">Nome da Categoria *</Label>
+                  <Input
+                    id="category-name"
+                    name="name"
+                    value={categoryForm.name}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                    placeholder="Ex: Cabelo"
+                    className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    required
+                  />
+                </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="category-color">Cor *</Label>
-                  <div className="flex">
-                    <Input
-                      id="category-color"
-                      name="color"
-                      type="color"
-                      value={categoryForm.color}
-                      onChange={(e) =>
-                        setCategoryForm({
-                          ...categoryForm,
-                          color: e.target.value,
-                        })
-                      }
-                      className="w-12 p-1 h-10"
-                    />
-                    <Input
-                      type="text"
-                      value={categoryForm.color}
-                      onChange={(e) =>
-                        setCategoryForm({
-                          ...categoryForm,
-                          color: e.target.value,
-                        })
-                      }
-                      className="ml-2 flex-1"
-                    />
+                  <Label htmlFor="category-description" className="font-semibold text-blue-800">Descrição</Label>
+                  <Textarea
+                    id="category-description"
+                    name="description"
+                    value={categoryForm.description}
+                    onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                    placeholder="Descreva esta categoria..."
+                    rows={3}
+                    className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="category-icon" className="font-semibold text-blue-800">Ícone *</Label>
+                    <Select
+                      onValueChange={(e) => setCategoryForm({ ...categoryForm, icon: e })}
+                      defaultValue={categoryForm.icon}
+                    >
+                      <SelectTrigger className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100">
+                        <SelectValue placeholder="Selecione um ícone" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(icons || {}).map((iconName) => (
+                          <SelectItem key={iconName} value={iconName}>
+                            {iconName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="category-color" className="font-semibold text-blue-800">Cor *</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="category-color"
+                        name="color"
+                        type="color"
+                        value={categoryForm.color}
+                        onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
+                        className="w-12 h-10 rounded-lg border-2 border-blue-200"
+                      />
+                      <Input
+                        type="text"
+                        value={categoryForm.color}
+                        onChange={(e) => setCategoryForm({ ...categoryForm, color: e.target.value })}
+                        className="flex-1 rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
 
-            <DialogFooter className="mt-4">
+              <DialogFooter className="mt-6 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsCategoryDialogOpen(false)}
+                  className="rounded-lg border-blue-200 hover:bg-blue-100"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={categoriesMutation.isPending}
+                  className="rounded-lg font-semibold shadow-md bg-blue-600 hover:bg-blue-700"
+                >
+                  {categoriesMutation.isPending ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      {categoryForm.id ? "Atualizar" : "Criar"} Categoria
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal para criar/editar serviço */}
+        <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
+          <DialogContent className="backdrop-blur-md backdrop:bg-blue-100/60 border-0 shadow-2xl rounded-2xl max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-blue-900 flex items-center gap-2">
+                {serviceForm.id ? <Pencil className="h-5 w-5 text-blue-500" /> : <Plus className="h-5 w-5 text-green-500" />}
+                {serviceForm.id ? "Editar Serviço" : "Criar Novo Serviço"}
+              </DialogTitle>
+              <DialogDescription className="text-gray-600">
+                {serviceForm.id
+                  ? "Atualize as informações do serviço existente."
+                  : "Preencha as informações para criar um novo serviço."}
+              </DialogDescription>
+            </DialogHeader>
+
+            <form onSubmit={handleServiceSubmit}>
+              <div className="space-y-5 py-2">
+                <div className="space-y-2">
+                  <Label htmlFor="service-name" className="font-semibold text-blue-800">Nome do Serviço *</Label>
+                  <Input
+                    id="service-name"
+                    name="name"
+                    value={serviceForm.name}
+                    onChange={(e) => setServiceForm({ ...serviceForm, name: e.target.value })}
+                    placeholder="Ex: Corte de Cabelo Feminino"
+                    className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    required
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="service-description" className="font-semibold text-blue-800">Descrição</Label>
+                  <Textarea
+                    id="service-description"
+                    name="description"
+                    value={serviceForm.description}
+                    onChange={(e) => setServiceForm({ ...serviceForm, description: e.target.value })}
+                    placeholder="Descreva este serviço..."
+                    rows={3}
+                    className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="service-duration" className="font-semibold text-blue-800">Duração (minutos) *</Label>
+                  <Input
+                    id="service-duration"
+                    name="duration"
+                    type="number"
+                    min="5"
+                    step="5"
+                    value={serviceForm.duration}
+                    onChange={(e) => setServiceForm({ ...serviceForm, duration: parseInt(e.target.value) || 30 })}
+                    placeholder="30"
+                    className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                    required
+                  />
+                </div>
+              </div>
+
+              <DialogFooter className="mt-6 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsServiceDialogOpen(false)}
+                  className="rounded-lg border-blue-200 hover:bg-blue-100"
+                >
+                  Cancelar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={servicesMutation.isPending}
+                  className="rounded-lg font-semibold shadow-md bg-blue-600 hover:bg-blue-700"
+                >
+                  {servicesMutation.isPending ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      {serviceForm.id ? "Atualizar" : "Criar"} Serviço
+                    </>
+                  )}
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Modal de confirmação para excluir */}
+        <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <DialogContent className="backdrop-blur-md backdrop:bg-red-100/60 border-0 shadow-2xl rounded-2xl">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold text-red-700 flex items-center gap-2">
+                <Trash2 className="h-5 w-5 text-red-500" />
+                Confirmar exclusão
+              </DialogTitle>
+              <DialogDescription className="text-gray-700">
+                {deleteType === "niche" &&
+                  "Tem certeza que deseja excluir este nicho? Todas as categorias e serviços relacionados também serão excluídos."}
+                {deleteType === "category" &&
+                  "Tem certeza que deseja excluir esta categoria? Todos os serviços relacionados também serão excluídos."}
+                {deleteType === "service" &&
+                  "Tem certeza que deseja excluir este serviço?"}
+              </DialogDescription>
+            </DialogHeader>
+
+            <DialogFooter className="gap-2">
               <Button
-                type="button"
                 variant="outline"
-                onClick={() => setIsCategoryDialogOpen(false)}
+                onClick={() => setIsDeleteDialogOpen(false)}
+                className="rounded-lg border-blue-200 hover:bg-blue-100"
               >
                 Cancelar
               </Button>
-              <Button type="submit" disabled={categoriesMutation.isPending}>
-                {categoriesMutation.isPending ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    {categoryForm.id ? "Atualizar" : "Criar"} Categoria
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal para criar/editar serviço */}
-      <Dialog open={isServiceDialogOpen} onOpenChange={setIsServiceDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {serviceForm.id ? "Editar Serviço" : "Criar Novo Serviço"}
-            </DialogTitle>
-            <DialogDescription>
-              {serviceForm.id
-                ? "Atualize as informações do serviço existente."
-                : "Preencha as informações para criar um novo serviço."}
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleServiceSubmit}>
-            <div className="space-y-4 py-2">
-              <div className="space-y-2">
-                <Label htmlFor="service-name">Nome do Serviço *</Label>
-                <Input
-                  id="service-name"
-                  name="name"
-                  value={serviceForm.name}
-                  onChange={(e) =>
-                    setServiceForm({ ...serviceForm, name: e.target.value })
-                  }
-                  placeholder="Ex: Corte de Cabelo Feminino"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="service-description">Descrição</Label>
-                <Textarea
-                  id="service-description"
-                  name="description"
-                  value={serviceForm.description}
-                  onChange={(e) =>
-                    setServiceForm({
-                      ...serviceForm,
-                      description: e.target.value,
-                    })
-                  }
-                  placeholder="Descreva este serviço..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="service-duration">Duração (min) *</Label>
-                <Input
-                  id="service-duration"
-                  name="duration"
-                  type="number"
-                  min="5"
-                  step="5"
-                  value={serviceForm.duration}
-                  onChange={(e) =>
-                    setServiceForm({
-                      ...serviceForm,
-                      duration: parseInt(e.target.value) || 30,
-                    })
-                  }
-                  placeholder="30"
-                  required
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="mt-4">
               <Button
-                type="button"
-                variant="outline"
-                onClick={() => setIsServiceDialogOpen(false)}
+                variant="destructive"
+                onClick={() => deleteMutation.mutate()}
+                disabled={deleteMutation.isPending}
+                className="rounded-lg font-semibold shadow-md bg-red-600 hover:bg-red-700"
               >
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={servicesMutation.isPending}>
-                {servicesMutation.isPending ? (
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    {serviceForm.id ? "Atualizar" : "Criar"} Serviço
-                  </>
-                )}
+                {deleteMutation.isPending ? "Excluindo..." : "Sim, excluir"}
               </Button>
             </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de confirmação para excluir */}
-      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Confirmar exclusão</DialogTitle>
-            <DialogDescription>
-              {deleteType === "niche" &&
-                "Tem certeza que deseja excluir este nicho? Todas as categorias e serviços relacionados também serão excluídos."}
-              {deleteType === "category" &&
-                "Tem certeza que deseja excluir esta categoria? Todos os serviços relacionados também serão excluídos."}
-              {deleteType === "service" &&
-                "Tem certeza que deseja excluir este serviço?"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsDeleteDialogOpen(false)}
-            >
-              Cancelar
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={() => deleteMutation.mutate()}
-              disabled={deleteMutation.isPending}
-            >
-              {deleteMutation.isPending ? "Excluindo..." : "Sim, excluir"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </DialogContent>
+        </Dialog>
+      </div>
     </AdminLayout>
   );
 }
