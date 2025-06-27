@@ -273,15 +273,27 @@ export default function ServicesPage() {
 
   return (
     <AdminLayout>
-      <div className="min-h-screen bg-white pb-20">
-        <AppHeader title="Gerenciar Serviços" />
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 pb-20">
+        {/* Header flutuante com ação */}
+        <div className="sticky top-0 z-30 bg-gradient-to-r from-blue-100/80 to-indigo-100/80 backdrop-blur border-b border-blue-100 shadow-sm mb-8">
+          <div className="container max-w-5xl mx-auto flex items-center justify-between py-4 px-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-gradient-to-r from-blue-500 to-indigo-500 p-2 rounded-xl shadow-lg">
+                <Plus className="h-6 w-6 text-white" />
+              </div>
+              <h1 className="text-2xl md:text-3xl font-extrabold text-blue-900">Gerenciar Serviços</h1>
+            </div>
+          </div>
+        </div>
         <div className="container p-4 max-w-5xl">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Formulário */}
             <div className="md:col-span-1">
-              <Card>
-                <CardHeader>
-                  <CardTitle>
+              <Card className="shadow-2xl border-2 border-blue-100 rounded-2xl bg-white relative overflow-hidden">
+                <div className="absolute -top-4 -right-4 w-24 h-24 bg-gradient-to-br from-blue-100/60 to-indigo-100/40 rounded-full blur-2xl z-0" />
+                <CardHeader className="relative z-10">
+                  <CardTitle className="flex items-center gap-2 text-blue-900">
+                    <Plus className="h-6 w-6 text-blue-500" />
                     {editingService ? "Editar Tipo de Serviço" : "Novo Tipo de Serviço"}
                   </CardTitle>
                   <CardDescription>
@@ -289,13 +301,13 @@ export default function ServicesPage() {
                       ? "Atualize os detalhes deste tipo de serviço"
                       : "Adicione um novo tipo de serviço que os prestadores poderão oferecer"}
                   </CardDescription>
-                  <div className="mt-2 p-3 bg-blue-50 rounded-md border border-blue-200 text-blue-700 text-sm">
+                  <div className="mt-2 p-3 bg-gradient-to-r from-blue-100 to-indigo-100 rounded-xl border border-blue-200 text-blue-700 text-sm">
                     <p><strong>Nota:</strong> Como administrador, você cadastra apenas os tipos de serviços disponíveis na plataforma. Os prestadores selecionarão quais destes serviços oferecem e definirão seus próprios preços e durações específicas.</p>
                   </div>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="relative z-10">
                   <Form {...form}>
-                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                       <FormField
                         control={form.control}
                         name="name"
@@ -303,7 +315,7 @@ export default function ServicesPage() {
                           <FormItem>
                             <FormLabel>Nome do Serviço</FormLabel>
                             <FormControl>
-                              <Input placeholder="Ex: Corte de Cabelo" {...field} />
+                              <Input placeholder="Ex: Corte de Cabelo" {...field} className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white" />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -321,6 +333,7 @@ export default function ServicesPage() {
                                 placeholder="Descrição do serviço"
                                 {...field}
                                 rows={3}
+                                className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white"
                               />
                             </FormControl>
                             <FormMessage />
@@ -340,11 +353,11 @@ export default function ServicesPage() {
                               value={field.value}
                             >
                               <FormControl>
-                                <SelectTrigger>
+                                <SelectTrigger className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white">
                                   <SelectValue placeholder="Selecione uma categoria" />
                                 </SelectTrigger>
                               </FormControl>
-                              <SelectContent>
+                              <SelectContent className="bg-white border-2 border-blue-100 shadow-xl rounded-lg">
                                 {isLoadingCategories ? (
                                   <SelectItem value="loading" disabled>
                                     Carregando categorias...
@@ -355,7 +368,7 @@ export default function ServicesPage() {
                                       key={category.id}
                                       value={String(category.id)}
                                     >
-                                      {category.name}
+                                      <span className="inline-flex items-center gap-2"><span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-semibold">{category.name}</span></span>
                                     </SelectItem>
                                   ))
                                 ) : (
@@ -384,6 +397,7 @@ export default function ServicesPage() {
                                   step="5"
                                   placeholder="30"
                                   {...field}
+                                  className="rounded-lg border-blue-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 bg-white"
                                 />
                               </FormControl>
                               <FormDescription>
@@ -397,7 +411,7 @@ export default function ServicesPage() {
 
                       <div className="flex justify-between pt-2">
                         {editingService && (
-                          <Button type="button" variant="outline" onClick={cancelEdit}>
+                          <Button type="button" variant="outline" onClick={cancelEdit} className="rounded-lg border-blue-200 hover:bg-blue-50">
                             Cancelar
                           </Button>
                         )}
@@ -407,7 +421,7 @@ export default function ServicesPage() {
                             createServiceMutation.isPending ||
                             updateServiceMutation.isPending
                           }
-                          className={editingService ? "ml-auto" : "w-full"}
+                          className={`rounded-lg font-semibold shadow-md bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 px-8 py-2 text-base ${editingService ? "ml-auto" : "w-full"}`}
                         >
                           {editingService ? "Atualizar" : "Adicionar"} Serviço
                         </Button>
@@ -420,13 +434,14 @@ export default function ServicesPage() {
 
             {/* Lista de Serviços */}
             <div className="md:col-span-2">
-              <Card>
+              <Card className="shadow-2xl border-2 border-blue-100 rounded-2xl bg-white">
+                <div className="absolute -top-4 -left-4 w-24 h-24 bg-gradient-to-br from-amber-100/60 to-yellow-100/40 rounded-full blur-2xl z-0" />
                 <CardHeader>
                   <CardTitle>Tipos de Serviços Disponíveis</CardTitle>
                   <CardDescription>
                     Gerenciar os tipos de serviços que os prestadores poderão oferecer
                   </CardDescription>
-                  <div className="mt-2 p-3 bg-amber-50 rounded-md border border-amber-200 text-amber-700 text-sm">
+                  <div className="mt-2 p-3 bg-gradient-to-r from-amber-100 to-yellow-50 rounded-xl border border-amber-200 text-amber-700 text-sm">
                     <p><strong>Lembre-se:</strong> Os preços mostrados abaixo são apenas valores de referência. Cada prestador pode definir seu próprio preço ao oferecer estes serviços.</p>
                   </div>
                 </CardHeader>
@@ -442,84 +457,47 @@ export default function ServicesPage() {
                   ) : isLoadingServices ? (
                     <div className="text-center py-6">Carregando serviços...</div>
                   ) : services && services.length > 0 ? (
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Nome</TableHead>
-                          <TableHead>Categoria</TableHead>
-                          <TableHead>Preço Base</TableHead>
-                          <TableHead>Duração de Referência</TableHead>
-                          <TableHead>Ações</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {services.map((service: Service) => (
-                          <TableRow key={service.id}>
-                            <TableCell className="font-medium">
-                              {service.name}
-                            </TableCell>
-                            <TableCell>
-                              {getCategoryName(service.categoryId)}
-                            </TableCell>
-                            <TableCell>
-                              {service.price === 0 ? 
-                                <span className="text-gray-500 italic">Definido pelo prestador</span> : 
-                                (service.price / 100).toLocaleString('pt-BR', {
-                                  style: 'currency',
-                                  currency: 'BRL'
-                                })
-                              }
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex flex-col">
-                                <span>{service.duration} min</span>
-                                <span className="text-xs text-muted-foreground mt-1">Personalizado por prestador</span>
-                              </div>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex items-center space-x-2">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleEditService(service)}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => handleDeleteService(service)}
-                                >
-                                  <Trash className="h-4 w-4 text-destructive" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                    <div className="space-y-4">
+                      {services.map((service: Service, idx: number) => (
+                        <div key={service.id} className={`rounded-xl border border-blue-100 shadow-md bg-white p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4 transition-all ${idx % 2 === 0 ? "" : "bg-blue-50"}`}>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-3 mb-2">
+                              <span className="text-lg font-bold text-blue-900 truncate">{service.name}</span>
+                              <span className="bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full text-xs font-semibold">{getCategoryName(service.categoryId)}</span>
+                            </div>
+                            <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                              <span><strong>Duração:</strong> {service.duration} min</span>
+                              <span><strong>Preço:</strong> {service.price === 0 ? <span className="text-gray-500 italic">Definido pelo prestador</span> : (service.price / 100).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</span>
+                              <span className="text-xs text-muted-foreground">Personalizado por prestador</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditService(service)}
+                              className="hover:bg-blue-100"
+                            >
+                              <Edit className="h-4 w-4 text-blue-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteService(service)}
+                              className="hover:bg-red-100"
+                            >
+                              <Trash className="h-4 w-4 text-destructive" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div className="text-center py-6 text-muted-foreground">
                       Nenhum serviço encontrado. Adicione seu primeiro serviço!
                     </div>
                   )}
                 </CardContent>
-                <CardFooter className="flex justify-between">
-                  <div className="text-sm text-muted-foreground">
-                    Total: {services ? services.length : 0} serviços
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEditingService(null);
-                      form.reset();
-                    }}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    Novo Serviço
-                  </Button>
-                </CardFooter>
               </Card>
             </div>
           </div>
@@ -527,7 +505,7 @@ export default function ServicesPage() {
 
         {/* Dialog de confirmação de exclusão */}
         <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-          <DialogContent className="backdrop-blur-sm backdrop:bg-black/20">
+          <DialogContent className="bg-white border-2 border-red-100 shadow-2xl rounded-2xl">
             <DialogHeader>
               <DialogTitle>Excluir Serviço</DialogTitle>
               <DialogDescription>
@@ -539,6 +517,7 @@ export default function ServicesPage() {
               <Button
                 variant="outline"
                 onClick={() => setIsDeleteDialogOpen(false)}
+                className="rounded-lg border-blue-200 hover:bg-blue-50"
               >
                 Cancelar
               </Button>
@@ -546,6 +525,7 @@ export default function ServicesPage() {
                 variant="destructive"
                 onClick={confirmDeleteService}
                 disabled={deleteServiceMutation.isPending}
+                className="rounded-lg font-semibold shadow-md"
               >
                 {deleteServiceMutation.isPending ? "Excluindo..." : "Excluir"}
               </Button>

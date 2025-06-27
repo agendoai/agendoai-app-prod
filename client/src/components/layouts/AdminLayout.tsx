@@ -171,7 +171,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-56" align="end" forceMount>
+            <DropdownMenuContent className="w-56 bg-white border border-blue-200 shadow-xl rounded-xl p-2" align="end" forceMount>
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">{user.name}</p>
@@ -179,7 +179,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem asChild className="hover:bg-blue-50 rounded-lg cursor-pointer">
                 <Link href="/admin/profile">
                   <a className="cursor-pointer w-full flex items-center">
                     <Settings className="mr-2 h-4 w-4" />
@@ -187,7 +187,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   </a>
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer">
+              <DropdownMenuItem asChild className="hover:bg-blue-50 rounded-lg cursor-pointer">
+                <Link href="/admin/settings">
+                  <a className="cursor-pointer w-full flex items-center">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Configurações</span>
+                  </a>
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 hover:bg-red-50 rounded-lg">
                 <LogOut className="mr-2 h-4 w-4" />
                 <span>Sair</span>
               </DropdownMenuItem>

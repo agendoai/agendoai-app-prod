@@ -48,7 +48,7 @@ export default function AdminSidebar() {
   const [location] = useLocation();
 
   return (
-    <aside className="hidden h-screen w-64 flex-col border-r bg-muted/10 md:flex">
+    <aside className="hidden h-screen w-64 flex-col border-r bg-white md:flex">
       <div className="flex h-14 items-center border-b px-4">
         <Link to="/admin/dashboard">
           <a className="flex items-center gap-2 font-semibold">

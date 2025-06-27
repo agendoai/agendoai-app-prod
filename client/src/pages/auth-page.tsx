@@ -16,6 +16,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { useAuth } from "@/hooks/use-auth";
 import { toast } from "@/hooks/use-toast";
+import { Input } from "@/components/ui/input";
 // Interface para representar os dados do usuário autenticado
 interface AuthUser {
   id: number;
@@ -368,317 +369,308 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="h-screen bg-white px-6 pt-8 overflow-y-auto pb-8">
-      <div className="flex justify-center mb-8">
-        <img
-          src="/logo-new.png"
-          alt="AgendoAI Logo"
-          className="h-24 object-contain"
-          onError={(e) => {
-            e.currentTarget.src =
-              "https://via.placeholder.com/96?text=AgendoAI";
-          }}
-        />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-100 via-blue-50 to-indigo-100">
+      <div className="w-full max-w-md bg-white/90 rounded-2xl shadow-2xl border border-blue-100 p-8 sm:p-10 flex flex-col items-center">
+        {/* Logo/Nome */}
+        <div className="mb-6 flex flex-col items-center">
+          <img
+            src="/AgendoAilogo.png"
+            alt="AgendoAI Logo"
+            className="h-20 w-auto mb-2 drop-shadow-md select-none"
+            style={{ filter: 'drop-shadow(0 2px 8px #a5b4fc)' }}
+          />
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-2xl font-extrabold bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent select-none">AgendoAI</span>
+            <span className="bg-blue-100 text-blue-700 text-xs font-bold px-2 py-1 rounded">LOGIN</span>
+          </div>
+          <span className="text-sm text-blue-400 font-medium tracking-wide">Acesse sua conta ou cadastre-se</span>
+        </div>
+        {/* Formulários */}
+        <div className="w-full">
+          {showLoginForm ? (
+            <>
+              <h1 className="text-2xl font-bold mb-1 bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">Bem-vindo de volta!</h1>
+              <p className="text-neutral-600 mb-8">Entre para acessar sua conta</p>
+
+              <form
+                onSubmit={loginForm.handleSubmit(onLoginSubmit)}
+                className="space-y-4"
+              >
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-blue-700">
+                    E-mail <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={loginForm.watch("email")}
+                      onChange={(e) => loginForm.setValue("email", e.target.value)}
+                      className="pl-10 border-blue-200 focus-visible:ring-2 focus-visible:ring-blue-500/80 focus-visible:border-blue-500 bg-blue-50/40"
+                    />
+                    <Mail className="absolute left-3 top-3 text-blue-300 h-5 w-5" />
+                  </div>
+                  {loginForm.formState.errors.email && (
+                    <p className="text-sm font-medium text-destructive">
+                      {loginForm.formState.errors.email.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-blue-700">
+                    Senha <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={loginForm.watch("password")}
+                      onChange={(e) => loginForm.setValue("password", e.target.value)}
+                      className="pl-10 border-blue-200 focus-visible:ring-2 focus-visible:ring-blue-500/80 focus-visible:border-blue-500 bg-blue-50/40"
+                    />
+                    <Lock className="absolute left-3 top-3 text-blue-300 h-5 w-5" />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-3 text-blue-300"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                  {loginForm.formState.errors.password && (
+                    <p className="text-sm font-medium text-destructive">
+                      {loginForm.formState.errors.password.message}
+                    </p>
+                  )}
+                </div>
+
+                <Button
+                  type="button"
+                  variant="link"
+                  className="p-0 text-primary"
+                  onClick={navigateToPasswordRecovery}
+                >
+                  Esqueci minha senha
+                </Button>
+
+                <Button
+                  type="submit"
+                  className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md"
+                  disabled={loginMutation.isPending}
+                >
+                  {loginMutation.isPending ? "Entrando..." : "ACESSAR"}
+                </Button>
+              </form>
+
+              <div className="mt-10 text-center">
+                <div className="flex items-center justify-center mb-4">
+                  <Separator className="flex-grow" />
+                  <span className="px-4 text-neutral-500 text-sm">Ou</span>
+                  <Separator className="flex-grow" />
+                </div>
+
+                <p className="text-neutral-500 text-sm mb-4">
+                  Caso você não tenha uma conta
+                </p>
+
+                <Button variant="outline" className="w-full border-blue-200 text-blue-700" onClick={toggleForm}>
+                  Criar minha conta
+                </Button>
+              </div>
+            </>
+          ) : (
+            <>
+              <h1 className="text-2xl font-bold mb-1 bg-gradient-to-r from-blue-700 to-indigo-700 bg-clip-text text-transparent">Crie sua conta,</h1>
+              <p className="text-neutral-600 mb-8">Desbloqueie benefícios exclusivos!</p>
+
+              <form
+                onSubmit={registerForm.handleSubmit(onRegisterSubmit)}
+                className="space-y-4"
+              >
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-blue-700">
+                    E-mail <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="email"
+                      placeholder="seu@email.com"
+                      value={registerForm.watch("email")}
+                      onChange={(e) => registerForm.setValue("email", e.target.value)}
+                      className="pl-10 border-blue-200 focus-visible:ring-2 focus-visible:ring-blue-500/80 focus-visible:border-blue-500 bg-blue-50/40"
+                    />
+                    <Mail className="absolute left-3 top-3 text-blue-300 h-5 w-5" />
+                  </div>
+                  {registerForm.formState.errors.email && (
+                    <p className="text-sm font-medium text-destructive">
+                      {registerForm.formState.errors.email.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-blue-700">
+                    Nome <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="text"
+                      placeholder="Seu nome"
+                      value={registerForm.watch("name")}
+                      onChange={(e) => registerForm.setValue("name", e.target.value)}
+                      className="pl-10 border-blue-200 focus-visible:ring-2 focus-visible:ring-blue-500/80 focus-visible:border-blue-500 bg-blue-50/40"
+                    />
+                    <User className="absolute left-3 top-3 text-blue-300 h-5 w-5" />
+                  </div>
+                  {registerForm.formState.errors.name && (
+                    <p className="text-sm font-medium text-destructive">
+                      {registerForm.formState.errors.name.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-blue-700">
+                    Senha <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={registerForm.watch("password")}
+                      onChange={(e) => registerForm.setValue("password", e.target.value)}
+                      className="pl-10 border-blue-200 focus-visible:ring-2 focus-visible:ring-blue-500/80 focus-visible:border-blue-500 bg-blue-50/40"
+                    />
+                    <Lock className="absolute left-3 top-3 text-blue-300 h-5 w-5" />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-3 text-blue-300"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                  {registerForm.formState.errors.password && (
+                    <p className="text-sm font-medium text-destructive">
+                      {registerForm.formState.errors.password.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-blue-700">
+                    Confirmar Senha <span className="text-red-500">*</span>
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type={showConfirmPassword ? "text" : "password"}
+                      placeholder="••••••••"
+                      value={registerForm.watch("confirmPassword")}
+                      onChange={(e) => registerForm.setValue("confirmPassword", e.target.value)}
+                      className="pl-10 border-blue-200 focus-visible:ring-2 focus-visible:ring-blue-500/80 focus-visible:border-blue-500 bg-blue-50/40"
+                    />
+                    <Lock className="absolute left-3 top-3 text-blue-300 h-5 w-5" />
+                    <button
+                      type="button"
+                      className="absolute right-3 top-3 text-blue-300"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+                  </div>
+                  {registerForm.formState.errors.confirmPassword && (
+                    <p className="text-sm font-medium text-destructive">
+                      {registerForm.formState.errors.confirmPassword.message}
+                    </p>
+                  )}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-blue-700">Tipo de conta</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button
+                      type="button"
+                      className={`py-2 rounded-md border transition-colors duration-200 font-semibold text-sm ${
+                        registerForm.watch("userType") === "client"
+                          ? "border-blue-500 bg-blue-600 text-white shadow"
+                          : "border-blue-200 bg-blue-50 text-blue-700"
+                      }`}
+                      onClick={() => registerForm.setValue("userType", "client")}
+                    >
+                      Cliente
+                    </button>
+                    <button
+                      type="button"
+                      className={`py-2 rounded-md border transition-colors duration-200 font-semibold text-sm ${
+                        registerForm.watch("userType") === "provider"
+                          ? "border-indigo-500 bg-indigo-600 text-white shadow"
+                          : "border-blue-200 bg-blue-50 text-indigo-700"
+                      }`}
+                      onClick={() => registerForm.setValue("userType", "provider")}
+                    >
+                      Prestador
+                    </button>
+                  </div>
+                </div>
+
+                <div className="text-xs text-neutral-500 mt-2">
+                  Ao continuar, você declara que concorda com os{" "}
+                  <button
+                    type="button"
+                    className="text-primary"
+                    onClick={navigateToTerms}
+                  >
+                    Termos do Serviço
+                  </button>{" "}
+                  e o{" "}
+                  <button
+                    type="button"
+                    className="text-primary"
+                    onClick={navigateToTerms}
+                  >
+                    Aviso de Privacidade
+                  </button>
+                </div>
+
+                <Button
+                  type="submit"
+                  className="w-full mt-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md"
+                  disabled={registerMutation.isPending}
+                >
+                  {registerMutation.isPending ? "Criando conta..." : "CRIAR CONTA"}
+                </Button>
+              </form>
+
+              <div className="mt-10 text-center">
+                <div className="flex items-center justify-center mb-4">
+                  <Separator className="flex-grow" />
+                  <span className="px-4 text-neutral-500 text-sm">Ou</span>
+                  <Separator className="flex-grow" />
+                </div>
+
+                <p className="text-neutral-500 text-sm mb-4">Já tem uma conta?</p>
+
+                <Button variant="outline" className="w-full border-blue-200 text-blue-700" onClick={toggleForm}>
+                  Acessar minha conta
+                </Button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
-
-      {showLoginForm ? (
-        // Login Form
-        <>
-          <h1 className="text-2xl font-bold mb-1">Olá,</h1>
-          <p className="text-neutral-600 mb-8">
-            Que bom ver você por aqui. Faça login para continuar.
-          </p>
-
-          <form
-            onSubmit={loginForm.handleSubmit(onLoginSubmit)}
-            className="space-y-4"
-          >
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                E-mail <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={loginForm.watch("email")}
-                  onChange={(e) => loginForm.setValue("email", e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pl-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-                <Mail className="absolute left-3 top-3 text-neutral-400 h-5 w-5" />
-              </div>
-              {loginForm.formState.errors.email && (
-                <p className="text-sm font-medium text-destructive">
-                  {loginForm.formState.errors.email.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Senha <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={loginForm.watch("password")}
-                  onChange={(e) =>
-                    loginForm.setValue("password", e.target.value)
-                  }
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pl-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-                <Lock className="absolute left-3 top-3 text-neutral-400 h-5 w-5" />
-                <button
-                  type="button"
-                  className="absolute right-3 top-3 text-neutral-400"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-              {loginForm.formState.errors.password && (
-                <p className="text-sm font-medium text-destructive">
-                  {loginForm.formState.errors.password.message}
-                </p>
-              )}
-            </div>
-
-            <Button
-              type="button"
-              variant="link"
-              className="p-0 text-primary"
-              onClick={navigateToPasswordRecovery}
-            >
-              Esqueci minha senha
-            </Button>
-
-            <Button
-              type="submit"
-              className="w-full mt-4"
-              disabled={loginMutation.isPending}
-            >
-              {loginMutation.isPending ? "Entrando..." : "ACESSAR"}
-            </Button>
-          </form>
-
-          <div className="mt-10 text-center">
-            <div className="flex items-center justify-center mb-4">
-              <Separator className="flex-grow" />
-              <span className="px-4 text-neutral-500 text-sm">Ou</span>
-              <Separator className="flex-grow" />
-            </div>
-
-            <p className="text-neutral-500 text-sm mb-4">
-              Caso você não tenha uma conta
-            </p>
-
-            <Button variant="outline" className="w-full" onClick={toggleForm}>
-              Criar minha conta
-            </Button>
-          </div>
-        </>
-      ) : (
-        // Register Form
-        <>
-          <h1 className="text-2xl font-bold mb-1">Crie sua conta,</h1>
-          <p className="text-neutral-600 mb-8">
-            Desbloqueie benefícios exclusivos!
-          </p>
-
-          <form
-            onSubmit={registerForm.handleSubmit(onRegisterSubmit)}
-            className="space-y-4"
-          >
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                E-mail <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={registerForm.watch("email")}
-                  onChange={(e) =>
-                    registerForm.setValue("email", e.target.value)
-                  }
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pl-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-                <Mail className="absolute left-3 top-3 text-neutral-400 h-5 w-5" />
-              </div>
-              {registerForm.formState.errors.email && (
-                <p className="text-sm font-medium text-destructive">
-                  {registerForm.formState.errors.email.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Nome <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Seu nome"
-                  value={registerForm.watch("name")}
-                  onChange={(e) =>
-                    registerForm.setValue("name", e.target.value)
-                  }
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pl-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-                <User className="absolute left-3 top-3 text-neutral-400 h-5 w-5" />
-              </div>
-              {registerForm.formState.errors.name && (
-                <p className="text-sm font-medium text-destructive">
-                  {registerForm.formState.errors.name.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Senha <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={registerForm.watch("password")}
-                  onChange={(e) =>
-                    registerForm.setValue("password", e.target.value)
-                  }
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pl-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-                <Lock className="absolute left-3 top-3 text-neutral-400 h-5 w-5" />
-                <button
-                  type="button"
-                  className="absolute right-3 top-3 text-neutral-400"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-              {registerForm.formState.errors.password && (
-                <p className="text-sm font-medium text-destructive">
-                  {registerForm.formState.errors.password.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Confirmar Senha <span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <input
-                  type={showConfirmPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={registerForm.watch("confirmPassword")}
-                  onChange={(e) =>
-                    registerForm.setValue("confirmPassword", e.target.value)
-                  }
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pl-10 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                />
-                <Lock className="absolute left-3 top-3 text-neutral-400 h-5 w-5" />
-                <button
-                  type="button"
-                  className="absolute right-3 top-3 text-neutral-400"
-                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                >
-                  {showConfirmPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
-              {registerForm.formState.errors.confirmPassword && (
-                <p className="text-sm font-medium text-destructive">
-                  {registerForm.formState.errors.confirmPassword.message}
-                </p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tipo de conta</label>
-              <div className="grid grid-cols-2 gap-4">
-                <button
-                  type="button"
-                  className={`py-2 rounded-md border ${
-                    registerForm.watch("userType") === "client"
-                      ? "border-primary bg-primary text-white"
-                      : "border-input bg-background text-foreground"
-                  }`}
-                  onClick={() => registerForm.setValue("userType", "client")}
-                >
-                  Cliente
-                </button>
-                <button
-                  type="button"
-                  className={`py-2 rounded-md border ${
-                    registerForm.watch("userType") === "provider"
-                      ? "border-primary bg-primary text-white"
-                      : "border-input bg-background text-foreground"
-                  }`}
-                  onClick={() => registerForm.setValue("userType", "provider")}
-                >
-                  Prestador
-                </button>
-              </div>
-            </div>
-
-            <div className="text-xs text-neutral-500 mt-2">
-              Ao continuar, você declara que concorda com os{" "}
-              <button
-                type="button"
-                className="text-primary"
-                onClick={navigateToTerms}
-              >
-                Termos do Serviço
-              </button>{" "}
-              e o{" "}
-              <button
-                type="button"
-                className="text-primary"
-                onClick={navigateToTerms}
-              >
-                Aviso de Privacidade
-              </button>
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full mt-4"
-              disabled={registerMutation.isPending}
-            >
-              {registerMutation.isPending ? "Criando conta..." : "CRIAR CONTA"}
-            </Button>
-          </form>
-
-          <div className="mt-10 text-center">
-            <div className="flex items-center justify-center mb-4">
-              <Separator className="flex-grow" />
-              <span className="px-4 text-neutral-500 text-sm">Ou</span>
-              <Separator className="flex-grow" />
-            </div>
-
-            <p className="text-neutral-500 text-sm mb-4">Já tem uma conta?</p>
-
-            <Button variant="outline" className="w-full" onClick={toggleForm}>
-              Acessar minha conta
-            </Button>
-          </div>
-        </>
-      )}
     </div>
   );
 }
