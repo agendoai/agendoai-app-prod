@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/use-auth';
-import ProviderNavbar from '@/components/layout/provider-navbar';
 import PageTransition from '@/components/ui/page-transition';
 
 // Interface básica para serviços
@@ -49,8 +48,6 @@ export default function DebugServicesPage() {
   return (
     <PageTransition>
       <div className="flex flex-col min-h-screen">
-        <ProviderNavbar />
-        
         <div className="container py-6 flex-1">
           <h1 className="text-2xl font-bold mb-4">Diagnóstico de Serviços</h1>
           <p className="mb-4 text-muted-foreground">

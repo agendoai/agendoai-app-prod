@@ -248,7 +248,7 @@ export default function ProviderServicesPage() {
                     className="h-11 px-6 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                   >
                     <PlusCircle className="mr-2 h-4 w-4" />
-                    Adicionar Serviço
+                    Adicionar
                   </Button>
                 </div>
               </div>

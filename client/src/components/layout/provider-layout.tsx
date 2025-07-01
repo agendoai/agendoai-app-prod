@@ -100,7 +100,7 @@ export default function ProviderLayout({
       
       <div className="flex flex-col flex-1">
         {/* Header principal (visível apenas em telas menores) */}
-        <header className="md:hidden bg-primary text-white">
+        <header className="md:hidden bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400 text-white">
           <div className="container mx-auto py-4 px-4 flex justify-between items-center">
             <div className="flex items-center space-x-4">
               <Sheet>

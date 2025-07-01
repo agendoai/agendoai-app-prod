@@ -82,7 +82,7 @@ export default function ProviderNavbar() {
     <>
       <Sheet open={open} onOpenChange={setOpen}>
         <motion.header 
-          className="sticky top-0 z-40 bg-white border-b shadow-sm"
+          className="sticky top-0 z-40 bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400 border-b shadow-sm"
           initial={{ y: -60, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.3 }}
@@ -90,7 +90,7 @@ export default function ProviderNavbar() {
           <div className="px-4 sm:px-6 lg:px-8 flex h-16 items-center justify-between">
             <div className="flex items-center">
               <SheetTrigger asChild className="lg:hidden">
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" className="text-white">
                   <Menu className="h-6 w-6" />
                   <span className="sr-only">Abrir menu</span>
                 </Button>
@@ -99,7 +99,7 @@ export default function ProviderNavbar() {
             <Link href="/provider/dashboard">
               <div className="flex items-center">
                 <motion.h1 
-                  className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80"
+                  className="text-xl font-bold text-white drop-shadow-sm"
                   whileHover={{ scale: 1.05 }}
                   transition={{ duration: 0.2 }}
                 >
@@ -114,7 +114,7 @@ export default function ProviderNavbar() {
                   key={index}
                   asChild
                   variant={item.isActive?.(location) ? "default" : "ghost"}
-                  className={item.isActive?.(location) ? "bg-primary/10 text-primary hover:bg-primary/20" : ""}
+                  className={item.isActive?.(location) ? "bg-white/20 text-white font-semibold hover:bg-white/30" : "text-white/80 font-medium hover:text-white"}
                 >
                   <Link href={item.href}>
                     {item.icon}
@@ -131,7 +131,7 @@ export default function ProviderNavbar() {
                 variant="ghost"
                 size="icon"
                 onClick={toggleNotifications}
-                className="relative"
+                className="relative text-white"
               >
                 <Bell className="h-5 w-5" />
                 {unreadCount > 0 && (
@@ -149,9 +149,9 @@ export default function ProviderNavbar() {
             </div>
 
             <Link href="/provider/profile">
-              <Avatar className="cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-primary/20 transition-all">
+              <Avatar className="cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-white/30 transition-all">
                 <AvatarImage src={user?.profileImage || ""} />
-                <AvatarFallback className="bg-primary text-white uppercase">
+                <AvatarFallback className="bg-white text-blue-700 uppercase">
                   {user?.name?.charAt(0) || "P"}
                 </AvatarFallback>
               </Avatar>
@@ -198,14 +198,6 @@ export default function ProviderNavbar() {
           </div>
         </SheetContent>
       </Sheet>
-
-      {/* Menu do Fundo */}
-      <Navbar 
-        items={navItems} 
-        className="md:hidden" 
-        layoutId="provider-navbar" 
-        showActiveIndicator={true}
-      />
     </>
   );
 }
