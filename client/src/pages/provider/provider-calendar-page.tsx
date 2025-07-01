@@ -1,7 +1,6 @@
 import React from 'react';
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import ProviderNavbar from "@/components/layout/provider-navbar";
 import InteractiveCalendar from "@/components/calendar/interactive-calendar";
 import { Helmet } from "react-helmet";
 
@@ -17,8 +16,6 @@ const ProviderCalendarPage = () => {
       <Helmet>
         <title>Calendário | AgendoAI</title>
       </Helmet>
-      
-      <ProviderNavbar />
       
       <main className="flex-1 p-4 md:p-6 pb-20">
         <div className="w-full max-w-7xl mx-auto">

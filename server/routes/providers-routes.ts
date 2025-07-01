@@ -298,4 +298,83 @@ router.post("/:id/available-slots-check", async (req, res) => {
   }
 });
 
+// Rota de analytics para provider (dashboard)
+router.get("/analytics", isAuthenticated, async (req, res) => {
+  console.log('DEBUG /analytics req.user:', req.user);
+  console.log('DEBUG /analytics isAuthenticated:', req.isAuthenticated && req.isAuthenticated());
+  try {
+    const providerId = req.user.id;
+    // Buscar todos os agendamentos do provider
+    const appointments = await storage.getProviderAppointments(providerId);
+    // Buscar todos os serviços do provider
+    const services = await storage.getServicesByProvider(providerId);
+    // Buscar todas as avaliações do provider
+    const reviews = await storage.getProviderReviews(providerId);
+
+    // Faturamento total (somando appointments pagos)
+    const totalRevenue = appointments
+      .filter(a => a.status === "completed" && a.price)
+      .reduce((sum, a) => sum + (a.price || 0), 0);
+
+    // Total de agendamentos
+    const totalAppointments = appointments.length;
+    // Agendamentos concluídos
+    const completedAppointments = appointments.filter(a => a.status === "completed").length;
+    // Agendamentos pendentes
+    const pendingAppointments = appointments.filter(a => a.status === "pending").length;
+    // Agendamentos cancelados
+    const canceledAppointments = appointments.filter(a => a.status === "canceled").length;
+
+    // Média de avaliações
+    const averageRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length) : 0;
+    // Total de avaliações
+    const totalReviews = reviews.length;
+
+    // Top serviços por quantidade de agendamentos
+    const topServices = services.map(service => {
+      const count = appointments.filter(a => a.serviceId === service.id).length;
+      return { name: service.name, count };
+    }).sort((a, b) => b.count - a.count).slice(0, 5);
+
+    // Estatísticas por mês (últimos 12 meses)
+    const now = new Date();
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }).reverse();
+    const appointmentsByMonth = months.map(month => {
+      const [year, m] = month.split('-');
+      const count = appointments.filter(a => {
+        const date = new Date(a.startTime);
+        return date.getFullYear() === Number(year) && (date.getMonth() + 1) === Number(m);
+      }).length;
+      return { month, count };
+    });
+    const revenueByMonth = months.map(month => {
+      const [year, m] = month.split('-');
+      const value = appointments.filter(a => {
+        const date = new Date(a.startTime);
+        return a.status === "completed" && date.getFullYear() === Number(year) && (date.getMonth() + 1) === Number(m);
+      }).reduce((sum, a) => sum + (a.price || 0), 0);
+      return { month, value };
+    });
+
+    res.json({
+      totalAppointments,
+      completedAppointments,
+      pendingAppointments,
+      canceledAppointments,
+      totalRevenue,
+      averageRating,
+      totalReviews,
+      topServices,
+      appointmentsByMonth,
+      revenueByMonth
+    });
+  } catch (error) {
+    console.error("Erro ao gerar analytics do provider:", error);
+    res.status(500).json({ error: "Erro ao gerar analytics do provider" });
+  }
+});
+
 export default router;

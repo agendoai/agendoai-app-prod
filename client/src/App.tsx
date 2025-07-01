@@ -72,7 +72,7 @@ const ProviderSchedulePage = lazy(() => import("@/pages/provider/provider-schedu
 const ProviderCalendarPage = lazy(() => import("@/pages/provider/provider-calendar-page"));
 const ProviderServicesPage = lazy(() => import("@/pages/provider/services-page"));
 const AddServicePage = lazy(() => import("@/pages/provider/add-service-page"));
-//const ProviderServiceTemplatesPage = lazy(() => import("@/pages/provider/service-templates-page")); // Page removed
+const ProviderServiceTemplatesPage = lazy(() => import("@/pages/provider/service-templates-page"));
 const ProviderAnalyticsPage = lazy(() => import("@/pages/provider/analytics-page"));
 const ProviderChatPage = lazy(() => import("@/pages/provider/chat-page"));
 const ProviderHelpPage = lazy(() => import("@/pages/provider/help-page"));
@@ -360,7 +360,11 @@ function RouterWithTransitions() {
           component={() => <LazyWrapper component={AddServicePage} />}
           userType="provider"
         />
-        {/* Service templates page removed - providers now add services directly */}
+        <ProtectedRoute
+          path="/provider/service-templates"
+          component={() => <LazyWrapper component={ProviderServiceTemplatesPage} />}
+          userType="provider"
+        />
         <ProtectedRoute
           path="/provider/help"
           component={() => <LazyWrapper component={ProviderHelpPage} />}
