@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140">
+  <defs>
+    <linearGradient id="calendar-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3EB9AA" />
+      <stop offset="100%" stop-color="#2A9D8F" />
+    </linearGradient>
+  </defs>
+  <g>
+    <!-- Hexagon Background -->
+    <polygon points="70,10 125,40 125,100 70,130 15,100 15,40" fill="white" stroke="#2A9D8F" stroke-width="4" />
+    
+    <!-- Calendar Icon -->
+    <g transform="translate(35, 35)">
+      <rect x="0" y="0" width="70" height="70" rx="8" ry="8" fill="url(#calendar-gradient)" />
+      
+      <!-- Calendar Top -->
+      <rect x="10" y="10" width="50" height="15" rx="2" ry="2" fill="#1F7268" />
+      
+      <!-- Calendar Dots -->
+      <circle cx="20" cy="18" r="3" fill="white" />
+      <circle cx="35" cy="18" r="3" fill="white" />
+      <circle cx="50" cy="18" r="3" fill="white" />
+      
+      <!-- Calendar Body -->
+      <rect x="10" y="30" width="50" height="30" rx="2" ry="2" fill="white" />
+      
+      <!-- Calendar Mark -->
+      <circle cx="50" cy="50" r="10" fill="#FF6B6B" />
+      <path d="M45,50 L48,53 L55,46" stroke="white" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" />
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,206 @@
+import passport from "passport";
+import { Strategy as LocalStrategy } from "passport-local";
+import { Express, Request, Response, NextFunction } from "express";
+import session from "express-session";
+import { scrypt, randomBytes, timingSafeEqual } from "crypto";
+import { promisify } from "util";
+import { storage } from "./storage";
+import { User as SelectUser } from "@shared/schema";
+
+declare global {
+  namespace Express {
+    interface User extends SelectUser {}
+  }
+}
+
+const scryptAsync = promisify(scrypt);
+
+/**
+ * Gera hash de senha usando scrypt
+ */
+export async function hashPassword(password: string): Promise<string> {
+  const salt = randomBytes(16).toString("hex");
+  const buf = (await scryptAsync(password, salt, 64)) as Buffer;
+  return `${buf.toString("hex")}.${salt}`;
+}
+
+/**
+ * Compara senha fornecida com hash armazenado
+ */
+export async function comparePasswords(
+  suppliedPassword: string,
+  storedHash: string
+): Promise<boolean> {
+  if (!storedHash.includes(".")) {
+    console.warn("Invalid hash format - missing salt separator");
+    return false;
+  }
+
+  try {
+    const [hashedPassword, salt] = storedHash.split(".");
+    const hashedBuf = Buffer.from(hashedPassword, "hex");
+    const suppliedBuf = (await scryptAsync(
+      suppliedPassword,
+      salt,
+      64
+    )) as Buffer;
+
+    return timingSafeEqual(hashedBuf, suppliedBuf);
+  } catch (error) {
+    console.error("Error comparing passwords:", error);
+    return false;
+  }
+}
+
+/**
+ * Configura autenticação na aplicação Express
+ */
+export function setupAuth(app: Express): void {
+  // Configuração de sessão
+  const sessionSettings: session.SessionOptions = {
+    secret: process.env.SESSION_SECRET || "agendoai-secret-key",
+    resave: false,
+    saveUninitialized: false,
+    store: storage.sessionStore,
+    cookie: {
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+    }
+  };
+
+  app.set("trust proxy", 1);
+  app.use(session(sessionSettings));
+  app.use(passport.initialize());
+  app.use(passport.session());
+
+  // Estratégia local de autenticação
+  passport.use(
+    new LocalStrategy(
+      { usernameField: "email" },
+      async (email, password, done) => {
+        try {
+          console.log(`Tentativa de login para ${email}`);
+          const user = await storage.getUserByEmail(email);
+          console.log(`Usuário encontrado: ${!!user}`);
+          
+          if (!user) {
+            console.log(`Usuário não encontrado para ${email}`);
+            return done(null, false);
+          }
+          
+          const passwordMatches = await comparePasswords(password, user.password);
+          console.log(`Senha correta: ${passwordMatches}`);
+          
+          if (!passwordMatches) {
+            return done(null, false);
+          } else {
+            console.log(`Login bem-sucedido para ${email}`);
+            return done(null, user);
+          }
+        } catch (err) {
+          console.error("Erro durante autenticação:", err);
+          return done(err);
+        }
+      }
+    )
+  );
+
+  passport.serializeUser((user, done) => done(null, user.id));
+  passport.deserializeUser(async (id: number, done) => {
+    try {
+      const user = await storage.getUser(id);
+      done(null, user);
+    } catch (err) {
+      done(err);
+    }
+  });
+
+  app.post("/api/register", async (req, res, next) => {
+    try {
+      // Validação de campos obrigatórios
+      if (!req.body.email || !req.body.password || !req.body.name) {
+        return res.status(400).json({ 
+          message: "Todos os campos obrigatórios devem ser preenchidos"
+        });
+      }
+
+      const existingUser = await storage.getUserByEmail(req.body.email);
+      if (existingUser) {
+        return res.status(400).json({ 
+          message: "Este email já está cadastrado. Por favor, use outro email ou faça login."
+        });
+      }
+
+      const hashedPassword = await hashPassword(req.body.password);
+      const user = await storage.createUser({
+        ...req.body,
+        password: hashedPassword,
+      });
+
+      // Iniciar o processo de onboarding após o registro
+      try {
+        // Buscar todas as etapas para o tipo de usuário
+        const steps = await storage.getOnboardingStepsByUserType(user.userType);
+        
+        // Criar registro de progresso para cada etapa
+        for (const step of steps) {
+          await storage.createUserOnboardingProgress({
+            userId: user.id,
+            stepId: step.id,
+            status: 'not_started'
+          });
+        }
+        
+        console.log(`Progresso de onboarding inicializado para o usuário ${user.id}`);
+      } catch (error) {
+        console.error("Erro ao inicializar progresso de onboarding:", error);
+        // Não bloquear o registro se o onboarding falhar
+      }
+
+      req.login(user, (err) => {
+        if (err) return next(err);
+        res.status(201).json(user);
+      });
+    } catch (err) {
+      console.error("Erro ao registrar usuário:", err);
+      res.status(500).json({ 
+        message: "Ocorreu um erro ao criar sua conta. Por favor, tente novamente."
+      });
+    }
+  });
+
+  app.post("/api/login", (req, res, next) => {
+    console.log("Recebendo solicitação de login:", req.body);
+    passport.authenticate("local", (err: Error | null, user: any, info: any) => {
+      if (err) {
+        console.error("Erro de autenticação:", err);
+        return next(err);
+      }
+      if (!user) {
+        console.log("Autenticação falhou - usuário não encontrado ou senha incorreta");
+        return res.status(401).json({ message: "Email ou senha incorretos" });
+      }
+      
+      req.login(user, (err) => {
+        if (err) {
+          console.error("Erro ao iniciar sessão:", err);
+          return next(err);
+        }
+        console.log("Login bem-sucedido:", user.email);
+        return res.status(200).json(user);
+      });
+    })(req, res, next);
+  });
+
+  app.post("/api/logout", (req, res, next) => {
+    req.logout((err) => {
+      if (err) return next(err);
+      res.sendStatus(200);
+    });
+  });
+
+  app.get("/api/user", (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    res.json(req.user);
+  });
+}

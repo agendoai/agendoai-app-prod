@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: agendoai-db
+    environment:
+      POSTGRES_DB: agendoai
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - agendoai-network
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: agendoai-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - agendoai-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  agendoai-network:
+    driver: bridge 

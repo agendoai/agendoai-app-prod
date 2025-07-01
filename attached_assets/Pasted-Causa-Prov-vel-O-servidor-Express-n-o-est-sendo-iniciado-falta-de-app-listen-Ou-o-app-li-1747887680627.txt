@@ -1,0 +1,96 @@
+Causa Provável:
+
+O servidor Express não está sendo iniciado (falta de app.listen())
+
+Ou o app.listen() está sendo chamado, mas há um erro não tratado que impede a execução
+
+Possível conflito com o debugger do Node.js
+
+Soluções Recomendadas:
+1. Verifique o arquivo principal do servidor (server/index.ts):
+typescript
+import express from 'express';
+import { createServer } from 'http';
+
+const app = express();
+const port = process.env.PORT || 5000;
+
+// Configurações do Express e rotas aqui...
+
+// Inicie o servidor
+const server = createServer(app);
+
+server.listen(port, '0.0.0.0', () => {
+  console.log(`Servidor rodando na porta ${port}`);
+});
+
+// Adicione tratamento de erros
+server.on('error', (error) => {
+  console.error('Erro no servidor:', error);
+});
+
+// Remova o debugger se não estiver usando
+process.removeAllListeners('SIGUSR1');
+process.removeAllListeners('SIGUSR2');
+2. Modifique os scripts do package.json:
+json
+{
+  "scripts": {
+    "dev": "tsx watch server/index.ts --no-inspect",
+    "start": "NODE_ENV=production node --no-inspect dist/index.js",
+    "build": "tsc"
+  }
+}
+3. Verifique se há processos Node.js em execução:
+bash
+# No macOS/Linux:
+ps aux | grep node
+kill -9 <PID>  # Para encerrar processos pendentes
+
+# No Windows:
+tasklist | find "node"
+taskkill /PID <PID> /F
+4. Atualize a inicialização para garantir que o servidor inicie:
+typescript
+async function startServer() {
+  try {
+    // Inicialize todos os serviços primeiro
+    await initializeDatabase();
+    await initializeEmailService();
+    // etc...
+
+    // Depois inicie o servidor
+    const server = app.listen(port, '0.0.0.0', () => {
+      console.log(`Servidor rodando na porta ${port}`);
+    });
+
+    // Tratamento de erros
+    server.on('error', (error) => {
+      console.error('Falha ao iniciar servidor:', error);
+      process.exit(1);
+    });
+
+  } catch (error) {
+    console.error('Falha na inicialização:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
+Passos para Resolver:
+Primeiro, pare todos os processos Node.js em execução
+
+Depois, verifique se o arquivo principal do servidor contém app.listen()
+
+Em seguida, tente rodar sem o debugger:
+
+bash
+npm run dev --no-inspect
+Se persistir, adicione logs antes e depois do app.listen() para verificar se está sendo chamado
+
+Possíveis Causas Adicionais:
+Conflito de portas: Outro serviço pode estar usando a mesma porta
+
+Problema com TypeScript: O build em produção pode não estar incluindo todo o código necessário
+
+Erro não tratado: Alguma inicialização de serviço pode estar falhando silenciosamente

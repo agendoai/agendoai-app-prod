@@ -1,0 +1,83 @@
+1. Seleção do Nicho
+[Interface]
+"Qual é a área do serviço que você precisa?"
+[Dropdown com nichos cadastrados]
+▶ Cliente seleciona (Ex: "estetica automotiva", "Beleza Feminina", "Beleza MAsculina").
+
+2. Seleção da Categoria
+[Interface]
+"Escolha a categoria em [Nicho selecionado]:"
+[Dropdown com subcategorias relacionadas]
+▶ Cliente seleciona (Ex: No nicho "Beleza Feminina" → "Cabelereiro Mulher").
+
+3. Seleção do Serviço
+[Interface]
+"Qual serviço você deseja agendar?"
+[Lista de serviços cadastrados pelo administrador]
+▶ Cliente seleciona (Ex: "Beleza Feminina" → "Cabelereiro Mulher"→ Corte Cabelo Mulher Curto,", "Manicure").
+
+5. Seleção da Data
+[Interface]
+"Para quando você deseja agendar?"
+[Calendário mostrando apenas dias com vagas compatíveis com o tempo do serviço]
+▶ Cliente seleciona uma data.
+
+6. Lista de Prestadores com Agenda Compatível
+Banco de dados cruza 3 informações:
+
+Serviço selecionado (e sua duração).
+
+Prestadores cadastrados para aquele serviço.
+
+Agenda real de cada prestador (com blocos ocupados/livres).
+
+Só mostra prestadores com:
+
+Tempo mínimo disponível (ex: se o serviço dura 1h30, o prestador precisa ter pelo menos 1h30 livre contínuos).
+
+Preço cadastrado para aquele serviço.
+
+Se não houver compatibilidade:
+"Nenhum prestador com horário disponível para [Serviço] ([X horas]). Deseja buscar em outra data ou receber alertas?
+
+📌 Filtros aplicados automaticamente:
+✅ Tempo de agenda livre ≥ Tempo de execução do serviço
+✅ Prestadores que oferecem esse serviço
+
+[Cartões de prestadores com:]
+
+Nome/Avaliação (⭐4.8)
+
+Preço cobrado (R$XX)
+
+Horários possíveis (ex: "Disponível entre 09:00–12:00 e 14:00–17:00")
+[Botão "Ver Horários" em cada cartão]
+
+▶ Cliente seleciona um prestador.
+
+7. Seleção do Horário (Ajustado ao Tempo do Serviço)
+[Interface]
+"Horários disponíveis com [Prestador] para [Serviço] ([X horas]):"
+
+📅 Data selecionada: [DD/MM]
+⏰ Slots dinâmicos (ex: se o serviço dura 2h, só aparecem blocos de 2h):
+
+09:00 – 11:00 ✅
+
+11:00 – 13:00 ❌ (já ocupado)
+
+14:00 – 16:00 ✅
+
+▶ Cliente escolhe um horário disponível.
+
+Validações Automáticas
+🔹 Se nenhum prestador tiver agenda compatível:
+"Nenhum prestador tem [X horas] livres nesta data. Deseja tentar outra data ou receber alertas de disponibilidade?"
+
+🔹 Se o tempo do serviço for maior que a jornada do prestador:
+"Este serviço requer [X horas], mas [Prestador] só tem [Y horas] livres. Veja outras opções:"
+
+Melhorias Implementadas
+✔ Tempo de execução é critério obrigatório antes de mostrar prestadores.
+✔ Horários são calculados em tempo real com base no tempo do serviço.
+✔ Prestadores indisponíveis não aparecem (evita frustração).
