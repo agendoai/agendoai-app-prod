@@ -16,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AlertCircle, Trash2, Clock, Edit, Plus } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import ProviderNavbar from '@/components/layout/provider-navbar';
 import { PageTransition } from '@/components/ui/page-transition';
 import { ExecutionTimeDialog } from '@/components/execution-time-dialog';
 
@@ -815,8 +814,6 @@ export default function ServicesPageNew() {
   return (
     <PageTransition>
       <div className="flex flex-col min-h-screen">
-        <ProviderNavbar />
-        
         <div className="container py-6 flex-1">
           <h1 className="text-2xl font-bold mb-4">Meus Serviços</h1>
           <div className="mb-6 p-4 bg-blue-50 rounded-md border border-blue-200">

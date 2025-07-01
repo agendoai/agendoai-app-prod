@@ -29,7 +29,6 @@ import { AppointmentItem } from "@/components/appointment-item";
 import { NotificationsMenu } from "@/components/ui/notifications-menu";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import ProviderNavbar from "@/components/layout/provider-navbar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -44,6 +43,7 @@ import { ptBR } from "date-fns/locale";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WeeklyCalendar, { WeeklyCalendarAppointment } from "@/components/dashboard/weekly-calendar";
 import { toast } from "@/hooks/use-toast";
+import ProviderLayout from "@/components/layout/provider-layout";
 // Remover importação de imagem não encontrada
 // import providerProfileImg from "@assets/Perfil e informacoes do prestador.png";
 
@@ -756,197 +756,178 @@ export default function ProviderDashboard() {
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <AppHeader 
-        title="Dashboard do Prestador" 
-        userType="provider"
-        showMenuIcon
-      >
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center bg-white/20 rounded-lg px-4 py-2 backdrop-blur-sm">
-            <div className={`w-2 h-2 rounded-full mr-2 ${isOnline ? 'bg-green-400' : 'bg-gray-400'}`}></div>
-            <span className="text-sm font-medium text-white mr-3">{isOnline ? "Online" : "Offline"}</span>
-            <Switch 
-              checked={isOnline} 
-              onCheckedChange={handleOnlineToggle}
-              disabled={updateOnlineStatusMutation.isPending}
-            />
-          </div>
-          <NotificationsMenu color="white" />
-        </div>
-      </AppHeader>
-      
-      <PageTransition>
-        <div className="container mx-auto py-8 px-4 max-w-7xl">
-          {/* Header com informações do usuário */}
-          <motion.div 
-            className="mb-8 flex items-center justify-between" 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <div className="flex items-center">
-              <Avatar className="h-16 w-16 mr-6 shadow-lg">
-                <AvatarImage src={user?.profileImage || ""} />
-                <AvatarFallback className="bg-gradient-to-br from-gray-900 to-gray-700 text-white text-xl font-bold">
-                  {user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || "PR"}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="text-sm text-gray-500 font-medium mb-1">Bem-vindo(a) de volta,</p>
-                <h1 className="text-3xl font-bold text-gray-900">{user?.name || "Prestador"}</h1>
-                <p className="text-gray-600 mt-1">Gerencie seus serviços e agendamentos</p>
+    <ProviderLayout>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <PageTransition>
+          <div className="container mx-auto py-8 px-4 max-w-7xl">
+            {/* Header com informações do usuário */}
+            <motion.div 
+              className="mb-8 flex items-center justify-between" 
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <div className="flex items-center">
+                <Avatar className="h-16 w-16 mr-6 shadow-lg">
+                  <AvatarImage src={user?.profileImage || ""} />
+                  <AvatarFallback className="bg-gradient-to-br from-gray-900 to-gray-700 text-white text-xl font-bold">
+                    {user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || "PR"}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="text-sm text-gray-500 font-medium mb-1">Bem-vindo(a) de volta,</p>
+                  <h1 className="text-3xl font-bold text-gray-900">{user?.name || "Prestador"}</h1>
+                  <p className="text-gray-600 mt-1">Gerencie seus serviços e agendamentos</p>
+                </div>
               </div>
-            </div>
-            
-            <div className="hidden md:flex items-center space-x-4">
-              <div className="text-right">
-                <p className="text-sm text-gray-500">Status</p>
-                <p className={`font-semibold ${isOnline ? 'text-green-600' : 'text-gray-500'}`}>
-                  {isOnline ? 'Disponível' : 'Indisponível'}
-                </p>
+              
+              <div className="hidden md:flex items-center space-x-4">
+                <div className="text-right">
+                  <p className="text-sm text-gray-500">Status</p>
+                  <p className={`font-semibold ${isOnline ? 'text-green-600' : 'text-gray-500'}`}>
+                    {isOnline ? 'Disponível' : 'Indisponível'}
+                  </p>
+                </div>
               </div>
-            </div>
-          </motion.div>
-          
-          {/* Tabs da dashboard com design melhorado */}
-          <Tabs defaultValue="summary" className="mb-8">
-            <TabsList className="mb-6 bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg">
-              <TabsTrigger value="summary" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
-                <Activity className="h-4 w-4 mr-2" />
-                Resumo
-              </TabsTrigger>
-              <TabsTrigger value="calendar" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
-                <Calendar className="h-4 w-4 mr-2" />
-                Calendário Semanal
-              </TabsTrigger>
-            </TabsList>
+            </motion.div>
             
-            <TabsContent value="summary" className="space-y-8">
-              {/* Stats Cards */}
-              <Suspense fallback={<StatsGridSkeleton />}>
-                {isSettingsLoading ? (
-                  <StatsGridSkeleton />
-                ) : (
+            {/* Tabs da dashboard com design melhorado */}
+            <Tabs defaultValue="summary" className="mb-8">
+              <TabsList className="mb-6 bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg">
+                <TabsTrigger value="summary" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
+                  <Activity className="h-4 w-4 mr-2" />
+                  Resumo
+                </TabsTrigger>
+                <TabsTrigger value="calendar" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
+                  <Calendar className="h-4 w-4 mr-2" />
+                  Calendário Semanal
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="summary" className="space-y-8">
+                {/* Stats Cards */}
+                <Suspense fallback={<StatsGridSkeleton />}>
+                  {isSettingsLoading ? (
+                    <StatsGridSkeleton />
+                  ) : (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: 0.1 }}
+                    >
+                      <StatsGrid stats={stats} />
+                    </motion.div>
+                  )}
+                </Suspense>
+                
+                {/* Quick Actions */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.2 }}
+                >
+                  <QuickActions 
+                    onManualBooking={navigateToManualBooking}
+                    onScheduleConfig={navigateToScheduleConfig}
+                    onTemplatesClick={navigateToTemplates}
+                    onAnalyticsClick={navigateToAnalytics}
+                    onServicesClick={navigateToServices}
+                  />
+                </motion.div>
+                
+                {/* Meus Serviços */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4, delay: 0.25 }}
+                >
+                  <ProviderServices 
+                    services={services}
+                    isLoading={areServicesLoading}
+                    onAddService={navigateToServices}
+                    onViewServices={navigateToServices}
+                  />
+                </motion.div>
+                
+                {/* Agendamentos do dia atual */}
+                <Suspense fallback={<AppointmentsSkeleton />}>
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.4, delay: 0.1 }}
+                    transition={{ duration: 0.4, delay: 0.3 }}
                   >
-                    <StatsGrid stats={stats} />
+                    <AppointmentsList 
+                      appointments={todayAppointments.filter(a => {
+                        // Verificação extra para garantir que os agendamentos são deste dia
+                        const todayStr = new Date().toISOString().split('T')[0];
+                        console.log(`Verificando agendamento ${a.id}: data ${a.date} vs hoje ${todayStr}`);
+                        return a.date === todayStr;
+                      })}
+                      isLoading={areAppointmentsLoading}
+                      title="Agendamentos de hoje"
+                    />
                   </motion.div>
-                )}
-              </Suspense>
-              
-              {/* Quick Actions */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
-              >
-                <QuickActions 
-                  onManualBooking={navigateToManualBooking}
-                  onScheduleConfig={navigateToScheduleConfig}
-                  onTemplatesClick={navigateToTemplates}
-                  onAnalyticsClick={navigateToAnalytics}
-                  onServicesClick={navigateToServices}
-                />
-              </motion.div>
-              
-              {/* Meus Serviços */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.25 }}
-              >
-                <ProviderServices 
-                  services={services}
-                  isLoading={areServicesLoading}
-                  onAddService={navigateToServices}
-                  onViewServices={navigateToServices}
-                />
-              </motion.div>
-              
-              {/* Agendamentos do dia atual */}
-              <Suspense fallback={<AppointmentsSkeleton />}>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.3 }}
-                >
-                  <AppointmentsList 
-                    appointments={todayAppointments.filter(a => {
-                      // Verificação extra para garantir que os agendamentos são deste dia
-                      const todayStr = new Date().toISOString().split('T')[0];
-                      console.log(`Verificando agendamento ${a.id}: data ${a.date} vs hoje ${todayStr}`);
-                      return a.date === todayStr;
-                    })}
-                    isLoading={areAppointmentsLoading}
-                    title="Agendamentos de hoje"
-                  />
-                </motion.div>
-              </Suspense>
-              
-              {/* Próximos agendamentos */}
-              <Suspense fallback={<AppointmentsSkeleton />}>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 0.4 }}
-                >
-                  <AppointmentsList 
-                    appointments={upcomingAppointments.filter(a => a.date !== today)}
-                    isLoading={areAppointmentsLoading}
-                    title="Próximos agendamentos"
-                  />
-                </motion.div>
-              </Suspense>
-            </TabsContent>
-            
-            <TabsContent value="calendar">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
-              >
-                <Card className="mb-6 border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-                  <CardHeader className="pb-4">
-                    <CardTitle className="flex items-center text-2xl font-bold text-gray-900">
-                      <Calendar className="h-6 w-6 mr-3 text-gray-700" />
-                      Calendário de Agendamentos
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 flex items-center justify-between">
-                      <div className="flex items-center text-sm text-gray-600">
-                        <Info className="h-4 w-4 mr-2" />
-                        <span>Clique em um agendamento para ver mais detalhes</span>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={navigateToManualBooking}
-                        className="bg-white hover:bg-gray-50 border-gray-300 shadow-sm"
-                      >
-                        <CalendarPlus className="h-4 w-4 mr-2" />
-                        Novo Agendamento
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                </Suspense>
                 
-                <WeeklyCalendar 
-                  appointments={convertToCalendarEvents(appointments)}
-                  isLoading={areAppointmentsLoading}
-                  onEventClick={handleCalendarEventClick}
-                />
-              </motion.div>
-            </TabsContent>
-          </Tabs>
-        </div>
-      </PageTransition>
-      
-      <ProviderNavbar />
-    </div>
+                {/* Próximos agendamentos */}
+                <Suspense fallback={<AppointmentsSkeleton />}>
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.4 }}
+                  >
+                    <AppointmentsList 
+                      appointments={upcomingAppointments.filter(a => a.date !== today)}
+                      isLoading={areAppointmentsLoading}
+                      title="Próximos agendamentos"
+                    />
+                  </motion.div>
+                </Suspense>
+              </TabsContent>
+              
+              <TabsContent value="calendar">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.4 }}
+                >
+                  <Card className="mb-6 border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+                    <CardHeader className="pb-4">
+                      <CardTitle className="flex items-center text-2xl font-bold text-gray-900">
+                        <Calendar className="h-6 w-6 mr-3 text-gray-700" />
+                        Calendário de Agendamentos
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                      <div className="p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 flex items-center justify-between">
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Info className="h-4 w-4 mr-2" />
+                          <span>Clique em um agendamento para ver mais detalhes</span>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={navigateToManualBooking}
+                          className="bg-white hover:bg-gray-50 border-gray-300 shadow-sm"
+                        >
+                          <CalendarPlus className="h-4 w-4 mr-2" />
+                          Novo Agendamento
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  <WeeklyCalendar 
+                    appointments={convertToCalendarEvents(appointments)}
+                    isLoading={areAppointmentsLoading}
+                    onEventClick={handleCalendarEventClick}
+                  />
+                </motion.div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </PageTransition>
+      </div>
+    </ProviderLayout>
   );
 }

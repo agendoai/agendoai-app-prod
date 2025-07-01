@@ -141,14 +141,14 @@ export default function AppHeader({
       initial={{ opacity: 0.8, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className={`sticky top-0 z-50 ${transparent ? '' : 'border-b bg-background'} h-14 flex items-center px-4 ${className}`}
+      className={`sticky top-0 z-50 ${transparent ? '' : 'border-b bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400'} h-14 flex items-center px-4 ${className}`}
     >
       {showBackButton && (
         <Button
           variant="ghost"
           size="icon"
           onClick={handleBack}
-          className="mr-3 rounded-full p-1"
+          className="mr-3 rounded-full p-1 text-white hover:bg-white/20"
           aria-label="Voltar"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -156,7 +156,7 @@ export default function AppHeader({
       )}
       
       {title && (
-        <h1 className="text-lg font-semibold flex-1">{title}</h1>
+        <h1 className="text-lg font-semibold flex-1 text-white">{title}</h1>
       )}
       
       {showUserInfo && user && (
@@ -168,8 +168,8 @@ export default function AppHeader({
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col justify-center">
-            <span className="font-medium text-sm">{user.name || 'Usuário'}</span>
-            <span className="text-xs text-muted-foreground">
+            <span className="font-medium text-sm text-white">{user.name || 'Usuário'}</span>
+            <span className="text-xs text-white/80">
               {userType === "client" ? "Cliente" : 
                userType === "provider" ? "Prestador" : 
                userType === "admin" ? "Administrador" : "Suporte"}
@@ -183,7 +183,7 @@ export default function AppHeader({
           <Button
             variant="ghost"
             size="icon"
-            className="relative p-1 rounded-full"
+            className="relative p-1 rounded-full text-white hover:bg-white/20"
             onClick={navigateToNotifications}
             aria-label="Notificações"
           >
@@ -202,7 +202,7 @@ export default function AppHeader({
               <Button
                 variant="ghost"
                 size="icon"
-                className="p-1 rounded-full"
+                className="p-1 rounded-full text-white hover:bg-white/20"
                 aria-label="Menu"
               >
                 <MoreVertical className="h-5 w-5" />
