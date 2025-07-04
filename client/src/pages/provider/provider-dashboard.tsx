@@ -191,31 +191,16 @@ export default function ProviderDashboard() {
 
   return (
     <ProviderLayout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 overflow-x-hidden">
         <PageTransition>
-          <div className="container mx-auto py-8 px-4 max-w-7xl">
+          <div className="container mx-auto py-6 px-1 sm:px-4 max-w-7xl w-full overflow-x-hidden">
             {/* Header */}
-            <header className="flex flex-col items-center justify-center px-4 pt-6 pb-2">
+            <header className="flex flex-col items-center justify-center px-2 sm:px-4 pt-6 pb-2 w-full">
               <img src="/AgendoAilogo.png" alt="AgendoAI Logo" className="h-16 w-auto mb-2" />
             </header>
 
             {/* Quick Actions */}
-            <div className="flex flex-col items-center mt-4 mb-6 gap-3">
-              <button
-                className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 text-white text-xl shadow-lg flex flex-col items-center justify-center border-4 border-white"
-                onClick={() => setLocation('/provider/add-service-page')}
-              >
-                <PlusCircle className="h-10 w-10 mb-1" />
-                Novo<br />Serviço
-              </button>
-              <button
-                className="w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-green-600 text-white text-xl shadow-lg flex flex-col items-center justify-center border-4 border-white"
-                onClick={() => setLocation('/provider/clients-page')}
-              >
-                <Search className="h-10 w-10 mb-1" />
-                Buscar<br />Cliente
-              </button>
-            </div>
+            {/* Removido conforme solicitado: botões circulares de Novo Serviço e Buscar Cliente */}
 
             {/* User Info */}
             <motion.div 
@@ -253,66 +238,63 @@ export default function ProviderDashboard() {
             </motion.div>
             
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-0 shadow-lg">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
-                      <Calendar className="h-6 w-6 text-white" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mb-6 w-full max-w-full min-w-0 overflow-x-auto">
+              <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-0 shadow-lg p-0">
+                <CardContent className="p-3 sm:p-6">
+                  <div className="flex items-center justify-between mb-2 sm:mb-4">
+                    <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-white/10 flex items-center justify-center">
+                      <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                     </div>
                   </div>
                   <div>
-                    <p className="text-white/70 text-sm font-medium mb-1">Agendamentos Hoje</p>
-                    <p className="text-white text-2xl font-bold mb-1">{stats.todayAppointments}</p>
+                    <p className="text-white/70 text-xs sm:text-sm font-medium mb-0.5 sm:mb-1">Agendamentos Hoje</p>
+                    <p className="text-white text-xl sm:text-2xl font-bold mb-0.5 sm:mb-1">{stats.todayAppointments}</p>
                   </div>
                 </CardContent>
               </Card>
-              
-              <Card className="bg-gradient-to-br from-green-600 to-green-700 text-white border-0 shadow-lg">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
-                      <DollarSign className="h-6 w-6 text-white" />
+              <Card className="bg-gradient-to-br from-green-600 to-green-700 text-white border-0 shadow-lg p-0">
+                <CardContent className="p-3 sm:p-6">
+                  <div className="flex items-center justify-between mb-2 sm:mb-4">
+                    <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-white/10 flex items-center justify-center">
+                      <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                     </div>
                   </div>
                   <div>
-                    <p className="text-white/70 text-sm font-medium mb-1">Receita Mensal</p>
-                    <p className="text-white text-2xl font-bold mb-1">{formatCurrency(stats.monthlyRevenue)}</p>
+                    <p className="text-white/70 text-xs sm:text-sm font-medium mb-0.5 sm:mb-1">Receita Mensal</p>
+                    <p className="text-white text-xl sm:text-2xl font-bold mb-0.5 sm:mb-1">{formatCurrency(stats.monthlyRevenue)}</p>
                   </div>
                 </CardContent>
               </Card>
-              
-              <Card className="bg-gradient-to-br from-purple-600 to-purple-700 text-white border-0 shadow-lg">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
-                      <Users className="h-6 w-6 text-white" />
+              <Card className="bg-gradient-to-br from-purple-600 to-purple-700 text-white border-0 shadow-lg p-0">
+                <CardContent className="p-3 sm:p-6">
+                  <div className="flex items-center justify-between mb-2 sm:mb-4">
+                    <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-white/10 flex items-center justify-center">
+                      <Users className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                     </div>
                   </div>
                   <div>
-                    <p className="text-white/70 text-sm font-medium mb-1">Clientes Atendidos</p>
-                    <p className="text-white text-2xl font-bold mb-1">{stats.manualAppointments}</p>
+                    <p className="text-white/70 text-xs sm:text-sm font-medium mb-0.5 sm:mb-1">Clientes Atendidos</p>
+                    <p className="text-white text-xl sm:text-2xl font-bold mb-0.5 sm:mb-1">{stats.manualAppointments}</p>
                   </div>
                 </CardContent>
               </Card>
-              
-              <Card className="bg-gradient-to-br from-orange-600 to-orange-700 text-white border-0 shadow-lg">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
-                      <TrendingUp className="h-6 w-6 text-white" />
+              <Card className="bg-gradient-to-br from-orange-600 to-orange-700 text-white border-0 shadow-lg p-0">
+                <CardContent className="p-3 sm:p-6">
+                  <div className="flex items-center justify-between mb-2 sm:mb-4">
+                    <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-white/10 flex items-center justify-center">
+                      <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
                     </div>
                   </div>
                   <div>
-                    <p className="text-white/70 text-sm font-medium mb-1">Taxa de Conversão</p>
-                    <p className="text-white text-2xl font-bold mb-1">85%</p>
+                    <p className="text-white/70 text-xs sm:text-sm font-medium mb-0.5 sm:mb-1">Taxa de Conversão</p>
+                    <p className="text-white text-xl sm:text-2xl font-bold mb-0.5 sm:mb-1">85%</p>
                   </div>
                 </CardContent>
               </Card>
             </div>
             
             {/* Tabs */}
-            <Tabs defaultValue="summary" className="mb-8">
+            <Tabs defaultValue="summary" className="mb-8 w-full">
               <TabsList className="mb-6 bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg">
                 <TabsTrigger value="summary" className="data-[state=active]:bg-gray-900 data-[state=active]:text-white">
                   <Activity className="h-4 w-4 mr-2" />
@@ -334,10 +316,10 @@ export default function ProviderDashboard() {
                     </h2>
                   </div>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 w-full max-w-full min-w-0 overflow-x-auto">
                     <Button 
                       onClick={() => setLocation("/provider/manual-booking")}
-                      className="h-20 flex flex-col items-center justify-center space-y-2 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300"
+                      className="h-16 sm:h-20 flex flex-col items-center justify-center space-y-1 sm:space-y-2 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 text-xs sm:text-sm px-2 sm:px-0"
                     >
                       <CalendarPlus className="h-6 w-6" />
                       <span className="text-xs font-medium">Novo Agendamento</span>
@@ -346,7 +328,7 @@ export default function ProviderDashboard() {
                     <Button 
                       onClick={() => setLocation("/provider/schedule")}
                       variant="outline"
-                      className="h-20 flex flex-col items-center justify-center space-y-2 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-300"
+                      className="h-16 sm:h-20 flex flex-col items-center justify-center space-y-1 sm:space-y-2 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-300 text-xs sm:text-sm px-2 sm:px-0"
                     >
                       <Settings className="h-6 w-6 text-gray-700" />
                       <span className="text-xs font-medium text-gray-700">Configurar Horários</span>
@@ -355,7 +337,7 @@ export default function ProviderDashboard() {
                     <Button 
                       onClick={() => setLocation("/provider/services")}
                       variant="outline"
-                      className="h-20 flex flex-col items-center justify-center space-y-2 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-300"
+                      className="h-16 sm:h-20 flex flex-col items-center justify-center space-y-1 sm:space-y-2 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-300 text-xs sm:text-sm px-2 sm:px-0"
                     >
                       <Scissors className="h-6 w-6 text-gray-700" />
                       <span className="text-xs font-medium text-gray-700">Meus Serviços</span>
@@ -364,19 +346,10 @@ export default function ProviderDashboard() {
                     <Button 
                       onClick={() => setLocation("/provider/analytics")}
                       variant="outline"
-                      className="h-20 flex flex-col items-center justify-center space-y-2 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-300"
+                      className="h-16 sm:h-20 flex flex-col items-center justify-center space-y-1 sm:space-y-2 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-300 text-xs sm:text-sm px-2 sm:px-0"
                     >
                       <BarChart className="h-6 w-6 text-gray-700" />
                       <span className="text-xs font-medium text-gray-700">Analytics</span>
-                    </Button>
-                    
-                    <Button 
-                      onClick={() => setLocation("/provider/service-templates")}
-                      variant="outline"
-                      className="h-20 flex flex-col items-center justify-center space-y-2 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-300"
-                    >
-                      <ClipboardList className="h-6 w-6 text-gray-700" />
-                      <span className="text-xs font-medium text-gray-700">Templates</span>
                     </Button>
                   </div>
                 </div>
@@ -411,7 +384,7 @@ export default function ProviderDashboard() {
                       ))}
                     </div>
                   ) : services.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 w-full max-w-full min-w-0 overflow-x-auto">
                       {services.slice(0, 4).map((service) => (
                         <Card 
                           key={service.id} 
@@ -427,7 +400,7 @@ export default function ProviderDashboard() {
                                 {service.categoryName || "Categoria"}
                               </div>
                             </div>
-                            <h3 className="font-semibold text-gray-900 mb-2 truncate group-hover:text-blue-600 transition-colors">
+                            <h3 className="font-semibold text-gray-900 mb-2 truncate group-hover:text-blue-600 transition-colors break-words">
                               {service.serviceName}
                             </h3>
                             <p className="text-lg font-bold text-green-600">
@@ -438,7 +411,7 @@ export default function ProviderDashboard() {
                       ))}
                     </div>
                   ) : (
-                    <Card className="border-2 border-dashed border-gray-300 bg-gray-50/50 p-8 text-center">
+                    <Card className="border-2 border-dashed border-gray-300 bg-gray-50/50 p-4 sm:p-8 text-center w-full max-w-full">
                       <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-4">
                         <Scissors className="h-8 w-8 text-gray-400" />
                       </div>
@@ -501,7 +474,7 @@ export default function ProviderDashboard() {
                       ))}
                     </div>
                   ) : (
-                    <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm p-8 text-center">
+                    <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm p-4 sm:p-8 text-center w-full max-w-full">
                       <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-4">
                         <Calendar className="h-8 w-8 text-gray-400" />
                       </div>
@@ -554,7 +527,7 @@ export default function ProviderDashboard() {
                       ))}
                     </div>
                   ) : (
-                    <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm p-8 text-center">
+                    <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm p-4 sm:p-8 text-center w-full max-w-full">
                       <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-4">
                         <Calendar className="h-8 w-8 text-gray-400" />
                       </div>
@@ -566,7 +539,7 @@ export default function ProviderDashboard() {
               </TabsContent>
               
               <TabsContent value="calendar">
-                <Card className="mb-6 border-0 shadow-xl bg-white/90 backdrop-blur-sm">
+                <Card className="mb-6 border-0 shadow-xl bg-white/90 backdrop-blur-sm w-full max-w-full">
                   <CardHeader className="pb-4">
                     <CardTitle className="flex items-center text-2xl font-bold text-gray-900">
                       <Calendar className="h-6 w-6 mr-3 text-gray-700" />
@@ -574,7 +547,7 @@ export default function ProviderDashboard() {
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-0">
-                    <div className="p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 flex items-center justify-between">
+                    <div className="p-4 sm:p-6 bg-gradient-to-r from-gray-50 to-gray-100 border-t border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between w-full max-w-full min-w-0">
                       <div className="flex items-center text-sm text-gray-600">
                         <Info className="h-4 w-4 mr-2" />
                         <span>Clique em um agendamento para ver mais detalhes</span>
@@ -601,7 +574,7 @@ export default function ProviderDashboard() {
             </Tabs>
 
             {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white shadow flex justify-around py-2 rounded-t-2xl z-50">
+            <nav className="fixed bottom-0 left-0 right-0 bg-white shadow flex justify-around py-2 rounded-t-2xl z-50 w-full max-w-full">
               <button className="flex flex-col items-center text-blue-600 font-bold" aria-current="page">
                 <Home className="h-6 w-6" />
                 <span className="text-xs">Início</span>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -285,21 +285,18 @@ export default function AddServicePage() {
     ));
   };
 
-  // Função para renderizar categorias para filtros
+  // Função para renderizar categorias para filtros, agora filtrando pelo nicho selecionado
   const renderFilterCategories = () => {
     if (isLoadingAllCategories) {
       return <SelectItem value="loading" disabled>Carregando categorias...</SelectItem>;
     }
-    
     if (!Array.isArray(allCategories) || allCategories.length === 0) {
       return <SelectItem value="empty" disabled>Nenhuma categoria disponível</SelectItem>;
     }
-    
-    // Se há filtro de nicho, filtrar categorias por nicho
-    const categoriesToShow = filterNiche 
+    // Filtrar categorias pelo nicho selecionado
+    const categoriesToShow = filterNiche
       ? allCategories.filter(cat => cat.nicheId?.toString() === filterNiche)
       : allCategories;
-    
     return categoriesToShow.map((category: any) => (
       <SelectItem key={category?.id || 'unknown'} value={(category?.id || 'unknown').toString()}>
         {category?.name || 'Categoria sem nome'}
@@ -327,6 +324,16 @@ export default function AddServicePage() {
       </SelectItem>
     ));
   };
+
+  // Garante que filterCategory sempre seja válido ao trocar o nicho, usando useEffect para evitar render loop
+  useEffect(() => {
+    const filteredCategoriesForFilter = filterNiche
+      ? allCategories.filter(cat => cat.nicheId?.toString() === filterNiche)
+      : allCategories;
+    if (filterCategory && !filteredCategoriesForFilter.some(cat => cat.id?.toString() === filterCategory)) {
+      setFilterCategory("");
+    }
+  }, [filterNiche, allCategories, filterCategory, setFilterCategory]);
 
   return (
     <ProviderLayout>
@@ -459,12 +466,11 @@ export default function AddServicePage() {
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                               <Label className="text-sm font-medium text-gray-700 mb-2 block">Nicho</Label>
-                              <Select value={filterNiche} onValueChange={setFilterNiche}>
-                                <SelectTrigger className="h-10">
+                              <Select value={filterNiche} onValueChange={value => { setFilterNiche(value); setFilterCategory(""); }}>
+                                <SelectTrigger className="h-10 bg-white rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 shadow-sm text-base font-medium transition-all duration-150">
                                   <SelectValue placeholder="Selecione um nicho" />
                                 </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="">Todos os nichos</SelectItem>
+                                <SelectContent className="bg-white rounded-lg shadow-lg border border-gray-200 py-1 text-base">
                                   {renderNiches()}
                                 </SelectContent>
                               </Select>
@@ -473,11 +479,10 @@ export default function AddServicePage() {
                             <div>
                               <Label className="text-sm font-medium text-gray-700 mb-2 block">Categoria</Label>
                               <Select value={filterCategory} onValueChange={setFilterCategory}>
-                                <SelectTrigger className="h-10">
+                                <SelectTrigger className="h-10 bg-white rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 shadow-sm text-base font-medium transition-all duration-150">
                                   <SelectValue placeholder="Selecione uma categoria" />
                                 </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="">Todas as categorias</SelectItem>
+                                <SelectContent className="bg-white rounded-lg shadow-lg border border-gray-200 py-1 text-base">
                                   {renderFilterCategories()}
                                 </SelectContent>
                               </Select>

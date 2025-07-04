@@ -42,7 +42,7 @@ import {
 	serviceTemplates,
 	User,
 	users,
-	availability,
+	availability as availabilityTable,
 
 } from "../shared/schema"
 
@@ -2158,14 +2158,14 @@ export class DatabaseStorage implements IStorage {
 
 	// Availability methods
 	async getAvailabilities(): Promise<Availability[]> {
-		return await db.select().from(availability)
+		return await db.select().from(availabilityTable)
 	}
 
 	async getAvailabilityById(id: number): Promise<Availability | undefined> {
 		const results = await db
 			.select()
-			.from(availability)
-			.where(eq(availability.id, id))
+			.from(availabilityTable)
+			.where(eq(availabilityTable.id, id))
 		return results[0]
 	}
 
@@ -2174,8 +2174,8 @@ export class DatabaseStorage implements IStorage {
 	): Promise<Availability[]> {
 		return await db
 			.select()
-			.from(availability)
-			.where(eq(availability.providerId, providerId))
+			.from(availabilityTable)
+			.where(eq(availabilityTable.providerId, providerId))
 	}
 
 	async getAvailabilityByDay(
@@ -2184,11 +2184,11 @@ export class DatabaseStorage implements IStorage {
 	): Promise<Availability | undefined> {
 		const results = await db
 			.select()
-			.from(availability)
+			.from(availabilityTable)
 			.where(
 				and(
-					eq(availability.providerId, providerId),
-					eq(availability.dayOfWeek, dayOfWeek)
+					eq(availabilityTable.providerId, providerId),
+					eq(availabilityTable.dayOfWeek, dayOfWeek)
 				)
 			)
 		return results[0]
@@ -2200,11 +2200,11 @@ export class DatabaseStorage implements IStorage {
 	): Promise<Availability | undefined> {
 		const results = await db
 			.select()
-			.from(availability)
+			.from(availabilityTable)
 			.where(
 				and(
-					eq(availability.providerId, providerId),
-					eq(availability.date, date)
+					eq(availabilityTable.providerId, providerId),
+					eq(availabilityTable.date, date)
 				)
 			)
 		return results[0]
@@ -2213,27 +2213,47 @@ export class DatabaseStorage implements IStorage {
 	async createAvailability(
 		availability: InsertAvailability
 	): Promise<Availability> {
-		const results = await db
-			.insert(availability)
-			.values(availability)
-			.returning()
-		return results[0]
+		const newAvailability: Availability = {
+			id: this.availability.length + 1,
+			date: availability.date || null,
+			dayOfWeek: availability.dayOfWeek,
+			providerId: availability.providerId,
+			startTime: availability.startTime,
+			endTime: availability.endTime,
+			isAvailable: availability.isAvailable || null,
+			intervalMinutes: availability.intervalMinutes || null,
+		}
+
+		this.availability.push(newAvailability)
+		return newAvailability
 	}
 
 	async updateAvailability(
 		id: number,
 		availability: Partial<InsertAvailability>
 	): Promise<Availability> {
-		const results = await db
-			.update(availability)
-			.set(availability)
-			.where(eq(availability.id, id))
-			.returning()
-		return results[0]
+		const index = this.availability.findIndex((a) => a.id === id)
+		if (index === -1) {
+			throw new Error(`Availability with id ${id} not found`)
+		}
+
+		const updatedAvailability: Availability = {
+			...this.availability[index],
+			...availability,
+			id: this.availability[index].id,
+		}
+
+		this.availability[index] = updatedAvailability
+		return updatedAvailability
 	}
 
 	async deleteAvailability(id: number): Promise<void> {
-		await db.delete(availability).where(eq(availability.id, id))
+		const index = this.availability.findIndex(
+			(availability) => availability.id === id
+		)
+		if (index !== -1) {
+			this.availability.splice(index, 1)
+		}
 	}
 
 	// Blocked time methods

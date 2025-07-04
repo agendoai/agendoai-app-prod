@@ -229,7 +229,7 @@ export default function ManualBookingPage() {
       name: service.serviceName,
       description: service.serviceDescription || "",
       duration: service.executionTime || 30,
-      price: service.defaultPrice || 0,
+      price: service.price, // Corrigido: usar o preço personalizado do prestador
       categoryId: service.categoryId,
       providerId: service.providerId,
       isActive: true
