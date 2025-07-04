@@ -21,7 +21,8 @@ export default function PersonalInfoPage() {
     name: user?.name || "",
     email: user?.email || "",
     phone: user?.phone || "",
-    profileImage: user?.profileImage || ""
+    profileImage: user?.profileImage || "",
+    cpf: user?.cpf || ""
   });
   
   const [imageDialogOpen, setImageDialogOpen] = useState(false);
@@ -35,7 +36,8 @@ export default function PersonalInfoPage() {
         name: user.name || "",
         email: user.email || "",
         phone: user.phone || "",
-        profileImage: user.profileImage || ""
+        profileImage: user.profileImage || "",
+        cpf: user.cpf || ""
       });
     }
   }, [user]);
@@ -47,7 +49,7 @@ export default function PersonalInfoPage() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
       toast({
         title: "Perfil atualizado",
         description: "Suas informações foram atualizadas com sucesso.",
@@ -167,7 +169,10 @@ export default function PersonalInfoPage() {
     e.preventDefault();
     
     // Excluir o email do objeto pois ele não pode ser alterado
-    const { email, ...updateData } = formData;
+    const { email, ...rest } = formData;
+    const updateData: Partial<typeof rest> = { ...rest };
+    // Se o campo CPF estiver vazio, não envia
+    if (typeof updateData.cpf !== "undefined" && updateData.cpf === "") delete updateData.cpf;
     
     // Enviar os dados atualizados para o servidor
     updateProfileMutation.mutate(updateData);
@@ -201,50 +206,52 @@ export default function PersonalInfoPage() {
   };
   
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-[#f7f7f9] flex flex-col items-center justify-start pb-10">
       {/* Header */}
-      <div className="bg-primary text-white p-4 flex items-center">
-        <button onClick={goBack} className="mr-2">
+      <div className="w-full max-w-md mx-auto bg-gradient-to-br from-[#3EB9AA] to-[#2A9D8F] text-white px-4 py-6 flex items-center rounded-b-3xl shadow-md">
+        <button onClick={goBack} className="mr-3 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors">
           <ChevronLeft className="h-6 w-6" />
         </button>
-        <h1 className="text-xl font-semibold">Informações Pessoais</h1>
+        <h1 className="text-2xl font-bold flex-1 text-center">Informações Pessoais</h1>
+        <span className="w-8" />
       </div>
-      
-      <div className="p-4">
-        <p className="text-neutral-600 mb-6">
-          Atualize suas informações pessoais para manter seu perfil atualizado.
-        </p>
-        
-        {/* Profile Image */}
+      <div className="w-full max-w-md mx-auto -mt-12">
         <div className="flex flex-col items-center mb-8">
-          <div className="w-24 h-24 rounded-full overflow-hidden bg-primary/10 relative mb-2">
+          <button
+            type="button"
+            className="w-28 h-28 rounded-full overflow-hidden bg-primary/10 relative mb-2 group shadow-lg border-4 border-white focus:outline-none focus:ring-2 focus:ring-primary"
+            onClick={handleImageChange}
+            aria-label="Alterar foto de perfil"
+            tabIndex={0}
+          >
             {formData.profileImage ? (
               <img 
                 src={formData.profileImage} 
                 alt="Profile" 
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  e.currentTarget.src = "https://via.placeholder.com/96?text=User";
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = '/src/assets/service-images/perfil de usuario.png';
                 }}
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <User className="h-12 w-12 text-primary" />
+                <User className="h-16 w-16 text-primary" />
               </div>
             )}
-            
-            <button 
-              className="absolute bottom-0 right-0 bg-primary text-white p-1 rounded-full"
-              onClick={handleImageChange}
-            >
-              <Camera className="h-4 w-4" />
-            </button>
-          </div>
-          <p className="text-sm text-neutral-500">Toque para alterar a foto</p>
+            <span className="absolute bottom-2 right-2 bg-primary text-white p-3 rounded-full shadow-lg border-2 border-white group-hover:scale-110 transition-transform">
+              <Camera className="h-6 w-6" />
+            </span>
+          </button>
+          <button
+            type="button"
+            className="text-sm text-primary underline mt-2"
+            onClick={handleImageChange}
+          >
+            Adicionar ou alterar foto
+          </button>
         </div>
-        
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-2xl shadow-lg p-6 mt-2">
           <div className="space-y-2">
             <Label htmlFor="name">Nome completo</Label>
             <Input
@@ -255,7 +262,17 @@ export default function PersonalInfoPage() {
               placeholder="Seu nome completo"
             />
           </div>
-          
+          <div className="space-y-2">
+            <Label htmlFor="cpf">CPF</Label>
+            <Input
+              id="cpf"
+              name="cpf"
+              value={formData.cpf}
+              onChange={handleInputChange}
+              placeholder="000.000.000-00"
+              maxLength={14}
+            />
+          </div>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -269,7 +286,6 @@ export default function PersonalInfoPage() {
             />
             <p className="text-xs text-neutral-500">O email não pode ser alterado</p>
           </div>
-          
           <div className="space-y-2">
             <Label htmlFor="phone">Telefone</Label>
             <Input
@@ -281,32 +297,30 @@ export default function PersonalInfoPage() {
               placeholder="(00) 00000-0000"
             />
           </div>
-          
           <div className="pt-4">
             <Button 
               type="submit" 
-              className="w-full"
+              className="w-full text-lg py-3 rounded-xl bg-gradient-to-br from-[#3EB9AA] to-[#2A9D8F] text-white font-bold shadow-md hover:scale-[1.02] transition-transform"
               disabled={updateProfileMutation.isPending}
             >
               {updateProfileMutation.isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                   Salvando...
                 </>
               ) : (
                 <>
-                  <Check className="mr-2 h-4 w-4" />
+                  <Check className="mr-2 h-5 w-5" />
                   Salvar alterações
                 </>
               )}
             </Button>
           </div>
-          
           <div className="mt-4">
             <Button 
               type="button" 
               variant="outline" 
-              className="w-full"
+              className="w-full text-lg py-3 rounded-xl font-bold"
               onClick={() => setLocation("/client/change-password")}
             >
               Alterar senha
@@ -317,7 +331,7 @@ export default function PersonalInfoPage() {
       
       {/* Dialog para alteração de foto */}
       <Dialog open={imageDialogOpen} onOpenChange={setImageDialogOpen}>
-        <DialogContent>
+        <DialogContent className="bg-white">
           <DialogHeader>
             <DialogTitle>Alterar foto de perfil</DialogTitle>
             <DialogDescription>

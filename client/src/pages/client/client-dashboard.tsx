@@ -577,19 +577,33 @@ export default function ClientDashboard() {
   const todayAppointments = appointments.filter(a => a.date === new Date().toISOString().split('T')[0]);
 
     return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 pb-24 flex justify-center">
+    <div className="min-h-screen bg-[#f7f7f9] pb-24 flex justify-center">
       <div className="w-full max-w-md mx-auto">
-        <header className="flex flex-col items-center justify-center px-4 pt-8 pb-4">
-          <img src="/AgendoAilogo.png" alt="AgendoAI Logo" className="h-20 w-auto mb-4" />
-      </header>
+        <header className="flex flex-col items-center justify-center px-4 pt-8 pb-4 relative">
+          <img src="/AgendoAilogo.png" alt="AgendoAI Logo" className="h-32 w-auto mb-4 transition-all duration-300" />
+          {/* Menu de usuário */}
+          <div className="absolute top-4 right-4">
+            <div className="group relative">
+              <button className="flex items-center gap-2 bg-white/80 hover:bg-white shadow px-3 py-1.5 rounded-full border border-gray-200 text-blue-900 font-semibold focus:outline-none">
+                <User className="h-6 w-6" />
+                <span className="hidden sm:inline">Menu</span>
+              </button>
+              <div className="hidden group-hover:flex group-focus:flex flex-col absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-50">
+                <button className="px-4 py-2 text-left hover:bg-blue-50" onClick={() => setLocation('/client/profile')}>Acessar Perfil</button>
+                <button className="px-4 py-2 text-left hover:bg-blue-50" onClick={() => setLocation('/client/support')}>Ajuda / Suporte</button>
+                <button className="px-4 py-2 text-left text-red-600 hover:bg-red-50" onClick={() => { if(window.confirm('Deseja realmente sair?')) { localStorage.clear(); setLocation('/'); } }}>Sair</button>
+              </div>
+            </div>
+          </div>
+        </header>
 
         <div className="flex flex-col items-center mb-6">
         <button
-            className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-blue-700 text-white text-lg shadow-md flex flex-col items-center justify-center border-2 border-white mb-2"
+            className="w-full max-w-xs h-16 rounded-2xl bg-gradient-to-br from-[#3EB9AA] to-[#2A9D8F] text-white text-xl shadow-xl flex flex-row items-center justify-center border-4 border-white mb-2 hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-[#3EB9AA]/40 font-bold gap-3"
             onClick={navigateToBookingWizard}
         >
-            <PlusCircle className="h-8 w-8 mb-1" />
-            Novo Agendamento
+            <PlusCircle className="h-8 w-8" />
+            Agendar
         </button>
       </div>
 
@@ -760,6 +774,7 @@ export default function ClientDashboard() {
           className="flex flex-col items-center text-white font-bold transition-all duration-200 drop-shadow-lg" 
           aria-current="page" 
           style={{ filter: 'brightness(1.2)' }}
+          onClick={() => setLocation('/client/dashboard')}
         >
           <Home className="h-6 w-6 mb-0.5" />
             <span className="text-xs">Início</span>
@@ -773,14 +788,14 @@ export default function ClientDashboard() {
           </button>
         <button 
           className="flex flex-col items-center text-blue-100 hover:text-green-300 transition-all duration-200" 
-          onClick={() => setLocation('/client/providers-page')}
+          onClick={() => setLocation('/client/providers')}
         >
           <Search className="h-6 w-6 mb-0.5" />
           <span className="text-xs">Buscar Prestador</span>
           </button>
         <button 
           className="flex flex-col items-center text-blue-100 hover:text-pink-300 transition-all duration-200" 
-          onClick={() => setLocation('/client/user-profile-page')}
+          onClick={() => setLocation('/client/profile')}
         >
           <User className="h-6 w-6 mb-0.5" />
             <span className="text-xs">Perfil</span>

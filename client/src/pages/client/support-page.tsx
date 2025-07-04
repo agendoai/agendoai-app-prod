@@ -16,6 +16,18 @@ export default function SupportPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { user } = useAuth();
+  // Se não estiver autenticado, exibir mensagem e bloquear envio
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="bg-white p-8 rounded-xl shadow-md text-center">
+          <h2 className="text-xl font-bold mb-2">Faça login para acessar o suporte</h2>
+          <p className="text-neutral-600 mb-4">Você precisa estar autenticado para enviar mensagens de suporte.</p>
+          <Button onClick={() => setLocation('/auth')}>Fazer login</Button>
+        </div>
+      </div>
+    );
+  }
   
   const [formData, setFormData] = useState({
     subject: "",
@@ -58,9 +70,13 @@ export default function SupportPage() {
       queryClient.invalidateQueries({ queryKey: ['/api/support/messages'] });
     },
     onError: (error: Error) => {
+      let msg = error.message;
+      if (msg.includes('401')) {
+        msg = 'Sua sessão expirou. Faça login novamente.';
+      }
       toast({
         title: "Erro ao enviar mensagem",
-        description: error.message,
+        description: msg,
         variant: "destructive"
       });
     }
