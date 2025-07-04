@@ -138,7 +138,7 @@ export default function UserProfilePage() {
   // Verificar se o usuário está carregado
   if (!user) {
     return (
-      <ClientLayout showBackButton backButtonAction={navigateBack} title="Perfil">
+      <ClientLayout>
         <div className="flex justify-center items-center h-64">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
@@ -150,165 +150,142 @@ export default function UserProfilePage() {
   }
   
   return (
-    <ClientLayout showBackButton backButtonAction={navigateBack} title="Perfil">
+    <ClientLayout>
       {/* User Banner */}
-      <div className="h-40 bg-primary relative">
-        <div className="pt-20 px-4">
-          <div className="relative">
-            <div className="absolute -top-14 w-28 h-28 bg-white rounded-2xl overflow-hidden border-4 border-white">
-              {user?.profileImage ? (
-                <img
-                  src={user.profileImage}
-                  alt={user.name || "User"}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.src = "https://via.placeholder.com/112?text=User";
-                  }}
-                />
-              ) : (
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-4xl font-bold shadow-lg mx-auto mb-4">
-                  {user?.name?.charAt(0) || "C"}
-                </div>
-              )}
+      <div className="h-44 bg-gradient-to-br from-[#3EB9AA] to-[#2A9D8F] relative flex flex-col items-center justify-center">
+        <div className="absolute -top-14 left-1/2 -translate-x-1/2 w-28 h-28 bg-white rounded-full overflow-hidden border-4 border-white shadow-lg flex items-center justify-center group">
+          {user?.profileImage ? (
+            <img
+              src={user.profileImage}
+              alt={user.name || 'User'}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = '/src/assets/service-images/perfil de usuario.png';
+              }}
+            />
+          ) : (
+            <div className="w-full h-full rounded-full bg-gradient-to-br from-[#3EB9AA] to-[#2A9D8F] flex items-center justify-center text-white text-4xl font-bold">
+              {user?.name?.charAt(0) || 'C'}
             </div>
-            <h1 className="text-xl font-bold ml-32 mb-4 text-white">
-              {user?.name || user?.email?.split('@')[0] || "Usuário"}
-            </h1>
-            <p className="text-white/80 ml-32 text-sm">
-              {user?.email || "Email não informado"}
-            </p>
-          </div>
+          )}
+          <button
+            type="button"
+            className="absolute bottom-2 right-2 bg-primary text-white p-2 rounded-full shadow-lg border-2 border-white group-hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-primary"
+            aria-label="Alterar foto de perfil"
+            onClick={navigateToProfileSettings}
+          >
+            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2a2.828 2.828 0 11-4-4 2.828 2.828 0 014 4z" /></svg>
+          </button>
+        </div>
+        <div className="pt-20 flex flex-col items-center">
+          <h1 className="text-xl font-bold text-white text-center">
+            {user?.name || user?.email?.split('@')[0] || 'Usuário'}
+          </h1>
+          <p className="text-white/80 text-sm text-center">
+            {user?.email || 'Email não informado'}
+          </p>
         </div>
       </div>
-      
       {/* Profile Sections */}
-      <div className="p-4 pt-10">
+      <div className="p-4 pt-16 max-w-md mx-auto">
         {/* Profile Options */}
-        <Card className="border border-neutral-200 mb-6">
-          <CardContent className="p-0">
-            <div className="space-y-px">
-              <button
-                onClick={navigateToProfileSettings}
-                className="w-full p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors"
-              >
-                <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mr-3">
-                    <User className="h-5 w-5 text-primary" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium">Informações Pessoais</p>
-                    <p className="text-sm text-neutral-500">Edite seus dados pessoais</p>
-                  </div>
-                </div>
-                <Shield className="h-5 w-5 text-neutral-400" />
-              </button>
-              
-              <div className="w-full h-px bg-neutral-100"></div>
-              
-              <button
-                onClick={navigateToAppointments}
-                className="w-full p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors"
-              >
-                <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mr-3">
-                    <Calendar className="h-5 w-5 text-blue-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium">Meus Agendamentos</p>
-                    <p className="text-sm text-neutral-500">Visualize e gerencie seus agendamentos</p>
-                  </div>
-                </div>
-                <History className="h-5 w-5 text-neutral-400" />
-              </button>
-              
-              <div className="w-full h-px bg-neutral-100"></div>
-              
-              <button
-                onClick={navigateToPaymentMethods}
-                className="w-full p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors"
-              >
-                <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3">
-                    <CreditCard className="h-5 w-5 text-green-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium">Métodos de Pagamento</p>
-                    <p className="text-sm text-neutral-500">Gerencie seus cartões e métodos de pagamento</p>
-                  </div>
-                </div>
-                <Shield className="h-5 w-5 text-neutral-400" />
-              </button>
-              
-              <div className="w-full h-px bg-neutral-100"></div>
-              
-              <button
-                onClick={navigateToAddresses}
-                className="w-full p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors"
-              >
-                <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-orange-100 flex items-center justify-center mr-3">
-                    <MapPin className="h-5 w-5 text-orange-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium">Endereços</p>
-                    <p className="text-sm text-neutral-500">Gerencie seus endereços</p>
-                  </div>
-                </div>
-                <Shield className="h-5 w-5 text-neutral-400" />
-              </button>
-            </div>
+        <Card className="border border-neutral-200 mb-8">
+          <CardContent className="p-0 divide-y divide-neutral-100">
+            <button
+              onClick={navigateToProfileSettings}
+              className="w-full p-5 flex items-center gap-4 hover:bg-neutral-50 transition-colors rounded-t-2xl"
+              aria-label="Informações Pessoais"
+            >
+              <span className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                <User className="h-6 w-6 text-primary" />
+              </span>
+              <span className="flex flex-col items-start">
+                <span className="font-medium">Informações Pessoais</span>
+                <span className="text-sm text-neutral-500">Edite seus dados pessoais</span>
+              </span>
+            </button>
+            <button
+              onClick={navigateToAppointments}
+              className="w-full p-5 flex items-center gap-4 hover:bg-neutral-50 transition-colors"
+              aria-label="Meus Agendamentos"
+            >
+              <span className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                <Calendar className="h-6 w-6 text-blue-600" />
+              </span>
+              <span className="flex flex-col items-start">
+                <span className="font-medium">Meus Agendamentos</span>
+                <span className="text-sm text-neutral-500">Visualize e gerencie seus agendamentos</span>
+              </span>
+            </button>
+            <button
+              onClick={navigateToPaymentMethods}
+              className="w-full p-5 flex items-center gap-4 hover:bg-neutral-50 transition-colors"
+              aria-label="Métodos de Pagamento"
+            >
+              <span className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                <CreditCard className="h-6 w-6 text-green-600" />
+              </span>
+              <span className="flex flex-col items-start">
+                <span className="font-medium">Métodos de Pagamento</span>
+                <span className="text-sm text-neutral-500">Gerencie seus cartões e métodos de pagamento</span>
+              </span>
+            </button>
+            <button
+              onClick={navigateToAddresses}
+              className="w-full p-5 flex items-center gap-4 hover:bg-neutral-50 transition-colors rounded-b-2xl"
+              aria-label="Endereços"
+            >
+              <span className="w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center">
+                <MapPin className="h-6 w-6 text-orange-600" />
+              </span>
+              <span className="flex flex-col items-start">
+                <span className="font-medium">Endereços</span>
+                <span className="text-sm text-neutral-500">Gerencie seus endereços</span>
+              </span>
+            </button>
           </CardContent>
         </Card>
-        
         {/* Support Options */}
-        <Card className="border border-neutral-200 mb-6">
-          <CardContent className="p-0">
-            <div className="space-y-px">
-              <button
-                onClick={navigateToFaq}
-                className="w-full p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors"
-              >
-                <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mr-3">
-                    <HelpCircle className="h-5 w-5 text-purple-600" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium">Perguntas Frequentes</p>
-                    <p className="text-sm text-neutral-500">Tire suas dúvidas mais comuns</p>
-                  </div>
-                </div>
-                <Shield className="h-5 w-5 text-neutral-400" />
-              </button>
-              
-              <div className="w-full h-px bg-neutral-100"></div>
-              
-              <button
-                onClick={navigateToSupport}
-                className="w-full p-4 flex items-center justify-between hover:bg-neutral-50 transition-colors"
-              >
-                <div className="flex items-center">
-                  <div className="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-3">
-                    <Headphones className="h-5 w-5 text-red-500" />
-                  </div>
-                  <div className="text-left">
-                    <p className="font-medium text-red-500">Suporte</p>
-                    <p className="text-sm text-neutral-500">Entre em contato com nossa equipe</p>
-                  </div>
-                </div>
-                <Shield className="h-5 w-5 text-neutral-400" />
-              </button>
-            </div>
+        <Card className="border border-neutral-200 mb-8">
+          <CardContent className="p-0 divide-y divide-neutral-100">
+            <button
+              onClick={navigateToFaq}
+              className="w-full p-5 flex items-center gap-4 hover:bg-neutral-50 transition-colors rounded-t-2xl"
+              aria-label="Perguntas Frequentes"
+            >
+              <span className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                <HelpCircle className="h-6 w-6 text-purple-600" />
+              </span>
+              <span className="flex flex-col items-start">
+                <span className="font-medium">Perguntas Frequentes</span>
+                <span className="text-sm text-neutral-500">Tire suas dúvidas mais comuns</span>
+              </span>
+            </button>
+            <button
+              onClick={navigateToSupport}
+              className="w-full p-5 flex items-center gap-4 hover:bg-neutral-50 transition-colors rounded-b-2xl"
+              aria-label="Suporte"
+            >
+              <span className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                <Headphones className="h-6 w-6 text-red-500" />
+              </span>
+              <span className="flex flex-col items-start">
+                <span className="font-medium text-red-500">Suporte</span>
+                <span className="text-sm text-neutral-500">Entre em contato com nossa equipe</span>
+              </span>
+            </button>
           </CardContent>
         </Card>
-        
         {/* Logout Button */}
-        <Button 
-          variant="outline" 
-          className="w-full border-red-500 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+        <Button
+          variant="outline"
+          className="w-full border-2 border-red-500 text-red-600 font-bold py-4 rounded-2xl text-lg hover:bg-red-50 hover:text-red-700 transition-colors mb-4"
           onClick={handleLogout}
           disabled={logoutMutation.isPending}
+          aria-label="Sair da conta"
         >
-          <LogOut className="mr-2 h-4 w-4" />
+          <LogOut className="mr-2 h-5 w-5" />
           {logoutMutation.isPending ? "Saindo..." : "Sair da conta"}
         </Button>
       </div>

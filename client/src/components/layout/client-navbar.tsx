@@ -176,12 +176,14 @@ export function ClientNavbar() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Avatar className="cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-primary/20 transition-all">
-                  <AvatarImage src={user?.profileImage || ""} />
-                  <AvatarFallback className="bg-primary text-white uppercase">
-                    {user?.name?.charAt(0) || "U"}
-                  </AvatarFallback>
-                </Avatar>
+                <Link href="/client/profile" aria-label="Perfil do usuário">
+                  <Avatar className="cursor-pointer hover:ring-2 hover:ring-offset-2 hover:ring-primary/20 transition-all">
+                    <AvatarImage src={user?.profileImage || ""} />
+                    <AvatarFallback className="bg-primary text-white uppercase">
+                      {user?.name?.charAt(0) || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
               </TooltipTrigger>
               <TooltipContent>{user?.name || "Perfil"}</TooltipContent>
             </Tooltip>

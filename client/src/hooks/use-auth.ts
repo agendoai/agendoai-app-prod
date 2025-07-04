@@ -11,6 +11,7 @@ interface User {
   userType: string;
   phone?: string;
   address?: string;
+  cpf?: string;
 }
 
 export interface AuthContextType {

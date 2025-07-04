@@ -1267,9 +1267,12 @@ export function NewBookingWizard({
               </div>
 
               <Button className="w-full mt-4" onClick={handleServiceSelect}>
-                Continuar
+                Continuar para escolha da data
                 <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
+              <p className="text-xs text-muted-foreground text-center mt-2">
+                Após selecionar os serviços, você escolherá a data do agendamento.
+              </p>
             </>
           )}
         </div>
@@ -2437,9 +2440,7 @@ export function NewBookingWizard({
                         })}
                       </div>
                     ) : (
-                      <p className="text-center text-muted-foreground py-4">
-                        Nenhum horário disponível pela manhã
-                      </p>
+                      <></>
                     )}
                   </TabsContent>
 
@@ -2495,9 +2496,7 @@ export function NewBookingWizard({
                         })}
                       </div>
                     ) : (
-                      <p className="text-center text-muted-foreground py-4">
-                        Nenhum horário disponível à tarde
-                      </p>
+                      <></>
                     )}
                   </TabsContent>
 
@@ -2553,9 +2552,7 @@ export function NewBookingWizard({
                         })}
                       </div>
                     ) : (
-                      <p className="text-center text-muted-foreground py-4">
-                        Nenhum horário disponível à noite
-                      </p>
+                      <></>
                     )}
                   </TabsContent>
                 </Tabs>

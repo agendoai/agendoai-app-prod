@@ -42,8 +42,18 @@ import {
 	serviceTemplates,
 	User,
 	users,
+<<<<<<< Updated upstream
 	availability as availabilityTable,
 
+=======
+	availability,
+	SupportTicket,
+	supportTickets,
+	SupportMessage,
+	supportMessages,
+	InsertSupportTicket,
+	InsertSupportMessage,
+>>>>>>> Stashed changes
 } from "../shared/schema"
 
 // Session import
@@ -71,14 +81,14 @@ export interface IStorage {
 	updateProviderSettings(providerId: number, settings: any): Promise<any>
 
 	// Schedule methods
-	getSchedules(): Promise<Schedule[]>
-	getScheduleById(id: number): Promise<Schedule | undefined>
-	getSchedulesByProviderId(providerId: number): Promise<Schedule[]>
-	createSchedule(schedule: InsertSchedule): Promise<Schedule>
+	getSchedules(): Promise<any[]>
+	getScheduleById(id: number): Promise<any | undefined>
+	getSchedulesByProviderId(providerId: number): Promise<any[]>
+	createSchedule(schedule: any): Promise<any>
 	updateSchedule(
 		id: number,
-		schedule: Partial<InsertSchedule>
-	): Promise<Schedule>
+		schedule: Partial<any>
+	): Promise<any>
 	deleteSchedule(id: number): Promise<void>
 
 	// Niche methods
@@ -150,10 +160,10 @@ export interface IStorage {
 	deleteReview(id: number): Promise<void>
 
 	// Favorite methods
-	getFavorites(): Promise<Favorite[]>
-	getFavoriteById(id: number): Promise<Favorite | undefined>
-	getFavoritesByClientId(clientId: number): Promise<Favorite[]>
-	createFavorite(favorite: InsertFavorite): Promise<Favorite>
+	getFavorites(): Promise<any[]>
+	getFavoriteById(id: number): Promise<any | undefined>
+	getFavoritesByClientId(clientId: number): Promise<any[]>
+	createFavorite(favorite: any): Promise<any>
 	deleteFavorite(id: number): Promise<void>
 
 	// BlockedTimeSlot methods
@@ -351,6 +361,12 @@ export interface IStorage {
 	getRecentAppointments(limit: number): Promise<any[]>
 	getNewUsersByDay(startDate: Date, endDate: Date): Promise<{ date: string, count: number }[]>
 	getAllAppointments(): Promise<Appointment[]>
+
+	// Support methods
+	createSupportMessage(data: { userId: number; subject: string; message: string }): Promise<SupportTicket>
+	getUserSupportMessages(userId: number): Promise<SupportTicket[]>
+	getSupportMessage(messageId: number): Promise<SupportTicket | undefined>
+	resolveSupportMessage(messageId: number, adminId: number, response: string): Promise<SupportMessage>
 }
 
 // Memory storage implementation for testing
@@ -447,39 +463,33 @@ export class MemStorage implements IStorage {
 	}
 
 	// Schedule methods
-	async getSchedules(): Promise<Schedule[]> {
+	async getSchedules(): Promise<any[]> {
 		return this.schedules
 	}
 
-	async getScheduleById(id: number): Promise<Schedule | undefined> {
+	async getScheduleById(id: number): Promise<any | undefined> {
 		return this.schedules.find((schedule) => schedule.id === id)
 	}
 
-	async getSchedulesByProviderId(providerId: number): Promise<Schedule[]> {
+	async getSchedulesByProviderId(providerId: number): Promise<any[]> {
 		return this.schedules.filter(
 			(schedule) => schedule.providerId === providerId
 		)
 	}
 
-	async createSchedule(schedule: InsertSchedule): Promise<Schedule> {
-		const newSchedule: Schedule = {
+	async createSchedule(schedule: any): Promise<any> {
+		const newSchedule: any = {
 			id: this.schedules.length + 1,
-			providerId: schedule.providerId,
-			startTime: schedule.startTime,
-			endTime: schedule.endTime,
-			isAvailable: schedule.isAvailable || null,
-			dayOfWeek: schedule.dayOfWeek,
-			intervalMinutes: schedule.intervalMinutes || null,
+			...schedule,
 		}
-
 		this.schedules.push(newSchedule)
 		return newSchedule
 	}
 
 	async updateSchedule(
 		id: number,
-		schedule: Partial<InsertSchedule>
-	): Promise<Schedule> {
+		schedule: Partial<any>
+	): Promise<any> {
 		const index = this.schedules.findIndex((s) => s.id === id)
 		if (index === -1) {
 			throw new Error(`Schedule with id ${id} not found`)
@@ -997,17 +1007,17 @@ export class MemStorage implements IStorage {
 	}
 	async deleteReview(id: number): Promise<void> {}
 
-	async getFavorites(): Promise<Favorite[]> {
+	async getFavorites(): Promise<any[]> {
 		return []
 	}
-	async getFavoriteById(id: number): Promise<Favorite | undefined> {
+	async getFavoriteById(id: number): Promise<any | undefined> {
 		return undefined
 	}
-	async getFavoritesByClientId(clientId: number): Promise<Favorite[]> {
+	async getFavoritesByClientId(clientId: number): Promise<any[]> {
 		return []
 	}
-	async createFavorite(favorite: InsertFavorite): Promise<Favorite> {
-		return {} as Favorite
+	async createFavorite(favorite: any): Promise<any> {
+		return {} as any
 	}
 	async deleteFavorite(id: number): Promise<void> {}
 
@@ -1263,10 +1273,7 @@ export class MemStorage implements IStorage {
 	async createHelpArticle(help: InsertHelp): Promise<Help> {
 		return {} as Help
 	}
-	async updateHelpArticle(
-		id: number,
-		help: Partial<InsertHelp>
-	): Promise<Help> {
+	async updateHelpArticle(id: number, help: Partial<InsertHelp>): Promise<Help> {
 		return {} as Help
 	}
 	async deleteHelpArticle(id: number): Promise<void> {}
@@ -1277,9 +1284,7 @@ export class MemStorage implements IStorage {
 	async getHelpCategoryById(id: number): Promise<HelpCategory | undefined> {
 		return undefined
 	}
-	async createHelpCategory(
-		helpCategory: InsertHelpCategory
-	): Promise<HelpCategory> {
+	async createHelpCategory(helpCategory: InsertHelpCategory): Promise<HelpCategory> {
 		return {} as HelpCategory
 	}
 	async updateHelpCategory(
@@ -1492,6 +1497,86 @@ export class MemStorage implements IStorage {
 
 	async getAllAppointments(): Promise<Appointment[]> {
 		return this.appointments;
+	}
+
+	// Support methods
+	async createSupportMessage(data: { userId: number; subject: string; message: string }): Promise<SupportTicket> {
+		try {
+			// Criar o ticket de suporte
+			const [ticket] = await db
+				.insert(supportTickets)
+				.values({
+					userId: data.userId,
+					subject: data.subject,
+					status: "pending",
+					category: "general",
+					priority: "normal",
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				})
+				.returning();
+
+			// Criar a primeira mensagem do ticket
+			await db
+				.insert(supportMessages)
+				.values({
+					ticketId: ticket.id,
+					userId: data.userId,
+					message: data.message,
+					createdAt: new Date(),
+					readByAdmin: false,
+					readByUser: true,
+				});
+
+			return ticket;
+		} catch (error) {
+			console.error("Erro ao criar mensagem de suporte:", error);
+			throw error;
+		}
+	}
+
+	async getUserSupportMessages(userId: number): Promise<SupportTicket[]> {
+		return await db
+			.select()
+			.from(supportTickets)
+			.where(eq(supportTickets.userId, userId))
+			.orderBy(desc(supportTickets.updatedAt));
+	}
+
+	async getSupportMessage(messageId: number): Promise<SupportTicket | undefined> {
+		const [ticket] = await db
+			.select()
+			.from(supportTickets)
+			.where(eq(supportTickets.id, messageId));
+		return ticket;
+	}
+
+	async resolveSupportMessage(messageId: number, adminId: number, response: string): Promise<SupportMessage> {
+		// Adicionar resposta do admin
+		const [message] = await db
+			.insert(supportMessages)
+			.values({
+				ticketId: messageId,
+				adminId: adminId,
+				message: response,
+				createdAt: new Date(),
+				readByAdmin: true,
+				readByUser: false,
+			})
+			.returning();
+
+		// Atualizar status do ticket
+		await db
+			.update(supportTickets)
+			.set({
+				status: "resolved",
+				resolvedAt: new Date(),
+				updatedAt: new Date(),
+				adminId: adminId,
+			})
+			.where(eq(supportTickets.id, messageId));
+
+		return message;
 	}
 }
 
@@ -2313,11 +2398,11 @@ async getBlockedTimeSlotsByDate(
 	}
 
 	// Schedule methods
-	async getSchedules(): Promise<Schedule[]> {
+	async getSchedules(): Promise<any[]> {
 		return await db.select().from(schedules)
 	}
 
-	async getScheduleById(id: number): Promise<Schedule | undefined> {
+	async getScheduleById(id: number): Promise<any | undefined> {
 		const results = await db
 			.select()
 			.from(schedules)
@@ -2325,32 +2410,46 @@ async getBlockedTimeSlotsByDate(
 		return results[0]
 	}
 
-	async getSchedulesByProviderId(providerId: number): Promise<Schedule[]> {
+	async getSchedulesByProviderId(providerId: number): Promise<any[]> {
 		return await db
 			.select()
 			.from(schedules)
 			.where(eq(schedules.providerId, providerId))
 	}
 
-	async createSchedule(schedule: InsertSchedule): Promise<Schedule> {
-		const results = await db.insert(schedules).values(schedule).returning()
-		return results[0]
+	async createSchedule(schedule: any): Promise<any> {
+		const newSchedule: any = {
+			id: this.schedules.length + 1,
+			...schedule,
+		}
+		this.schedules.push(newSchedule)
+		return newSchedule
 	}
 
 	async updateSchedule(
 		id: number,
-		schedule: Partial<InsertSchedule>
-	): Promise<Schedule> {
-		const results = await db
-			.update(schedules)
-			.set(schedule)
-			.where(eq(schedules.id, id))
-			.returning()
-		return results[0]
+		schedule: Partial<any>
+	): Promise<any> {
+		const index = this.schedules.findIndex((s) => s.id === id)
+		if (index === -1) {
+			throw new Error(`Schedule with id ${id} not found`)
+		}
+
+		const updatedSchedule: Schedule = {
+			...this.schedules[index],
+			...schedule,
+			id: this.schedules[index].id,
+		}
+
+		this.schedules[index] = updatedSchedule
+		return updatedSchedule
 	}
 
 	async deleteSchedule(id: number): Promise<void> {
-		await db.delete(schedules).where(eq(schedules.id, id))
+		const index = this.schedules.findIndex((schedule) => schedule.id === id)
+		if (index !== -1) {
+			this.schedules.splice(index, 1)
+		}
 	}
 
 	// Add remaining methods implementations as needed
@@ -2404,11 +2503,11 @@ async getBlockedTimeSlotsByDate(
 	}
 
 	// Favorite methods
-	async getFavorites(): Promise<Favorite[]> {
+	async getFavorites(): Promise<any[]> {
 		return await db.select().from(favorites)
 	}
 
-	async getFavoriteById(id: number): Promise<Favorite | undefined> {
+	async getFavoriteById(id: number): Promise<any | undefined> {
 		const results = await db
 			.select()
 			.from(favorites)
@@ -2416,14 +2515,14 @@ async getBlockedTimeSlotsByDate(
 		return results[0]
 	}
 
-	async getFavoritesByClientId(clientId: number): Promise<Favorite[]> {
+	async getFavoritesByClientId(clientId: number): Promise<any[]> {
 		return await db
 			.select()
 			.from(favorites)
 			.where(eq(favorites.clientId, clientId))
 	}
 
-	async createFavorite(favorite: InsertFavorite): Promise<Favorite> {
+	async createFavorite(favorite: any): Promise<any> {
 		const results = await db.insert(favorites).values(favorite).returning()
 		return results[0]
 	}
@@ -2900,18 +2999,18 @@ async getBlockedTimeSlotsByDate(
 			.where(eq(help.categoryId, categoryId))
 	}
 
-	async createHelpArticle(helpArticle: InsertHelp): Promise<Help> {
-		const results = await db.insert(help).values(helpArticle).returning()
+	async createHelpArticle(help: InsertHelp): Promise<Help> {
+		const results = await db.insert(help).values(help).returning()
 		return results[0]
 	}
 
 	async updateHelpArticle(
 		id: number,
-		helpArticle: Partial<InsertHelp>
+		help: Partial<InsertHelp>
 	): Promise<Help> {
 		const results = await db
 			.update(help)
-			.set(helpArticle)
+			.set(help)
 			.where(eq(help.id, id))
 			.returning()
 		return results[0]
@@ -3191,6 +3290,86 @@ async getBlockedTimeSlotsByDate(
 	// Alias para getProviderServices para manter compatibilidade
 	async getAllProviderServices(): Promise<ProviderService[]> {
 		return this.getProviderServices();
+	}
+
+	// Support methods
+	async createSupportMessage(data: { userId: number; subject: string; message: string }): Promise<SupportTicket> {
+		try {
+			// Criar o ticket de suporte
+			const [ticket] = await db
+				.insert(supportTickets)
+				.values({
+					userId: data.userId,
+					subject: data.subject,
+					status: "pending",
+					category: "general",
+					priority: "normal",
+					createdAt: new Date(),
+					updatedAt: new Date(),
+				})
+				.returning();
+
+			// Criar a primeira mensagem do ticket
+			await db
+				.insert(supportMessages)
+				.values({
+					ticketId: ticket.id,
+					userId: data.userId,
+					message: data.message,
+					createdAt: new Date(),
+					readByAdmin: false,
+					readByUser: true,
+				});
+
+			return ticket;
+		} catch (error) {
+			console.error("Erro ao criar mensagem de suporte:", error);
+			throw error;
+		}
+	}
+
+	async getUserSupportMessages(userId: number): Promise<SupportTicket[]> {
+		return await db
+			.select()
+			.from(supportTickets)
+			.where(eq(supportTickets.userId, userId))
+			.orderBy(desc(supportTickets.updatedAt));
+	}
+
+	async getSupportMessage(messageId: number): Promise<SupportTicket | undefined> {
+		const [ticket] = await db
+			.select()
+			.from(supportTickets)
+			.where(eq(supportTickets.id, messageId));
+		return ticket;
+	}
+
+	async resolveSupportMessage(messageId: number, adminId: number, response: string): Promise<SupportMessage> {
+		// Adicionar resposta do admin
+		const [message] = await db
+			.insert(supportMessages)
+			.values({
+				ticketId: messageId,
+				adminId: adminId,
+				message: response,
+				createdAt: new Date(),
+				readByAdmin: true,
+				readByUser: false,
+			})
+			.returning();
+
+		// Atualizar status do ticket
+		await db
+			.update(supportTickets)
+			.set({
+				status: "resolved",
+				resolvedAt: new Date(),
+				updatedAt: new Date(),
+				adminId: adminId,
+			})
+			.where(eq(supportTickets.id, messageId));
+
+		return message;
 	}
 }
 

@@ -78,7 +78,7 @@ export default function Navbar({
     {
       icon: <User size={26} />,
       label: 'Perfil',
-      href: '/profile'
+      href: '/client/profile'
     }
   ];
 
