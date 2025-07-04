@@ -223,300 +223,96 @@ type AppointmentStatusUpdateParams = {
   };
   
   return (
-    <Card className={`border ${statusColor} mb-3`}>
-      <CardHeader className="p-3 pb-0">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-base font-medium">{appointment.serviceName}</CardTitle>
-          <span className="text-xs bg-gray-100 rounded-full px-2 py-1">
-            {formatStatus(appointment.status)}
-          </span>
+    <Card
+      className={`relative border-0 shadow-xl rounded-2xl mb-4 transition-transform duration-200 hover:-translate-y-1 hover:shadow-2xl hover:ring-2 hover:ring-blue-200 bg-white/90 group`}
+    >
+      <CardContent className="p-5 flex items-center gap-4">
+        {/* Avatar */}
+        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-2xl font-bold text-blue-700 shadow-md">
+          {userType === 'client' ? (
+            <span>{appointment.providerName?.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}</span>
+          ) : (
+            <span>{appointment.clientName?.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}</span>
+          )}
         </div>
-      </CardHeader>
-      
-      <CardContent className="p-3 pt-2">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-neutral-100 overflow-hidden flex items-center justify-center">
-            {userType === 'client' ? (
-              <div className="text-gray-500 font-medium text-sm">
-                {appointment.providerName?.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
-              </div>
-            ) : (
-              <div className="text-gray-500 font-medium text-sm">
-                {appointment.clientName?.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}
-              </div>
-            )}
-          </div>
-          
-          <div className="flex-1">
-            <p className="font-medium text-sm">
+        {/* Info */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="font-semibold text-lg text-gray-900 truncate">
               {userType === 'client' ? appointment.providerName : appointment.clientName}
-            </p>
-            <div className="flex justify-between">
-              <p className="text-xs text-neutral-500">
-                {formattedDate}, {appointment.startTime}
-              </p>
-              <p className="text-xs font-medium">
-                R$ {((appointment.totalPrice || 0) / 100).toFixed(2)}
-              </p>
-            </div>
+            </span>
+            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1
+              ${appointment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                appointment.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
+                appointment.status === 'canceled' ? 'bg-red-100 text-red-800' :
+                'bg-gray-100 text-gray-600'}
+            `}>
+              {appointment.status === 'pending' && <AlertCircle className="h-3 w-3" />}
+              {appointment.status === 'confirmed' && <Check className="h-3 w-3" />}
+              {appointment.status === 'completed' && <Star className="h-3 w-3" />}
+              {appointment.status === 'canceled' && <X className="h-3 w-3" />}
+              {appointment.status === 'no_show' && <Ban className="h-3 w-3" />}
+              {formatStatus(appointment.status)}
+            </span>
+          </div>
+          <div className="text-sm text-gray-500 truncate mb-1">{appointment.serviceName}</div>
+          <div className="flex items-center gap-3 text-xs text-gray-500">
+            <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {formattedDate}, {appointment.startTime}</span>
+            <span className="flex items-center gap-1 font-semibold text-green-700 bg-green-100 px-2 py-0.5 rounded-full ml-2">
+              R$ {((appointment.totalPrice || 0) / 100).toFixed(2)}
+            </span>
           </div>
         </div>
-      </CardContent>
-      
-      {showActions && (
-        <CardFooter className="p-3 pt-0 flex gap-2 flex-wrap justify-end">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleViewDetails}
-            className="h-8 text-xs"
-          >
-            <Calendar className="h-3 w-3 mr-1" /> Detalhes
-          </Button>
-          
-          {/* Botões de ação específicos por tipo de usuário e status do agendamento */}
-          {userType === 'client' && isFutureAppointment && appointment.status !== 'canceled' && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
-                  className="h-8 text-xs"
-                >
-                  <X className="h-3 w-3 mr-1" /> Cancelar
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Cancelar agendamento</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Tem certeza que deseja cancelar este agendamento? Esta ação não pode ser desfeita.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Não, manter</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleCancel}>Sim, cancelar</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-          
-          {userType === 'client' && isCompleted && (
-            <Dialog open={showRatingDialog} onOpenChange={setShowRatingDialog}>
-              <DialogTrigger asChild>
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  className="h-8 text-xs"
-                >
-                  <Star className="h-3 w-3 mr-1" /> Avaliar
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Avaliar serviço</DialogTitle>
-                  <DialogDescription>
-                    Conte-nos como foi sua experiência com este serviço.
-                  </DialogDescription>
-                </DialogHeader>
-                
-                <div className="py-4">
-                  <div className="mb-4">
-                    <label className="block text-sm font-medium mb-1">Sua avaliação</label>
-                    {renderStars()}
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Comentário (opcional)</label>
-                    <Textarea
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value)}
-                      placeholder="Compartilhe sua experiência..."
-                      className="resize-none"
-                    />
-                  </div>
-                </div>
-                
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setShowRatingDialog(false)}>Cancelar</Button>
-                  <Button onClick={handleSubmitReview} disabled={createReviewMutation.isPending}>
-                    {createReviewMutation.isPending ? 'Enviando...' : 'Enviar avaliação'}
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          )}
-          
-          {userType === 'provider' && isFutureAppointment && appointment.status !== 'canceled' && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="destructive" 
-                  size="sm" 
-                  className="h-8 text-xs"
-                >
-                  <X className="h-3 w-3 mr-1" /> Cancelar
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Cancelar agendamento</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Tem certeza que deseja cancelar este agendamento? Esta ação não pode ser desfeita.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Não, manter</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleCancel}>Sim, cancelar</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-          
-          {userType === 'provider' && isFutureAppointment && appointment.status !== 'canceled' && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="h-8 text-xs"
-                >
-                  <AlertCircle className="h-3 w-3 mr-1" /> Não compareceu
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Marcar como não comparecimento</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    Confirma que o cliente não compareceu a este agendamento?
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleNoShow}>Confirmar</AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-          
-          {userType === 'provider' && appointment.status !== 'completed' && appointment.status !== 'canceled' && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button 
-                  variant="default" 
-                  size="sm" 
-                  className="h-8 text-xs bg-green-600 hover:bg-green-700"
-                >
-                  <Check className="h-3 w-3 mr-1" /> Concluído
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Confirmação de Cobrança</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    <div className="space-y-6 py-4">
-                      <div>
-                        <p className="font-medium mb-2">Você já realizou a cobrança deste atendimento?</p>
-                        <p className="text-sm text-muted-foreground mb-4">💳 Método de pagamento: {appointment.paymentMethod === 'money' ? 'Pagar no local' : appointment.paymentMethod}</p>
-                      </div>
-                      
-                      <div className="space-y-2">
-                        <Button 
-                          type="button" 
-                          variant="default" 
-                          className="w-full justify-start" 
-                          onClick={() => {
-                            // Abrir deeplink do SumUp para cobrança Tap to Pay
-                            const amount = appointment.totalPrice ? (appointment.totalPrice / 100).toFixed(2) : "0.00";
-                            const orderId = appointment.id.toString();
-                            const title = `Agendamento #${orderId}`;
-                            
-                            // Formatação para o URI do SumUp - usando a chave de afiliado da aplicação
-                            const sumupDeeplink = `sumupmerchant://pay/1.0` + 
-                              `?affiliate-key=sup_afk_cJWRDlQTDiGv4sKAGlxGTTcncW7ZcwBF` + 
-                              `&app-id=com.agendoai.app` + 
-                              `&total=${amount}` + 
-                              `&currency=BRL` + 
-                              `&title=${encodeURIComponent(title)}` + 
-                              `&foreign-tx-id=${orderId}` +
-                              `&callback=agendoai://payment_result`;
-                            
-                            // Log para debug
-                            console.log('Abrindo SumUp deeplink:', sumupDeeplink);
-                            
-                            // Abrir deeplink
-                            window.open(sumupDeeplink, '_blank');
-                            
-                            // Atualizar status do agendamento para "processing_payment"
-                            updateStatusMutation.mutate({ 
-                              appointmentId: appointment.id, 
-                              status: 'processing_payment',
-                              paymentMethod: 'card_sumup'
-                            });
-                          }}
-                        >
-                          Fazer cobrança pelo app (Tap to Pay)
-                          <span className="text-xs ml-2 text-muted-foreground">→ Você será redirecionado para o SumUp</span>
-                        </Button>
-                        
-                        <Button 
-                          type="button" 
-                          variant="outline" 
-                          className="w-full justify-start" 
-                          onClick={() => {
-                            // Marcar como cobrado externamente
-                            updateStatusMutation.mutate({ 
-                              appointmentId: appointment.id, 
-                              status: 'completed',
-                              paymentStatus: 'paid_externally'
-                            });
-                          }}
-                        >
-                          Registrar como cobrado externamente
-                          <span className="text-xs ml-2 text-muted-foreground">→ Pago em dinheiro, PIX ou outro meio</span>
-                        </Button>
-                        
-                        <Button 
-                          type="button" 
-                          variant="ghost" 
-                          className="w-full justify-start" 
-                          onClick={() => {
-                            // Marcar como concluído, pendente cobrança
-                            updateStatusMutation.mutate({ 
-                              appointmentId: appointment.id, 
-                              status: 'completed',
-                              paymentStatus: 'pending'
-                            });
-                          }}
-                        >
-                          Ainda não realizei a cobrança
-                          <span className="text-xs ml-2 text-muted-foreground">→ Será marcado como pendente de cobrança</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          )}
-          
-          {(userType === 'admin' || userType === 'support') && (
-            <div className="flex gap-2">
+        {/* Actions */}
+        {showActions && (
+          <div className="flex flex-col gap-2 items-end ml-4">
+            <Button 
+              variant="outline" 
+              size="icon" 
+              onClick={handleViewDetails}
+              className="h-8 w-8 p-0 border-gray-300 hover:border-blue-400"
+              title="Detalhes"
+            >
+              <Calendar className="h-4 w-4" />
+            </Button>
+            {/* Outras ações (cancelar, concluir, etc.) */}
+            {userType === 'provider' && isFutureAppointment && appointment.status !== 'canceled' && (
+              <Button 
+                variant="destructive" 
+                size="icon" 
+                onClick={handleCancel}
+                className="h-8 w-8 p-0"
+                title="Cancelar"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+            {userType === 'provider' && isFutureAppointment && appointment.status !== 'canceled' && (
               <Button 
                 variant="outline" 
-                size="sm" 
-                className="h-8 text-xs"
-                onClick={() => setLocation(`/admin/appointments/${appointment.id}`)}
+                size="icon" 
+                onClick={handleNoShow}
+                className="h-8 w-8 p-0 border-gray-300 hover:border-yellow-400"
+                title="Não compareceu"
               >
-                <MessageSquare className="h-3 w-3 mr-1" /> Gerenciar
+                <AlertCircle className="h-4 w-4" />
               </Button>
-            </div>
-          )}
-        </CardFooter>
-      )}
+            )}
+            {userType === 'provider' && appointment.status !== 'completed' && appointment.status !== 'canceled' && (
+              <Button 
+                variant="default" 
+                size="icon" 
+                onClick={handleComplete}
+                className="h-8 w-8 p-0 bg-green-600 hover:bg-green-700"
+                title="Concluir"
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        )}
+      </CardContent>
     </Card>
   );
 }

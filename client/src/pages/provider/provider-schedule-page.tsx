@@ -227,8 +227,13 @@ export default function ProviderSchedulePage() {
   const updateWeeklyScheduleMutation = useMutation({
     mutationFn: async (scheduleData: AvailabilityDay[]) => {
       if (!providerId) throw new Error('Provider ID not found');
-      
-      const response = await apiRequest('POST', '/api/availability/weekly', scheduleData);
+      // Garante que todos os dias tenham providerId
+      const days = scheduleData.map(day => ({ ...day, providerId }));
+      const payload = {
+        providerId,
+        days
+      };
+      const response = await apiRequest('POST', '/api/availability/weekly', payload);
       
       if (!response.ok) {
         const error = await response.json();

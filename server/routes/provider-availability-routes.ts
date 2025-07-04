@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { timeSlotGenerator } from '../time-slot-generator';
 import { storage } from '../storage';
+import { startOfWeek, addDays, format } from 'date-fns';
 
 const router = Router();
 
@@ -75,6 +76,71 @@ router.post('/:providerId/availability', async (req, res) => {
     res.json({ success: true, providerId, date, slots });
   } catch (error) {
     res.status(500).json({ error: 'Erro ao salvar disponibilidade do provedor.' });
+  }
+});
+
+// Rota para salvar disponibilidade semanal
+router.post('/weekly', async (req, res) => {
+  try {
+    const { providerId, days } = req.body;
+    // Removido log de debug por segurança
+    if (!providerId || !Array.isArray(days)) {
+      return res.status(400).json({ error: 'providerId e days[] são obrigatórios' });
+    }
+    // Descobrir o domingo da semana atual
+    const today = new Date();
+    const weekStart = startOfWeek(today, { weekStartsOn: 0 }); // 0 = domingo
+    const results = [];
+    for (const day of days) {
+      const { dayOfWeek, startTime, endTime, intervalMinutes, isAvailable, providerId } = day;
+      // Calcular a data real para o dayOfWeek
+      const date = addDays(weekStart, dayOfWeek);
+      const dateStr = format(date, 'yyyy-MM-dd');
+      // Removido log de debug por segurança
+      // Salvar na tabela availability
+      const availability = await storage.createAvailability({
+        providerId,
+        dayOfWeek,
+        startTime,
+        endTime,
+        intervalMinutes,
+        isAvailable,
+        date: dateStr,
+      });
+      results.push(availability);
+    }
+    return res.json({ success: true, availabilities: results });
+  } catch (error) {
+    console.error('Erro ao salvar disponibilidade semanal:', error);
+    return res.status(500).json({ error: 'Erro ao salvar disponibilidade semanal' });
+  }
+});
+
+// Rota para buscar todas as disponibilidades de um provider
+router.get('/provider/:providerId', async (req, res) => {
+  try {
+    const providerId = Number(req.params.providerId);
+    if (!providerId) {
+      return res.status(400).json({ error: 'providerId é obrigatório' });
+    }
+    const availabilities = await storage.getAvailabilityByProviderId(providerId);
+    return res.json(availabilities);
+  } catch (error) {
+    return res.status(500).json({ error: 'Erro ao buscar disponibilidades do provider' });
+  }
+});
+
+// Rota para buscar todos os bloqueios de horários de um provider
+router.get('/blocked-times/provider/:providerId', async (req, res) => {
+  try {
+    const providerId = Number(req.params.providerId);
+    if (!providerId) {
+      return res.status(400).json({ error: 'providerId é obrigatório' });
+    }
+    const blockedTimes = await storage.getBlockedTimesByProviderId(providerId);
+    return res.json(blockedTimes);
+  } catch (error) {
+    return res.status(500).json({ error: 'Erro ao buscar bloqueios de horários do provider' });
   }
 });
 

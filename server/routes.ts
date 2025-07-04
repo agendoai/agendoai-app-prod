@@ -95,6 +95,7 @@ import {
 	isStripeEnabled,
 	initializeStripe,
 } from "./stripe-service"
+import providerAvailabilityRouter from './routes/provider-availability-routes';
 
 // Funções auxiliares de conversão de tempo
 function timeToMinutes(time: string): number {
@@ -367,6 +368,7 @@ export function registerRoutes(app: Express): Server {
 
 	// Registrar rotas para verificação de disponibilidade de datas
 	app.use("/api/availability", checkAvailabilityRouter)
+	app.use("/api/availability", providerAvailabilityRouter)
 
 	// Rotas para processamento de pagamentos com Stripe
 	app.use("/api/payments", paymentRouter)
@@ -2489,144 +2491,6 @@ export function registerRoutes(app: Express): Server {
 			})
 		}
 	})
-
-	// ---------------------------------------------------------------------
-	// Rotas de IA para gestão de agenda de prestador
-	// ---------------------------------------------------------------------
-
-	// Análise inteligente da agenda do prestador
-	app.get(
-		"/api/providers/:id/ai/schedule-insights",
-		isAuthenticated,
-		async (req, res) => {
-			try {
-				const providerId = parseInt(req.params.id)
-
-				// Verificar acesso: apenas o próprio prestador ou admin pode acessar
-				if (
-					req.user!.userType !== "admin" &&
-					req.user!.id !== providerId
-				) {
-					return res
-						.status(403)
-						.json({
-							error: "Acesso não autorizado a esta informação",
-						})
-				}
-
-				// Parâmetros opcionais
-				const {
-					startDate,
-					endDate,
-					includeHistorical,
-					includeAvailability,
-					includeUpcoming,
-				} = req.query
-
-				const dateRange =
-					startDate && endDate
-						? {
-								start: startDate as string,
-								end: endDate as string,
-						  }
-						: undefined
-
-				// Chamar serviço de IA para analisar agenda
-				const insights = await analyzeProviderSchedule({
-					providerId,
-					dateRange,
-					includeHistorical: includeHistorical === "true",
-					includeAvailability: includeAvailability !== "false",
-					includeUpcoming: includeUpcoming !== "false",
-				})
-
-				res.json({ insights })
-			} catch (error) {
-				console.error("Erro ao analisar agenda inteligente:", error)
-				res.status(500).json({
-					error: "Falha ao gerar insights da agenda",
-				})
-			}
-		}
-	)
-
-	// Análise dos tempos de execução de serviços
-	app.get(
-		"/api/providers/:id/ai/execution-times",
-		isAuthenticated,
-		async (req, res) => {
-			try {
-				const providerId = parseInt(req.params.id)
-
-				// Verificar acesso: apenas o próprio prestador ou admin pode acessar
-				if (
-					req.user!.userType !== "admin" &&
-					req.user!.id !== providerId
-				) {
-					return res
-						.status(403)
-						.json({
-							error: "Acesso não autorizado a esta informação",
-						})
-				}
-
-				// Chamar serviço de IA para analisar tempos de execução
-				const executionTimeAnalysis =
-					await analyzeServiceExecutionTimes(providerId)
-
-				res.json({ executionTimeAnalysis })
-			} catch (error) {
-				console.error("Erro ao analisar tempos de execução:", error)
-				res.status(500).json({
-					error: "Falha ao analisar tempos de execução",
-				})
-			}
-		}
-	)
-
-	// Previsão de tendências de agendamento
-	app.get(
-		"/api/providers/:id/ai/scheduling-trends",
-		isAuthenticated,
-		async (req, res) => {
-			try {
-				const providerId = parseInt(req.params.id)
-
-				// Verificar acesso: apenas o próprio prestador ou admin pode acessar
-				if (
-					req.user!.userType !== "admin" &&
-					req.user!.id !== providerId
-				) {
-					return res
-						.status(403)
-						.json({
-							error: "Acesso não autorizado a esta informação",
-						})
-				}
-
-				// Parâmetros opcionais
-				const daysAhead = req.query.daysAhead
-					? parseInt(req.query.daysAhead as string)
-					: 30
-
-				// Chamar serviço de IA para prever tendências
-				const trends = await predictSchedulingTrends(
-					providerId,
-					daysAhead
-				)
-
-				res.json({ trends })
-			} catch (error) {
-				console.error(
-					"Erro ao prever tendências de agendamento:",
-					error
-				)
-				res.status(500).json({
-					error: "Falha ao gerar previsões de tendências",
-				})
-			}
-		}
-	)
 
 	// ---------------------------------------------------------------------
 	// Rotas de IA para gestão de agenda de prestador
