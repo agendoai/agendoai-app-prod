@@ -2985,34 +2985,76 @@ export function NewBookingWizard({
     );
   };
 
+  // Novo layout: cabeçalho padrão para todas as etapas
+  const renderHeader = (titulo: string, onBack?: () => void) => (
+    <div className="flex items-center justify-between px-4 pt-6 pb-2 bg-white">
+      <button onClick={onBack} className="focus:outline-none">
+        <svg className="h-7 w-7 text-gray-500" fill="none" stroke="currentColor" strokeWidth={3} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+        </svg>
+      </button>
+      <span className="text-lg font-bold flex-1 text-center -ml-7">{titulo}</span>
+      <span className="w-7" />
+    </div>
+  );
+
+  // Exemplo de uso do header em cada etapa:
+  // {renderHeader('Selecione a data', handleBack)}
+
+  // Adapte cada renderXStep para usar o novo padrão visual:
+  // - Título grande e bold
+  // - Cards arredondados para seleção
+  // - Botão de ação grande e destacado ao final
+  // - Espaçamento generoso
+  // - Responsividade
+
+  // Exemplo para renderDateStep:
+  // ...
+  // return (
+  //   <div className="min-h-screen bg-white flex flex-col">
+  //     {renderHeader('Selecione a data', handleBack)}
+  //     <div className="px-6 mt-6">
+  //       <h2 className="text-2xl font-extrabold mb-2">Para quando é\no Atendimento?</h2>
+  //       <div className="font-bold mb-4">Fevereiro</div>
+  //       <div className="flex gap-3">{...dias}</div>
+  //     </div>
+  //     <div className="mt-auto px-4 pb-8">
+  //       <button className="w-full py-4 rounded-2xl bg-teal-600 text-white text-lg font-bold shadow">Buscar Profissional</button>
+  //     </div>
+  //   </div>
+  // )
+
+  // Repita o padrão para as demais etapas (nichos, categorias, serviços, horários, profissional, pagamento)
+
   return (
-    <div className="space-y-6">
-      {renderProgressBar()}
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 pb-24">
+      {/* Logo e barra de progresso */}
+      <header className="flex flex-col items-center pt-6 pb-2">
+        <img src="/AgendoAilogo.png" alt="AgendoAI Logo" className="h-12 w-auto mb-2" />
+        {renderProgressBar()}
+      </header>
 
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold">{renderStepTitle()}</h2>
-
-        {currentStep !== "niche" && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleBack}
-            className="flex items-center"
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
-          </Button>
-        )}
+      {/* Cartão da etapa atual */}
+      <div className="mx-4 mb-6">
+        <div className="bg-white rounded-2xl shadow-lg p-6">
+          {currentStep === "niche" && renderNicheStep()}
+          {currentStep === "category" && renderCategoryStep()}
+          {currentStep === "service" && renderServiceStep()}
+          {currentStep === "date" && renderDateStep()}
+          {currentStep === "providers" && renderProvidersStep()}
+          {currentStep === "time-slot" && renderTimeSlotStep()}
+          {currentStep === "payment" && renderPaymentStep()}
+        </div>
       </div>
 
-      <div>
-        {currentStep === "niche" && renderNicheStep()}
-        {currentStep === "category" && renderCategoryStep()}
-        {currentStep === "service" && renderServiceStep()}
-        {currentStep === "date" && renderDateStep()}
-        {currentStep === "providers" && renderProvidersStep()}
-        {currentStep === "time-slot" && renderTimeSlotStep()}
-        {currentStep === "payment" && renderPaymentStep()}
+      {/* Botão de ação fixo (exemplo, ajuste conforme lógica de navegação) */}
+      {/*
+      <div className="fixed bottom-4 left-0 right-0 flex justify-center z-50">
+        <Button className="w-11/12 max-w-md rounded-full text-lg py-4 shadow-xl">
+          {currentStep === "payment" ? "Finalizar Agendamento" : "Continuar"}
+        </Button>
       </div>
+      */}
     </div>
   );
 }

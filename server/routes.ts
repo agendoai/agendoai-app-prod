@@ -69,6 +69,7 @@ import { registerPaymentPreferencesRoutes } from "./routes/payment-preferences-r
 import { registerUploadRoutes } from "./routes/upload-routes"
 import { registerUserManagementRoutes } from "./routes/user-management-routes"
 import sumupPaymentRouter from "./routes/sumup-payment-routes"
+import optimizedProviderSearchRouter from "./routes/optimized-provider-search"
 // Funcionalidade de chatbot do WhatsApp removida
 import {
 	analyzeProviderSchedule,
@@ -611,6 +612,7 @@ export function registerRoutes(app: Express): Server {
 
 	// Registrar rotas genéricas de prestadores (precisa vir depois das específicas)
 	app.use("/api/providers", providersRoutes)
+	app.use("/api/providers-optimized", optimizedProviderSearchRouter)
 
 	// Registrar rotas de relatórios administrativos
 	app.use("/api/admin/reports", adminReportsRoutes)
@@ -2996,370 +2998,235 @@ export function registerRoutes(app: Express): Server {
 		}
 	})
 
+	// Endpoint otimizado para busca de prestadores
 	app.get("/api/providers/search", async (req, res) => {
 		try {
 			const {
-				q,
+				q, // query de busca
 				nicheId,
 				categoryId,
 				serviceId,
 				minRating,
 				maxDistance,
 				date,
-				executionTime,
+				page = "1",
+				limit = "20"
 			} = req.query
 
-			// Parâmetros de filtragem
-			const searchQuery = (q as string) || ""
-			const searchDate = (date as string) || ""
+			console.log("🔍 Busca de prestadores iniciada:", {
+				query: q,
+				nicheId,
+				categoryId,
+				serviceId,
+				minRating,
+				maxDistance,
+				date,
+				page,
+				limit
+			})
 
-			// Validar parâmetros numéricos para evitar NaN
-			let nicheIdNum = null
-			if (nicheId) {
-				const parsed = parseInt(nicheId as string)
-				if (!isNaN(parsed)) {
-					nicheIdNum = parsed
-				}
+			// Validação e conversão de parâmetros
+			const searchQuery = (q as string)?.trim() || ""
+			const pageNum = Math.max(1, parseInt(page as string) || 1)
+			const limitNum = Math.min(50, Math.max(1, parseInt(limit as string) || 20))
+			const offset = (pageNum - 1) * limitNum
+
+			// Validação de parâmetros numéricos
+			const filters = {
+				nicheId: nicheId ? parseInt(nicheId as string) : null,
+				categoryId: categoryId ? parseInt(categoryId as string) : null,
+				serviceId: serviceId ? parseInt(serviceId as string) : null,
+				minRating: minRating ? parseInt(minRating as string) : 0,
+				maxDistance: maxDistance ? parseInt(maxDistance as string) : 50,
+				date: date as string || null
 			}
 
-			let categoryIdNum = null
-			if (categoryId) {
-				const parsed = parseInt(categoryId as string)
-				if (!isNaN(parsed)) {
-					categoryIdNum = parsed
+			// Validar parâmetros
+			Object.entries(filters).forEach(([key, value]) => {
+				if (value !== null && isNaN(value as number)) {
+					return res.status(400).json({ 
+						error: `Parâmetro inválido: ${key}` 
+					})
 				}
-			}
+			})
 
-			let serviceIdNum = null
-			if (serviceId) {
-				const parsed = parseInt(serviceId as string)
-				if (!isNaN(parsed)) {
-					serviceIdNum = parsed
-				}
-			}
-
-			let minRatingNum = 0
-			if (minRating) {
-				const parsed = parseInt(minRating as string)
-				if (!isNaN(parsed)) {
-					minRatingNum = parsed
-				}
-			}
-
-			let maxDistanceNum = 20
-			if (maxDistance) {
-				const parsed = parseInt(maxDistance as string)
-				if (!isNaN(parsed)) {
-					maxDistanceNum = parsed
-				}
-			}
-
-			// Capturar o tempo de execução necessário para o serviço
-			let executionTimeNum = 30 // valor padrão
-			if (executionTime) {
-				const parsed = parseInt(executionTime as string)
-				if (!isNaN(parsed)) {
-					executionTimeNum = parsed
-				}
-			}
-
-			// Validar formato da data se fornecida
-			let validDate = null
-			if (searchDate) {
-				// Verificar se a data está no formato YYYY-MM-DD
+			// Validar formato da data
+			if (filters.date) {
 				const datePattern = /^\d{4}-\d{2}-\d{2}$/
-				if (datePattern.test(searchDate)) {
-					validDate = searchDate
+				if (!datePattern.test(filters.date)) {
+					return res.status(400).json({ 
+						error: "Formato de data inválido. Use YYYY-MM-DD" 
+					})
 				}
 			}
-
-			console.log(
-				`Busca de prestadores - Query: ${searchQuery}, Nicho: ${nicheIdNum}, Categoria: ${categoryIdNum}, Serviço: ${serviceIdNum}, Data: ${validDate}, Tempo de execução: ${executionTimeNum}min`
-			)
 
 			// Buscar prestadores ativos
 			let providers = await storage.getUsersByType("provider")
+			console.log(`📊 Total de prestadores ativos: ${providers.length}`)
 
-			// Filtro por texto de busca (nome do prestador ou nome da empresa)
-			if (searchQuery) {
-				// Buscar as configurações de cada prestador para filtragem por nome de empresa
-				const providersWithSettings = await Promise.all(
-					providers.map(async (provider) => {
-						const settings = await storage.getProviderSettings(
-							provider.id
-						)
+			// Aplicar filtros em paralelo para melhor performance
+			const filteredProviders = await Promise.all(
+				providers.map(async (provider) => {
+					try {
+						// 1. Filtro por texto de busca
+						if (searchQuery) {
+							const settings = await storage.getProviderSettings(provider.id)
+							const matchesSearch = 
+								provider.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+								settings?.businessName?.toLowerCase().includes(searchQuery.toLowerCase())
+							
+							if (!matchesSearch) return null
+						}
+
+						// 2. Buscar serviços do prestador
+						const services = await storage.getServicesByProvider(provider.id)
+						const activeServices = services.filter(service => service.isActive)
+
+						if (activeServices.length === 0) {
+							console.log(`❌ Prestador ${provider.id} não tem serviços ativos`)
+							return null
+						}
+
+						// 3. Aplicar filtros de serviço
+						let filteredServices = activeServices
+
+						if (filters.serviceId) {
+							filteredServices = filteredServices.filter(s => s.id === filters.serviceId)
+						} else if (filters.categoryId) {
+							filteredServices = filteredServices.filter(s => s.categoryId === filters.categoryId)
+						} else if (filters.nicheId) {
+							const categoriesOfNiche = await storage.getCategoriesByNicheId(filters.nicheId)
+							const categoryIds = categoriesOfNiche.map(cat => cat.id)
+							filteredServices = filteredServices.filter(s => categoryIds.includes(s.categoryId))
+						}
+
+						if (filteredServices.length === 0) {
+							console.log(`❌ Prestador ${provider.id} não atende aos filtros de serviço`)
+							return null
+						}
+
+						// 4. Buscar configurações do prestador
+						const settings = await storage.getProviderSettings(provider.id)
+
+						// 5. Filtro por avaliação
+						if (filters.minRating > 0 && (!settings?.rating || settings.rating < filters.minRating)) {
+							console.log(`❌ Prestador ${provider.id} não atende à avaliação mínima`)
+							return null
+						}
+
+						// 6. Verificar disponibilidade na data (se especificada)
+						if (filters.date) {
+							const isAvailable = await checkProviderAvailability(provider.id, filters.date, filteredServices)
+							if (!isAvailable) {
+								console.log(`❌ Prestador ${provider.id} não disponível na data ${filters.date}`)
+								return null
+							}
+						}
+
+						// 7. Calcular distância (simulada)
+						const distance = Math.random() * 15 // 0-15km
+						if (distance > filters.maxDistance) {
+							console.log(`❌ Prestador ${provider.id} fora da distância máxima`)
+							return null
+						}
+
+						console.log(`✅ Prestador ${provider.id} aprovado em todos os filtros`)
 						return {
 							...provider,
 							settings,
+							services: filteredServices,
+							distance: Math.round(distance * 10) / 10 // Arredondar para 1 casa decimal
 						}
-					})
-				)
 
-				providers = providersWithSettings.filter(
-					(provider) =>
-						provider.name
-							?.toLowerCase()
-							.includes(searchQuery.toLowerCase()) ||
-						(provider.settings?.businessName &&
-							provider.settings.businessName
-								.toLowerCase()
-								.includes(searchQuery.toLowerCase()))
-				)
-			}
-
-			// Para cada prestador, buscar seus serviços
-			const providersWithServices = await Promise.all(
-				providers.map(async (provider) => {
-					// Buscar todos os serviços do prestador (apenas os ativos)
-					let services = await storage.getServicesByProvider(
-						provider.id
-					)
-
-					// Filtrar apenas serviços ativos
-					services = services.filter((service) => service.isActive)
-
-					// Filtrar serviços por ID específico se informado
-					if (serviceIdNum) {
-						services = services.filter(
-							(service) => service.id === serviceIdNum
-						)
-					}
-					// Ou filtrar serviços por categoria se especificado
-					else if (categoryIdNum) {
-						services = services.filter(
-							(service) => service.categoryId === categoryIdNum
-						)
-					}
-					// Ou filtrar serviços por nicho se especificado
-					else if (nicheIdNum) {
-						// Precisamos buscar categorias deste nicho
-						const categoriesOfNiche =
-							await storage.getCategoriesByNicheId(nicheIdNum)
-						const categoryIds = categoriesOfNiche.map(
-							(cat) => cat.id
-						)
-						services = services.filter((service) =>
-							categoryIds.includes(service.categoryId)
-						)
-					}
-
-					// Se não houver serviços após a filtragem, não inclui o prestador
-					if (services.length === 0) {
+					} catch (error) {
+						console.error(`❌ Erro ao processar prestador ${provider.id}:`, error)
 						return null
-					}
-
-					// Buscar configurações do prestador
-					const settings = await storage.getProviderSettings(
-						provider.id
-					)
-
-					// Filtrar por avaliação mínima se especificado
-					if (
-						minRatingNum > 0 &&
-						(!settings?.rating || settings.rating < minRatingNum)
-					) {
-						return null
-					}
-
-					// Verificar disponibilidade na data selecionada, se uma data foi fornecida
-					if (validDate) {
-						try {
-							// Verificar se o prestador tem disponibilidade configurada para este dia da semana
-							const date = new Date(validDate)
-							const dayOfWeek = date.getDay() // 0-6 (Domingo-Sábado)
-
-							// Buscar a disponibilidade do prestador para este dia da semana
-							const allAvailability =
-								await storage.getProviderAvailability(
-									provider.id
-								)
-							const dayAvailability = allAvailability.filter(
-								(a) => a.dayOfWeek === dayOfWeek
-							)
-
-							if (
-								!dayAvailability ||
-								dayAvailability.length === 0
-							) {
-								console.log(
-									`Prestador ${provider.id} não tem disponibilidade configurada para o dia da semana ${dayOfWeek} (${validDate})`
-								)
-								return null
-							}
-
-							console.log(
-								`Prestador ${provider.id} está disponível no dia da semana (${dayOfWeek}) correspondente a ${validDate}`
-							)
-
-							// Função auxiliar para converter horário para minutos
-							function timeToMinutes(time: string): number {
-								const [hours, minutes] = time
-									.split(":")
-									.map(Number)
-								return hours * 60 + minutes
-							}
-
-							// Verificar se há pelo menos um bloco de disponibilidade com duração suficiente
-							// para o tempo de execução necessário
-							const hasAvailableBlock = dayAvailability.some(
-								(avail) => {
-									const startTime = timeToMinutes(
-										avail.startTime
-									)
-									const endTime = timeToMinutes(avail.endTime)
-									const availableDuration =
-										endTime - startTime
-
-									// Verificar se o bloco tem duração suficiente para o serviço
-									return availableDuration >= executionTimeNum
-								}
-							)
-
-							if (!hasAvailableBlock) {
-								console.log(
-									`Prestador ${provider.id} não tem blocos de disponibilidade suficientes para um serviço de ${executionTimeNum} minutos`
-								)
-								return null
-							}
-
-							// Se temos um serviço específico, verificamos algumas regras adicionais
-							if (serviceIdNum) {
-								// Verificar se o prestador oferece este serviço específico
-								const service = services.find(
-									(s) => s.id === serviceIdNum
-								)
-								if (!service) {
-									console.log(
-										`Prestador ${provider.id} não oferece o serviço ${serviceIdNum}`
-									)
-									return null
-								}
-
-								console.log(
-									`Prestador ${provider.id} oferece o serviço ${serviceIdNum} (${service.name})`
-								)
-
-								// Buscar tempo de execução personalizado, se existir
-								const providerService =
-									await storage.getProviderServiceByProviderAndService(
-										provider.id,
-										service.id
-									)
-
-								// Determinar o tempo de execução (personalizado ou padrão)
-								const serviceExecutionTime = providerService
-									? providerService.executionTime
-									: service.duration
-
-								// Verificar novamente com o tempo de execução específico deste serviço
-								const hasBlockForService = dayAvailability.some(
-									(avail) => {
-										const startTime = timeToMinutes(
-											avail.startTime
-										)
-										const endTime = timeToMinutes(
-											avail.endTime
-										)
-										const availableDuration =
-											endTime - startTime
-
-										// Verificar se o bloco tem duração suficiente para o serviço específico
-										return (
-											availableDuration >=
-											serviceExecutionTime
-										)
-									}
-								)
-
-								if (!hasBlockForService) {
-									console.log(
-										`Prestador ${provider.id} não tem blocos de disponibilidade suficientes para o serviço específico (${serviceExecutionTime} min)`
-									)
-									return null
-								}
-
-								// Log dos blocos disponíveis
-								const blocksInfo = dayAvailability.map(
-									(avail) => {
-										const startTime = timeToMinutes(
-											avail.startTime
-										)
-										const endTime = timeToMinutes(
-											avail.endTime
-										)
-										const availableDuration =
-											endTime - startTime
-										return {
-											period: `${avail.startTime}-${avail.endTime}`,
-											duration: availableDuration,
-										}
-									}
-								)
-
-								console.log(
-									`Prestador ${
-										provider.id
-									} tem disponibilidade para serviço ${
-										service.id
-									} (${serviceExecutionTime} min): ${JSON.stringify(
-										blocksInfo
-									)}`
-								)
-							} else if (categoryIdNum) {
-								// Verificar se o prestador tem serviços na categoria especificada
-								const servicesInCategory = services.filter(
-									(s) => s.categoryId === categoryIdNum
-								)
-								if (servicesInCategory.length === 0) {
-									console.log(
-										`Prestador ${provider.id} não tem serviços na categoria ${categoryIdNum}`
-									)
-									return null
-								}
-
-								// Log dos serviços disponíveis
-								console.log(
-									`Prestador ${provider.id} tem ${servicesInCategory.length} serviços na categoria ${categoryIdNum}`
-								)
-							}
-						} catch (error) {
-							console.error(
-								`Erro ao verificar disponibilidade do prestador ${provider.id}:`,
-								error
-							)
-							// Se houver erro ao verificar disponibilidade, vamos considerar que o prestador não está disponível
-							return null
-						}
-					}
-
-					// Adicionar distância simulada para teste (em uma aplicação real, seria calculada com base em geolocalização)
-					const distance = Math.random() * 15 // 0-15km
-
-					// Filtrar por distância máxima
-					if (distance > maxDistanceNum) {
-						return null
-					}
-
-					return {
-						...provider,
-						settings,
-						services,
-						distance,
 					}
 				})
 			)
 
-			// Remover nulls (prestadores que foram filtrados)
-			const filteredProviders = providersWithServices.filter(
-				(provider) => provider !== null
-			)
+			// Remover nulls e aplicar paginação
+			const validProviders = filteredProviders.filter(p => p !== null)
+			const totalResults = validProviders.length
+			const paginatedProviders = validProviders.slice(offset, offset + limitNum)
 
-			res.json(filteredProviders)
+			console.log(`📈 Resultados: ${paginatedProviders.length}/${totalResults} prestadores`)
+
+			// Retornar resposta com metadados
+			res.json({
+				providers: paginatedProviders,
+				pagination: {
+					page: pageNum,
+					limit: limitNum,
+					total: totalResults,
+					totalPages: Math.ceil(totalResults / limitNum),
+					hasNext: offset + limitNum < totalResults,
+					hasPrev: pageNum > 1
+				},
+				filters: {
+					searchQuery,
+					...filters
+				}
+			})
+
 		} catch (error) {
-			console.error("Erro na busca de prestadores:", error)
-			res.status(500).json({ error: "Falha ao buscar prestadores" })
+			console.error("💥 Erro na busca de prestadores:", error)
+			res.status(500).json({ 
+				error: "Falha ao buscar prestadores",
+				details: error instanceof Error ? error.message : "Erro desconhecido"
+			})
 		}
 	})
+
+	// Função auxiliar para verificar disponibilidade do prestador
+	async function checkProviderAvailability(providerId: number, date: string, services: any[]): Promise<boolean> {
+		try {
+			const targetDate = new Date(date)
+			const dayOfWeek = targetDate.getDay()
+
+			// Buscar disponibilidade do prestador
+			const availability = await storage.getAvailabilityByDate(providerId, date)
+			
+			// Se não há disponibilidade específica para esta data, verificar disponibilidade semanal
+			if (!availability || availability.length === 0) {
+				const weeklyAvailability = await storage.getAvailabilityByDay(providerId, dayOfWeek)
+				if (!weeklyAvailability || weeklyAvailability.length === 0) {
+					return false
+				}
+			}
+
+			// Verificar se há blocos de tempo suficientes para pelo menos um serviço
+			const allAvailability = availability || await storage.getAvailabilityByDay(providerId, dayOfWeek)
+			
+			for (const service of services) {
+				const serviceDuration = service.duration || 30
+				
+				const hasAvailableBlock = allAvailability.some(avail => {
+					const startMinutes = timeToMinutes(avail.startTime)
+					const endMinutes = timeToMinutes(avail.endTime)
+					const availableDuration = endMinutes - startMinutes
+					
+					return availableDuration >= serviceDuration
+				})
+
+				if (hasAvailableBlock) {
+					return true
+				}
+			}
+
+			return false
+
+		} catch (error) {
+			console.error(`Erro ao verificar disponibilidade do prestador ${providerId}:`, error)
+			return false
+		}
+	}
+
+	// Função auxiliar para converter horário para minutos
+	function timeToMinutes(time: string): number {
+		const [hours, minutes] = time.split(":").map(Number)
+		return hours * 60 + minutes
+	}
 
 	// Obter detalhes de um prestador específico
 	app.get("/api/providers/:id", async (req, res) => {
@@ -3639,6 +3506,7 @@ export function registerRoutes(app: Express): Server {
 		try {
 			const providerId = parseInt(req.params.id)
 			if (isNaN(providerId)) {
+				console.log("❌ ID de prestador inválido:", req.params.id);
 				return res
 					.status(400)
 					.json({ error: "ID de prestador inválido" })
@@ -3648,23 +3516,45 @@ export function registerRoutes(app: Express): Server {
 			const serviceId = req.query.serviceId
 				? parseInt(req.query.serviceId as string)
 				: undefined
+			const duration = req.query.duration
+				? parseInt(req.query.duration as string)
+				: undefined
+
+			console.log("🔍 Requisição de time-slots:", {
+				providerId,
+				date,
+				serviceId,
+				duration
+			});
 
 			if (!date) {
+				console.log("❌ Data não fornecida");
 				return res.status(400).json({ error: "Data é obrigatória" })
 			}
 
 			// Validar formato da data (YYYY-MM-DD)
 			const datePattern = /^\d{4}-\d{2}-\d{2}$/
 			if (!datePattern.test(date)) {
+				console.log("❌ Formato de data inválido:", date);
 				return res
 					.status(400)
 					.json({ error: "Formato de data inválido. Use YYYY-MM-DD" })
 			}
 
+			// Verificar se o prestador existe
+			const provider = await storage.getUser(providerId);
+			if (!provider) {
+				console.log("❌ Prestador não encontrado:", providerId);
+				return res.status(404).json({ error: "Prestador não encontrado" });
+			}
+
+			console.log("✅ Prestador encontrado:", provider.name);
+
 			// Se um serviço específico foi solicitado, obter sua duração
 			let serviceDuration: number | undefined
 
 			if (serviceId) {
+				console.log("🔍 Buscando informações do serviço:", serviceId);
 				// Primeiro verificamos se existe uma personalização de tempo para este serviço/prestador
 				const providerService =
 					await storage.getProviderServiceByProviderAndService(
@@ -3675,7 +3565,7 @@ export function registerRoutes(app: Express): Server {
 				if (providerService && providerService.executionTime) {
 					serviceDuration = providerService.executionTime
 					console.log(
-						`Usando tempo de execução personalizado para slots: ${serviceDuration} minutos`
+						`✅ Usando tempo de execução personalizado para slots: ${serviceDuration} minutos`
 					)
 				} else {
 					// Se não houver personalização, usamos a duração padrão do serviço
@@ -3683,17 +3573,59 @@ export function registerRoutes(app: Express): Server {
 					if (service) {
 						serviceDuration = service.duration
 						console.log(
-							`Usando tempo de execução padrão para slots: ${serviceDuration} minutos`
+							`✅ Usando tempo de execução padrão para slots: ${serviceDuration} minutos`
 						)
+					} else {
+						console.log("⚠️ Serviço não encontrado, usando duração padrão");
+						serviceDuration = duration || 60;
 					}
 				}
+			} else {
+				serviceDuration = duration || 60;
+				console.log(`✅ Usando duração fornecida: ${serviceDuration} minutos`);
 			}
 
 			console.log(
-				`Gerando slots de tempo para prestador ID: ${providerId}, data: ${date}${
+				`🚀 Gerando slots de tempo para prestador ID: ${providerId}, data: ${date}${
 					serviceId ? `, serviço: ${serviceId}` : ""
-				}`
+				}, duração: ${serviceDuration}`
 			)
+
+			// Verificar disponibilidade do prestador
+			let availability = await storage.getAvailabilityByDate(providerId, date);
+			console.log("📅 Disponibilidade encontrada:", availability);
+
+			// Se não houver disponibilidade específica para esta data, criar uma padrão
+			if (!availability || availability.length === 0) {
+				console.log("⚠️ Nenhuma disponibilidade encontrada, criando padrão...");
+				
+				// Obter o dia da semana
+				const dayOfWeek = new Date(date).getDay();
+				
+				// Verificar se há disponibilidade para este dia da semana
+				const weeklyAvailability = await storage.getAvailabilityByDay(providerId, dayOfWeek);
+				
+				if (!weeklyAvailability || weeklyAvailability.length === 0) {
+					console.log("⚠️ Nenhuma disponibilidade semanal encontrada, criando padrão...");
+					
+					// Criar disponibilidade padrão (8h às 18h)
+					const defaultAvailability = await storage.createAvailability({
+						providerId: providerId,
+						date: date,
+						dayOfWeek: dayOfWeek,
+						startTime: "08:00",
+						endTime: "18:00",
+						isAvailable: true,
+						intervalMinutes: 30
+					});
+					
+					console.log("✅ Disponibilidade padrão criada:", defaultAvailability);
+					availability = [defaultAvailability];
+				} else {
+					console.log("✅ Usando disponibilidade semanal:", weeklyAvailability);
+					availability = Array.isArray(weeklyAvailability) ? weeklyAvailability : [weeklyAvailability];
+				}
+			}
 
 			// Gerar slots de tempo disponíveis
 			const timeSlots = await storage.generateTimeSlots(
@@ -3808,16 +3740,45 @@ export function registerRoutes(app: Express): Server {
 			}
 
 			console.log(
-				`Gerados ${timeSlots.length} slots de tempo para a data ${date}`
+				`✅ Gerados ${timeSlots.length} slots de tempo para a data ${date}`
 			)
 
 			// Se não houver serviço específico, retorna todos os slots sem verificação adicional
 			return res.json(timeSlots)
 		} catch (error) {
-			console.error("Erro ao buscar slots de tempo:", error)
-			return res.status(500).json({ error: "Erro interno do servidor" })
+			console.error("💥 Erro ao buscar slots de tempo:", error)
+			return res.status(500).json({ 
+				error: "Erro interno do servidor",
+				details: error instanceof Error ? error.message : "Erro desconhecido"
+			})
 		}
 	})
+
+	// Endpoint público para buscar taxa de serviço do prestador
+	app.get("/api/provider-fees/:providerId", async (req, res) => {
+		try {
+			const providerId = parseInt(req.params.providerId);
+			
+			if (isNaN(providerId)) {
+				return res.status(400).json({ error: "ID de prestador inválido" });
+			}
+
+			// Buscar taxa ativa do prestador
+			const activeFee = await storage.getProviderFeeByProviderId(providerId);
+
+			if (!activeFee) {
+				return res.json({ fixedFee: 0, percentageFee: 0 });
+			}
+
+			return res.json({
+				fixedFee: activeFee.fixedFee || 0,
+				percentageFee: activeFee.percentageFee || 0
+			});
+		} catch (error) {
+			console.error("Erro ao buscar taxa do prestador:", error);
+			return res.status(500).json({ error: "Erro interno do servidor" });
+		}
+	});
 
 	// Endpoint para verificar a disponibilidade real dos horários
 	app.post("/api/providers/:id/available-slots-check", async (req, res) => {

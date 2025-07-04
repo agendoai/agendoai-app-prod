@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import { format, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { 
   ChevronRight, 
@@ -27,7 +27,7 @@ import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Tipos para os passos do assistente
-type BookingStep = 'niche' | 'category' | 'service' | 'date' | 'providers';
+type BookingStep = 'niche' | 'category' | 'service' | 'date' | 'providers' | 'slots';
 
 // Interfaces de dados
 interface Niche {
@@ -94,6 +94,43 @@ export interface BookingWizardProps {
   }) => void;
 }
 
+// Novo hook para buscar horários de vários dias
+function useMultiDaySlots(providerId: number | null, serviceTemplate: ServiceTemplate | null, days: number = 30) {
+  const [slotsByDate, setSlotsByDate] = useState<Record<string, {startTime: string, endTime: string}[]>>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!providerId || !serviceTemplate) return;
+    setIsLoading(true);
+    setError(null);
+    const today = new Date();
+    const fetchAll = async () => {
+      const results: Record<string, {startTime: string, endTime: string}[]> = {};
+      for (let i = 0; i < days; i++) {
+        const date = addDays(today, i);
+        const formattedDate = format(date, 'yyyy-MM-dd');
+        try {
+          const resp = await fetch(`/api/providers/${providerId}/availability?date=${formattedDate}&duration=${serviceTemplate.duration}`);
+          if (resp.ok) {
+            const slots = await resp.json();
+            if (Array.isArray(slots) && slots.length > 0) {
+              results[formattedDate] = slots;
+            }
+          }
+        } catch (e) {
+          setError('Erro ao buscar horários disponíveis');
+        }
+      }
+      setSlotsByDate(results);
+      setIsLoading(false);
+    };
+    fetchAll();
+  }, [providerId, serviceTemplate, days]);
+
+  return { slotsByDate, isLoading, error };
+}
+
 export function BookingWizard({ onComplete }: BookingWizardProps) {
   // Estado para controlar o passo atual do assistente
   const [currentStep, setCurrentStep] = useState<BookingStep>('niche');
@@ -105,6 +142,80 @@ export function BookingWizard({ onComplete }: BookingWizardProps) {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedProvider, setSelectedProvider] = useState<Provider | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<{startTime: string, endTime: string} | null>(null);
+  
+  // Verificar parâmetros da URL para pré-seleção
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const providerIdParam = urlParams.get('providerId');
+    const serviceIdParam = urlParams.get('serviceId');
+    
+    if (providerIdParam && serviceIdParam) {
+      // Se temos providerId e serviceId na URL, vamos para o passo de prestadores
+      setCurrentStep('providers');
+      
+      // Buscar dados do prestador e serviço
+      const fetchPreSelectedData = async () => {
+        try {
+          const providerId = parseInt(providerIdParam);
+          const serviceId = parseInt(serviceIdParam);
+          
+          // Buscar dados do prestador
+          const providerResponse = await fetch(`/api/providers/${providerId}`);
+          if (providerResponse.ok) {
+            const providerData = await providerResponse.json();
+            setSelectedProvider(providerData);
+          }
+          
+          // Buscar dados do serviço
+          const serviceResponse = await fetch(`/api/services/${serviceId}`);
+          if (serviceResponse.ok) {
+            const serviceData = await serviceResponse.json();
+            // Buscar o template correspondente
+            const templateResponse = await fetch(`/api/service-templates?categoryId=${serviceData.categoryId}`);
+            if (templateResponse.ok) {
+              const templates = await templateResponse.json();
+              const matchingTemplate = templates.find((t: ServiceTemplate) => 
+                t.name.toLowerCase().includes(serviceData.name.toLowerCase())
+              );
+              if (matchingTemplate) {
+                setSelectedServiceTemplate(matchingTemplate);
+                setSelectedCategoryId(serviceData.categoryId);
+                // Buscar o nicho correspondente
+                const categoryResponse = await fetch(`/api/categories/${serviceData.categoryId}`);
+                if (categoryResponse.ok) {
+                  const categoryData = await categoryResponse.json();
+                  setSelectedNicheId(categoryData.nicheId);
+                }
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Erro ao carregar dados pré-selecionados:', error);
+        }
+      };
+      
+      fetchPreSelectedData();
+    } else if (providerIdParam) {
+      // Se temos apenas providerId, vamos para o passo de prestadores
+      setCurrentStep('providers');
+      
+      // Buscar dados do prestador
+      const fetchProviderData = async () => {
+        try {
+          const providerId = parseInt(providerIdParam);
+          const providerResponse = await fetch(`/api/providers/${providerId}`);
+          if (providerResponse.ok) {
+            const providerData = await providerResponse.json();
+            setSelectedProvider(providerData);
+          }
+        } catch (error) {
+          console.error('Erro ao carregar dados do prestador:', error);
+        }
+      };
+      
+      fetchProviderData();
+    }
+  }, []);
   
   // Carregar nichos
   const { data: niches, isLoading: isNichesLoading } = useQuery<Niche[]>({
@@ -172,23 +283,19 @@ export function BookingWizard({ onComplete }: BookingWizardProps) {
     enabled: !!selectedServiceTemplate && !!selectedCategoryId,
   });
   
-  // Carregar horários disponíveis para o prestador selecionado na data selecionada
-  const { data: availableSlots, isLoading: isSlotsLoading } = useQuery<{startTime: string, endTime: string}[]>({
-    queryKey: ['/api/providers', selectedProvider?.id, 'availability', selectedDate, selectedServiceTemplate?.duration],
-    queryFn: async () => {
-      if (!selectedProvider || !selectedDate || !selectedServiceTemplate) return [];
-      
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-      const response = await fetch(`/api/providers/${selectedProvider.id}/availability?date=${formattedDate}&duration=${selectedServiceTemplate.duration}`);
-      
-      if (!response.ok) {
-        throw new Error('Falha ao carregar horários disponíveis');
-      }
-      
-      return response.json();
-    },
-    enabled: !!selectedProvider && !!selectedDate && !!selectedServiceTemplate,
-  });
+  // Novo: buscar todos os horários disponíveis ao selecionar o prestador
+  const { slotsByDate, isLoading: isLoadingMultiDaySlots, error: slotsError } = useMultiDaySlots(
+    selectedProvider?.id ?? null,
+    selectedServiceTemplate,
+    30 // dias
+  );
+
+  // Função para redirecionar para a agenda do prestador com parâmetro de segurança
+  const redirectToProviderSchedule = (providerId: number, serviceId: number) => {
+    const params = new URLSearchParams();
+    params.append('fromWizard', 'true');
+    window.location.href = `/client/provider-schedule/${providerId}/${serviceId}?${params.toString()}`;
+  };
   
   // Manipuladores para atualizar o estado
   const handleNicheSelect = (nicheId: number) => {
@@ -233,54 +340,22 @@ export function BookingWizard({ onComplete }: BookingWizardProps) {
   
   const handleProviderSelect = (provider: Provider) => {
     setSelectedProvider(provider);
-    
-    // Encontrar o serviço específico para este prestador
-    const matchingService = provider.services.find(service => 
-      selectedServiceTemplate && service.name.includes(selectedServiceTemplate.name)
-    );
-    
-    if (matchingService && selectedDate && availableSlots?.length && onComplete) {
-      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-      
-      // Se houver apenas um horário disponível, selecioná-lo automaticamente
-      if (availableSlots.length === 1) {
-        setSelectedSlot(availableSlots[0]);
-        
-        onComplete({
-          serviceId: matchingService.id,
-          providerId: provider.id,
-          date: formattedDate,
-          startTime: availableSlots[0].startTime,
-          endTime: availableSlots[0].endTime
-        });
-      } else {
-        // Se houver múltiplos horários, permitir que o usuário escolha
-        // Exibir os horários disponíveis (implementação dependente da interface)
-      }
-    } else if (matchingService && onComplete) {
-      onComplete({
-        serviceId: matchingService.id,
-        providerId: provider.id
-      });
-    }
+    setCurrentStep('slots'); // novo passo
+    setSelectedSlot(null);
   };
   
-  const handleTimeSlotSelect = (slot: {startTime: string, endTime: string}) => {
+  const handleTimeSlotSelect = (slot: {startTime: string, endTime: string, date?: string}) => {
     setSelectedSlot(slot);
-    
-    if (selectedProvider && selectedServiceTemplate && selectedDate && onComplete) {
+    if (selectedProvider && selectedServiceTemplate && slot.date && onComplete) {
       // Encontrar o serviço específico para este prestador
       const matchingService = selectedProvider.services.find(service => 
         service.name.includes(selectedServiceTemplate.name)
       );
-      
       if (matchingService) {
-        const formattedDate = format(selectedDate, 'yyyy-MM-dd');
-        
         onComplete({
           serviceId: matchingService.id,
           providerId: selectedProvider.id,
-          date: formattedDate,
+          date: slot.date,
           startTime: slot.startTime,
           endTime: slot.endTime
         });
@@ -324,6 +399,8 @@ export function BookingWizard({ onComplete }: BookingWizardProps) {
         return 'Selecione uma Data';
       case 'providers':
         return 'Prestadores Disponíveis';
+      case 'slots':
+        return 'Escolha um Horário';
       default:
         return '';
     }
@@ -629,41 +706,6 @@ export function BookingWizard({ onComplete }: BookingWizardProps) {
                           </span>
                         </div>
                       </div>
-                      
-                      {selectedDate && matchingService && (
-                        <div className="mt-3">
-                          <Separator className="mb-2" />
-                          <div className="flex flex-wrap gap-1.5">
-                            {isSlotsLoading ? (
-                              <div className="w-full h-6 animate-pulse bg-neutral-100 rounded"></div>
-                            ) : availableSlots && availableSlots.length > 0 ? (
-                              <>
-                                <p className="w-full text-xs text-muted-foreground mb-1">
-                                  Horários disponíveis em {format(selectedDate, "d 'de' MMMM", { locale: ptBR })}:
-                                </p>
-                                {availableSlots.slice(0, 3).map((slot, index) => (
-                                  <Badge 
-                                    key={index} 
-                                    variant="outline" 
-                                    className="h-7 hover:bg-primary/10 cursor-pointer"
-                                  >
-                                    {slot.startTime.substring(0, 5)}
-                                  </Badge>
-                                ))}
-                                {availableSlots.length > 3 && (
-                                  <Badge variant="outline" className="h-7 bg-background hover:bg-primary/10 cursor-pointer">
-                                    +{availableSlots.length - 3} horários
-                                  </Badge>
-                                )}
-                              </>
-                            ) : (
-                              <p className="text-xs text-muted-foreground">
-                                Sem horários disponíveis para {format(selectedDate, "d 'de' MMMM", { locale: ptBR })}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      )}
                     </div>
                     
                     <ChevronRight className="h-5 w-5 text-muted-foreground ml-2 self-center" />
@@ -677,6 +719,54 @@ export function BookingWizard({ onComplete }: BookingWizardProps) {
     );
   };
   
+  // Novo: renderizar todos os horários disponíveis agrupados por data
+  const renderSlotsStep = () => {
+    if (isLoadingMultiDaySlots) {
+      return <div className="p-6 text-center">Carregando horários disponíveis...</div>;
+    }
+    if (slotsError) {
+      return <div className="p-6 text-center text-red-500">{slotsError}</div>;
+    }
+    const dates = Object.keys(slotsByDate);
+    if (dates.length === 0) {
+      return <div className="p-6 text-center text-neutral-500">Nenhum horário disponível nos próximos 30 dias.</div>;
+    }
+    return (
+      <div className="p-4">
+        <h3 className="font-bold mb-4">Escolha um horário disponível</h3>
+        {dates.map(date => (
+          <div key={date} className="mb-6">
+            <div className="font-semibold text-primary mb-2">{format(new Date(date), 'EEEE, dd/MM/yyyy', { locale: ptBR })}</div>
+            <div className="flex flex-wrap gap-2">
+              {slotsByDate[date].map((slot, idx) => (
+                <Button
+                  key={idx}
+                  variant={selectedSlot === slot ? 'default' : 'outline'}
+                  onClick={() => handleTimeSlotSelect({ ...slot, date })}
+                >
+                  {slot.startTime} - {slot.endTime}
+                </Button>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  // Adicionar novo passo 'slots' ao renderizador principal
+  const renderStep = () => {
+    switch (currentStep) {
+      case 'niche': return renderNicheStep();
+      case 'category': return renderCategoryStep();
+      case 'service': return renderServiceStep();
+      case 'date': return renderDateStep();
+      case 'providers': return renderProvidersStep();
+      case 'slots': return renderSlotsStep();
+      default: return null;
+    }
+  };
+
   return (
     <div className="pb-20">
       <div className="flex items-center justify-between mb-6">
@@ -703,11 +793,7 @@ export function BookingWizard({ onComplete }: BookingWizardProps) {
       </div>
       
       <div>
-        {currentStep === 'niche' && renderNicheStep()}
-        {currentStep === 'category' && renderCategoryStep()}
-        {currentStep === 'service' && renderServiceStep()}
-        {currentStep === 'date' && renderDateStep()}
-        {currentStep === 'providers' && renderProvidersStep()}
+        {renderStep()}
       </div>
     </div>
   );

@@ -67,6 +67,23 @@ export default function ProviderSchedulePage() {
   const parsedProviderId = parseInt(providerId);
   const parsedServiceId = parseInt(serviceId);
 
+  // Verificar se o usuário está tentando acessar diretamente a agenda do prestador
+  // Se sim, redirecionar para o fluxo correto de agendamento
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const isDirectAccess = !urlParams.get('fromWizard');
+    
+    if (isDirectAccess) {
+      console.log('🔒 Acesso direto à agenda do prestador detectado. Redirecionando para o fluxo correto...');
+      // Redirecionar para o wizard de agendamento com os parâmetros
+      const params = new URLSearchParams();
+      params.append('providerId', providerId);
+      params.append('serviceId', serviceId);
+      setLocation(`/client/booking-wizard?${params.toString()}`);
+      return;
+    }
+  }, [providerId, serviceId, setLocation]);
+
   // Verificar se há uma data na URL
   const searchParams = new URLSearchParams(window.location.search);
   const dateParam = searchParams.get('date');
