@@ -178,10 +178,11 @@ function RouterWithTransitions() {
           component={() => <LazyWrapper component={ServiceProvidersPage} />}
           userType="client"
         />
-        {/* Rota pública unificada para agendar serviços com prestadores */}
-        <Route
+        {/* Rota protegida para agendamento - apenas para clientes autenticados */}
+        <ProtectedRoute
           path="/client/provider-schedule/:providerId/:serviceId"
           component={() => <LazyWrapper component={ProviderSchedulePage} />}
+          userType="client"
         />
         <ProtectedRoute
           path="/client/book/:providerId/:serviceId"
@@ -273,7 +274,7 @@ function RouterWithTransitions() {
           userType="client"
         />
         <ProtectedRoute
-          path="/client/new-booking"
+          path="/client/new-booking-wizard"
           component={() => <LazyWrapper component={NewBookingWizardPage} />}
           userType="client"
         />

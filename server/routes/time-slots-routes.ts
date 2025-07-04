@@ -96,6 +96,9 @@ router.get("/", async (req, res) => {
     const serviceId = req.query.serviceId
       ? parseInt(req.query.serviceId as string)
       : undefined;
+    const serviceIds = req.query.serviceIds
+      ? (req.query.serviceIds as string).split(',').map(id => parseInt(id))
+      : undefined;
 
     if (!providerId || !date) {
       return res
@@ -103,30 +106,38 @@ router.get("/", async (req, res) => {
         .json({ error: "Os parâmetros providerId e date são obrigatórios" });
     }
 
-    // Obter TODOS os slots de tempo (disponíveis e bloqueados) diretamente do método generateTimeSlots
     logger.info(
-      `Gerando slots de tempo (disponíveis e bloqueados) para prestador ${providerId} na data ${date}`,
-    );
-    let timeSlots = await storage.generateTimeSlots(
-      providerId,
-      date,
-      serviceId,
+      `Buscando slots de tempo para prestador ${providerId} na data ${date}${serviceId ? `, serviço ${serviceId}` : ''}${serviceIds ? `, serviços ${serviceIds.join(',')}` : ''}`,
     );
 
+    // Obter slots de tempo disponíveis
+    let timeSlots = await storage.getTimeSlotsByProviderId(providerId);
+
     logger.info(
-      `Gerados ${timeSlots.length} slots (disponíveis e bloqueados) para prestador ${providerId} na data ${date}`,
+      `Obtidos ${timeSlots.length} slots para prestador ${providerId} na data ${date}`,
     );
 
-    // Se não há slots, tentar gerar novamente com disponibilidade padrão (embora isso já deva acontecer no generateTimeSlots)
+    // Se não há slots, verificar disponibilidade padrão
     if (timeSlots.length === 0) {
       logger.info(
-        `Nenhum slot disponível para prestador ${providerId} na data ${date}. Tentando novamente com disponibilidade padrão.`,
+        `Nenhum slot disponível para prestador ${providerId} na data ${date}. Verificando disponibilidade padrão.`,
       );
 
-      // Forçar regeneração (apenas como salvaguarda)
-      timeSlots = await storage.generateTimeSlots(providerId, date, serviceId);
+      // Verificar se o prestador tem configuração de disponibilidade
+      const providerAvailability = await storage.getAvailabilityByProviderId(providerId);
+      if (!providerAvailability || providerAvailability.length === 0) {
+        logger.warn(`Prestador ${providerId} não possui configuração de disponibilidade`);
+        return res.json({ 
+          timeSlots: [],
+          message: "Prestador não possui horários configurados",
+          providerId,
+          date
+        });
+      }
 
-      logger.info(`Após segunda tentativa: ${timeSlots.length} slots gerados.`);
+      // Tentar obter slots novamente
+      timeSlots = await storage.getTimeSlotsByProviderId(providerId);
+      logger.info(`Após segunda tentativa: ${timeSlots.length} slots obtidos.`);
     }
 
     // Filtrar slots que já passaram se a data for hoje
@@ -135,11 +146,119 @@ router.get("/", async (req, res) => {
       `Após filtrar slots passados: ${timeSlots.length} slots disponíveis`,
     );
 
-    return res.json({ timeSlots });
+    // Filtrar apenas slots disponíveis (não bloqueados)
+    const availableSlots = timeSlots.filter((slot: any) => slot.isAvailable !== false);
+    
+    logger.info(
+      `Slots disponíveis para agendamento: ${availableSlots.length}`,
+    );
+
+    return res.json({ 
+      timeSlots: availableSlots,
+      totalSlots: timeSlots.length,
+      availableSlots: availableSlots.length,
+      providerId,
+      date,
+      serviceId,
+      serviceIds
+    });
   } catch (error) {
     console.error("Erro ao obter slots de tempo:", error);
     res.status(500).json({
       error: "Erro ao obter slots de tempo",
+      details: error instanceof Error ? error.message : "Erro desconhecido",
+    });
+  }
+});
+
+// Nova rota específica para buscar horários disponíveis com melhor tratamento
+router.get("/available", async (req, res) => {
+  try {
+    const providerId = parseInt(req.query.providerId as string);
+    const date = req.query.date as string;
+    const serviceId = req.query.serviceId
+      ? parseInt(req.query.serviceId as string)
+      : undefined;
+    const serviceIds = req.query.serviceIds
+      ? (req.query.serviceIds as string).split(',').map(id => parseInt(id))
+      : undefined;
+
+    if (!providerId || !date) {
+      return res
+        .status(400)
+        .json({ 
+          error: "Parâmetros obrigatórios", 
+          required: ["providerId", "date"],
+          received: { providerId, date }
+        });
+    }
+
+    logger.info(
+      `[AVAILABLE] Buscando horários disponíveis para prestador ${providerId} na data ${date}`,
+    );
+
+    // Verificar se o prestador existe
+    const provider = await storage.getUserById(providerId);
+    if (!provider || provider.userType !== 'provider') {
+      return res.status(404).json({
+        error: "Prestador não encontrado",
+        providerId
+      });
+    }
+
+    // Verificar se o prestador tem configuração de disponibilidade
+    const providerAvailability = await storage.getAvailabilityByProviderId(providerId);
+    if (!providerAvailability || providerAvailability.length === 0) {
+      logger.warn(`Prestador ${providerId} não possui configuração de disponibilidade`);
+      return res.json({ 
+        timeSlots: [],
+        message: "Prestador não possui horários configurados",
+        providerId,
+        date,
+        providerName: provider.name
+      });
+    }
+
+    // Obter slots de tempo
+    let timeSlots = await storage.getTimeSlotsByProviderId(providerId);
+    
+    if (timeSlots.length === 0) {
+      logger.info(`Nenhum slot encontrado para prestador ${providerId} na data ${date}`);
+      return res.json({ 
+        timeSlots: [],
+        message: "Nenhum horário disponível para esta data",
+        providerId,
+        date,
+        providerName: provider.name
+      });
+    }
+
+    // Filtrar slots que já passaram
+    timeSlots = filterPastTimeSlots(timeSlots, date);
+    
+    // Filtrar apenas slots disponíveis
+    const availableSlots = timeSlots.filter((slot: any) => slot.isAvailable !== false);
+    
+    logger.info(
+      `[AVAILABLE] ${availableSlots.length} horários disponíveis de ${timeSlots.length} total para prestador ${providerId}`,
+    );
+
+    return res.json({ 
+      success: true,
+      timeSlots: availableSlots,
+      totalSlots: timeSlots.length,
+      availableSlots: availableSlots.length,
+      providerId,
+      providerName: provider.name,
+      date,
+      serviceId,
+      serviceIds
+    });
+  } catch (error) {
+    logger.error("Erro ao buscar horários disponíveis:", error);
+    res.status(500).json({
+      error: "Erro interno do servidor",
+      message: "Falha ao buscar horários disponíveis",
       details: error instanceof Error ? error.message : "Erro desconhecido",
     });
   }
@@ -193,9 +312,22 @@ router.post("/block", isAuthenticated, async (req, res) => {
     }
 
     try {
+      // Buscar uma disponibilidade do prestador para usar como referência
+      const providerAvailability = await storage.getAvailabilityByProviderId(providerId);
+      if (!providerAvailability || providerAvailability.length === 0) {
+        return res.status(400).json({
+          error: "Prestador não possui configuração de disponibilidade",
+          providerId
+        });
+      }
+
+      // Usar a primeira disponibilidade como referência
+      const availabilityId = providerAvailability[0].id;
+
       // Criar bloqueio de horário com metadados adicionais
-      const blockedSlot = await storage.blockTimeSlot({
+      const blockedSlot = await storage.createBlockedTime({
         providerId,
+        availabilityId,
         date,
         startTime,
         endTime,
@@ -279,14 +411,20 @@ router.post("/unblock", isAuthenticated, async (req, res) => {
     }
 
     try {
+      // Buscar bloqueios que correspondem aos critérios
+      const blockedSlots = await storage.getBlockedTimeSlotsByDate(providerId, date);
+      const matchingBlock = blockedSlots.find(block => 
+        block.startTime === startTime && 
+        block.endTime === endTime
+      );
+
+      if (!matchingBlock) {
+        return res.status(404).json({ error: "Bloqueio não encontrado" });
+      }
+
       // Remover bloqueio de horário
-      const success = await storage.unblockTimeSlot({
-        providerId,
-        date,
-        startTime,
-        endTime,
-        availabilityId,
-      });
+      await storage.deleteBlockedTime(matchingBlock.id);
+      const success = true;
 
       console.log("[time-slots-routes] Resultado do desbloqueio:", success);
 
@@ -374,9 +512,9 @@ router.post("/calculate", async (req, res) => {
     }
 
     // Buscar agendamentos existentes para a data
-    const appointments = await storage.getProviderAppointmentsByDate(
-      providerId,
-      date,
+    const allAppointments = await storage.getProviderAppointments(providerId);
+    const appointments = allAppointments.filter((appointment: any) => 
+      appointment.date === date
     );
 
     // Montar objeto de agenda

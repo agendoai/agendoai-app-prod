@@ -8,7 +8,12 @@ const app = express();
 
 // Configurar CORS para permitir requisições apenas da origem do deploy
 app.use(cors({
-  origin: true, // Permite qualquer origem em produção (será restrito pelo Replit)
+  origin: [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    process.env.FRONTEND_URL || 'http://localhost:3000'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']

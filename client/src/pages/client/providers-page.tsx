@@ -57,9 +57,10 @@ export default function ProvidersPage() {
 
   const isLoading = isServiceLoading || areProvidersLoading;
   
-  // Navegação para a página do prestador
+  // Handle provider selection - corrigido para usar o fluxo correto de agendamento
   const handleProviderClick = (providerId: number) => {
-    setLocation(`/client/provider-schedule/${providerId}/${serviceId}`);
+    // Redireciona para o wizard de agendamento com o prestador pré-selecionado
+    setLocation(`/client/booking-wizard?providerId=${providerId}`);
   };
 
   // Solicitar localização atual se estiver no navegador

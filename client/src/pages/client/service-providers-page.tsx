@@ -28,11 +28,10 @@ export default function ServiceProvidersPage() {
     queryKey: [`/api/providers?serviceId=${serviceId}`],
   });
 
-  // Handle provider selection - ajustado para manter o fluxo completo de agendamento
+  // Handle provider selection - corrigido para usar o fluxo correto de agendamento
   const handleProviderClick = (providerId: number) => {
-    // Redireciona para a página de agendamento com o prestador e serviço selecionados
-    // Utilizando a rota pública para visualização de agenda e seleção de horário
-    setLocation(`/client/provider-schedule/${providerId}/${serviceId}`);
+    // Redireciona para o wizard de agendamento com prestador e serviço pré-selecionados
+    setLocation(`/client/booking-wizard?providerId=${providerId}&serviceId=${serviceId}`);
   };
 
   const isLoading = isServiceLoading || areProvidersLoading;

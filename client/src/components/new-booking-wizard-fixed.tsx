@@ -1,5 +1,5 @@
 // @ts-nocheck - desabilitando verificações de tipos para facilitar o desenvolvimento
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -8,6 +8,11 @@ import {
   ChevronLeft,
   Calendar as CalendarIcon,
   Check,
+  Scissors,
+  Heart,
+  Car,
+  Home,
+  Sparkles,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,6 +26,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
+import { TimeSlotSelector } from "@/components/booking/time-slot-selector";
+import { Service, TimeSlot } from "@/lib/utils";
 
 // Tipos para os passos do assistente
 type BookingStep =
@@ -30,7 +37,8 @@ type BookingStep =
   | "date"
   | "providers"
   | "time-slot"
-  | "payment";
+  | "payment"
+  | "confirmation";
 
 interface TimeSlot {
   startTime: string;
@@ -59,9 +67,7 @@ export function NewBookingWizard({
   const { toast } = useToast();
 
   // Estado inicial sempre começa pela seleção de nicho para melhor experiência do usuário
-  const [currentStep, setCurrentStep] = useState<BookingStep>(
-    preSelectedServiceId ? "date" : "niche",
-  );
+  const [currentStep, setCurrentStep] = useState<BookingStep>("niche");
 
   // Estado para armazenar as seleções do usuário
   const [selectedNicheId, setSelectedNicheId] = useState<number | null>(null);
@@ -90,6 +96,9 @@ export function NewBookingWizard({
   const [loadingProviderServices, setLoadingProviderServices] = useState<{
     [providerId: number]: boolean;
   }>({});
+  const [serviceExecutionTime, setServiceExecutionTime] = useState<number | null>(null);
+
+
 
   // Efeito para buscar dados do serviço pré-selecionado e seu nicho/categoria
   useEffect(() => {
@@ -131,16 +140,21 @@ export function NewBookingWizard({
   });
 
   const { data: services, isLoading: isLoadingServices } = useQuery({
-    queryKey: ["/api/service-templates", selectedCategoryId],
+    queryKey: ["/api/services", selectedCategoryId],
     queryFn: () => {
       if (!selectedCategoryId) return null;
-      return fetch(
-        `/api/service-templates?categoryId=${selectedCategoryId}`,
-      ).then((res) => res.json());
+      return fetch(`/api/services?categoryId=${selectedCategoryId}`)
+        .then((res) => res.json());
     },
     enabled: !!selectedCategoryId,
     staleTime: 60000,
   });
+
+  // Adicione logs para diagnosticar o estado antes da query de prestadores
+  useEffect(() => {
+    console.log('selectedServiceIds:', selectedServiceIds);
+    console.log('selectedDate:', selectedDate);
+  }, [selectedServiceIds, selectedDate]);
 
   // CONSULTA CORRIGIDA PARA BUSCAR PRESTADORES COM DISPONIBILIDADE REAL
   const { data: providers, isLoading: isLoadingProviders } = useQuery({
@@ -303,63 +317,36 @@ export function NewBookingWizard({
     }
   }, [providers, selectedServiceIds, selectedDate, totalDuration]);
 
-  // CONSULTA CORRIGIDA PARA BUSCAR HORÁRIOS DISPONÍVEIS COM BLOQUEIO PELO TEMPO NECESSÁRIO
-  const { data: availableTimeSlots, isLoading: isLoadingTimeSlots } = useQuery({
-    queryKey: [
-      "/api/time-slots",
-      selectedServiceIds,
-      selectedProvider,
-      selectedDate,
-      totalDuration
-    ],
-    queryFn: async () => {
-      if (!selectedProvider || !selectedDate) return [];
+  // Função para buscar o execution_time do serviço personalizado do prestador
+  const fetchProviderServiceExecutionTime = useCallback(async (providerId: number, serviceId: number) => {
+    if (!providerId || !serviceId) return null;
+    try {
+      const res = await fetch(`/api/provider-services/provider/${providerId}/service/${serviceId}`);
+      if (!res.ok) return null;
+      const data = await res.json();
+      // Preferir executionTime, fallback para duration
+      return data.executionTime || data.duration || null;
+    } catch {
+      return null;
+    }
+  }, []);
 
-      // Usar a duração total dos serviços selecionados para garantir que o slot seja grande o suficiente
-      // Se não houver duração especificada, usamos um valor mínimo padrão de 30 minutos
-      const finalDuration = totalDuration > 0 ? totalDuration : 30;
-      
-      console.log("Buscando horários com duração:", finalDuration, "minutos");
-      
-      const response = await fetch(
-        `/api/providers/${selectedProvider}/time-slots?date=${selectedDate.toISOString().split("T")[0]}&duration=${finalDuration}`
-      );
-
-      const data = await response.json();
-      
-      // Normalizando a resposta para o formato esperado
-      if (Array.isArray(data)) {
-        return data.map(slot => {
-          // Calculamos o horário final com base na duração real do serviço
-          const endTime = formatEndTime(slot.startTime, finalDuration);
-          
-          return {
-            startTime: slot.startTime,
-            endTime: endTime, // Usando o horário fim calculado com base na duração real
-            isAvailable: true
-          };
-        });
+  // Atualizar o tempo de execução sempre que prestador ou serviço mudar
+  useEffect(() => {
+    async function updateExecutionTime() {
+      if (selectedProvider && selectedServiceIds.length === 1) {
+        const execTime = await fetchProviderServiceExecutionTime(selectedProvider, selectedServiceIds[0]);
+        setServiceExecutionTime(execTime);
+      } else {
+        setServiceExecutionTime(null);
       }
-      
-      return [];
-    },
-    enabled: !!selectedProvider && !!selectedDate,
-    staleTime: 60000,
-  });
+    }
+    updateExecutionTime();
+  }, [selectedProvider, selectedServiceIds, fetchProviderServiceExecutionTime]);
 
-  const formatEndTime = (
-    startTime: string,
-    durationMinutes: number,
-  ): string => {
-    const [hours, minutes] = startTime.split(":").map(Number);
-    const startMinutes = hours * 60 + minutes;
-    const endMinutes = startMinutes + durationMinutes;
+  // O TimeSlotSelector gerencia seu próprio estado de busca de horários
 
-    const endHours = Math.floor(endMinutes / 60);
-    const endMins = endMinutes % 60;
 
-    return `${endHours.toString().padStart(2, "0")}:${endMins.toString().padStart(2, "0")}`;
-  };
 
   // Funções de navegação
   const handleNext = () => {
@@ -371,6 +358,7 @@ export function NewBookingWizard({
       "providers",
       "time-slot",
       "payment",
+      "confirmation",
     ];
     const currentIndex = steps.indexOf(currentStep);
 
@@ -388,6 +376,7 @@ export function NewBookingWizard({
       "providers",
       "time-slot",
       "payment",
+      "confirmation",
     ];
     const currentIndex = steps.indexOf(currentStep);
 
@@ -423,7 +412,7 @@ export function NewBookingWizard({
 
   const handleServiceContinue = () => {
     if (selectedServiceIds.length > 0) {
-      handleNext();
+      setCurrentStep("date");
     } else {
       toast({
         title: "Seleção necessária",
@@ -473,7 +462,7 @@ export function NewBookingWizard({
     setSelectedPaymentMethod(method);
   };
 
-  const handleFinishBooking = () => {
+  const handleFinishBooking = async () => {
     if (
       selectedServiceIds.length === 0 ||
       !selectedProvider ||
@@ -490,28 +479,16 @@ export function NewBookingWizard({
       return;
     }
 
-    const formattedDate = selectedDate
-      ? format(selectedDate, "yyyy-MM-dd")
-      : "";
-
-    if (onComplete) {
-      onComplete({
-        serviceIds: selectedServiceIds,
-        providerId: selectedProvider,
-        date: formattedDate,
-        startTime: selectedTimeSlot.startTime,
-        endTime: selectedTimeSlot.endTime,
-        paymentType: paymentType,
-        paymentMethod: selectedPaymentMethod,
-        totalDuration,
-        totalPrice,
-      });
+    // Se for pagamento online, simular redirecionamento para gateway
+    if (paymentType === "online") {
+      // Aqui você pode integrar com o gateway real
+      // Simular espera/retorno do gateway
+      setCurrentStep("confirmation");
+      return;
     }
 
-    toast({
-      title: "Agendamento concluído",
-      description: "Seu agendamento foi realizado com sucesso!",
-    });
+    // Se for pagamento local, vai direto para confirmação
+    setCurrentStep("confirmation");
   };
 
   // Função para calcular o total de duração e preço para um prestador
@@ -530,187 +507,128 @@ export function NewBookingWizard({
     return { duration, price };
   };
 
-  // Renderização de passos específicos
-  const renderNicheStep = () => {
-    if (isLoadingNiches) {
-      return (
-        <div className="flex justify-center items-center py-8">
-          <LoadingSpinner size="lg" />
-          <span className="ml-3">Carregando áreas de serviço...</span>
-        </div>
-      );
+  // Após o estado selectedProvider:
+  const {
+    data: providerFee,
+    isLoading: isLoadingProviderFee,
+  } = useQuery({
+    queryKey: ["/api/provider-fees", selectedProvider],
+    queryFn: async () => {
+      if (!selectedProvider) return null;
+      const res = await fetch(`/api/provider-fees/${selectedProvider}`);
+      if (!res.ok) return null;
+      return await res.json();
+    },
+    enabled: !!selectedProvider,
+  });
+
+  // Funções utilitárias para ícones
+  function getNicheIcon(name) {
+    switch (name?.toLowerCase()) {
+      case 'beleza': return <Scissors className="h-10 w-10" />;
+      case 'saúde': return <Heart className="h-10 w-10" />;
+      case 'automotivo': return <Car className="h-10 w-10" />;
+      case 'casa': return <Home className="h-10 w-10" />;
+      default: return <Sparkles className="h-10 w-10" />;
     }
+  }
+  function getCategoryIcon(name) {
+    // Adapte conforme suas categorias reais
+    return getNicheIcon(name);
+  }
+  function getServiceIcon(name) {
+    // Adapte conforme seus serviços reais
+    return <Sparkles className="h-10 w-10" />;
+  }
 
-    return (
-      <div className="space-y-4">
-        <p className="text-gray-500">
-          Selecione a área de serviço que você está procurando
-        </p>
-
-        {niches && niches.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {niches.map((niche) => (
-              <Card
-                key={niche.id}
-                className="cursor-pointer hover:border-primary"
-                onClick={() => handleNicheSelect(niche.id)}
-              >
-                <CardContent className="pt-6">
-                  <div className="flex items-center space-x-2">
-                    {niche.icon && (
-                      <span className="text-2xl">{niche.icon}</span>
-                    )}
-                    <h3 className="font-semibold">{niche.name}</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground">
-                    {niche.description}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="p-6 text-center bg-muted rounded-lg">
-            <p>Nenhuma área de serviço disponível no momento.</p>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderCategoryStep = () => {
-    if (isLoadingCategories) {
-      return (
-        <div className="flex justify-center items-center py-8">
-          <LoadingSpinner size="lg" />
-          <span className="ml-3">Carregando categorias...</span>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-4">
-        <p className="text-gray-500">Escolha a categoria de serviço</p>
-
-        {categories && categories.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {categories.map((category) => (
-              <Card
-                key={category.id}
-                className="cursor-pointer hover:border-primary"
-                onClick={() => handleCategorySelect(category.id)}
-              >
-                <CardContent className="pt-6">
-                  <h3 className="font-semibold">{category.name}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {category.description}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="p-6 text-center bg-muted rounded-lg">
-            <p>Nenhuma categoria disponível para esta área de serviço.</p>
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={() => {
-                setSelectedNicheId(null);
-                setCurrentStep("niche");
-              }}
-            >
-              Voltar para áreas de serviço
-            </Button>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const renderServiceStep = () => {
-    if (isLoadingServices) {
-      return (
-        <div className="flex justify-center items-center py-8">
-          <LoadingSpinner size="lg" />
-          <span className="ml-3">Carregando serviços...</span>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-6">
-        <div className="flex flex-col space-y-2">
-          <p className="text-gray-500">Escolha um ou mais serviços</p>
-          {selectedServiceIds.length > 0 && (
-            <p className="text-sm font-medium">
-              {selectedServiceIds.length}{" "}
-              {selectedServiceIds.length === 1
-                ? "serviço selecionado"
-                : "serviços selecionados"}
+  // Substitua as funções de renderização:
+  const renderNicheStep = () => (
+    <div className="flex flex-wrap gap-4 justify-center mt-8">
+      {niches?.map((niche) => {
+        const selecionado = selectedNicheId === niche.id;
+        return (
+          <button
+            key={niche.id}
+            className={`flex flex-col items-center justify-center rounded-2xl p-4 w-24 h-28 shadow transition-all
+              ${selecionado ? 'bg-teal-600 border-2 border-teal-600 text-white' : 'bg-white border border-gray-200 text-teal-600'}
+            `}
+            onClick={() => handleNicheSelect(niche.id)}
+          >
+            {getNicheIcon(niche.name)}
+            <span className="font-bold text-sm text-center mt-2">{niche.name}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+  const renderCategoryStep = () => (
+    <div className="flex flex-wrap gap-4 justify-center mt-8">
+      {categories?.map((cat) => {
+        const selecionado = selectedCategoryId === cat.id;
+        return (
+          <button
+            key={cat.id}
+            className={`flex flex-col items-center justify-center rounded-2xl p-4 w-24 h-28 shadow transition-all
+              ${selecionado ? 'bg-teal-600 border-2 border-teal-600 text-white' : 'bg-white border border-gray-200 text-teal-600'}
+            `}
+            onClick={() => handleCategorySelect(cat.id)}
+          >
+            {getCategoryIcon(cat.name)}
+            <span className="font-bold text-sm text-center mt-2">{cat.name}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+  const renderServiceStep = () => (
+    <div className="space-y-6">
+      <div className="text-center mb-6">
+        <p className="text-gray-600 mb-2">Selecione o(s) serviço(s) que você precisa:</p>
+        {selectedServiceIds.length > 0 && (
+          <div className="bg-teal-50 border border-teal-200 rounded-lg p-3">
+            <p className="text-sm text-teal-700 font-medium">
+              {selectedServiceIds.length} serviço(s) selecionado(s)
             </p>
-          )}
-        </div>
-
-        {services && services.length > 0 ? (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {services.map((service) => {
-                const isSelected = selectedServiceIds.includes(service.id);
-
-                return (
-                  <Card
-                    key={service.id}
-                    className={`cursor-pointer relative ${isSelected ? "border-primary bg-primary/5" : "hover:border-primary"}`}
-                    onClick={() => handleServiceSelect(service.id)}
-                  >
-                    {isSelected && (
-                      <div className="absolute top-3 right-3 bg-primary text-primary-foreground rounded-full p-1">
-                        <Check className="h-4 w-4" />
-                      </div>
-                    )}
-                    <CardContent className="pt-6">
-                      <h3 className="font-semibold">{service.name}</h3>
-                      {service.description && (
-                        <p className="text-sm text-gray-500 mt-1">
-                          {service.description}
-                        </p>
-                      )}
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
-
-            <div className="pt-4 flex justify-end">
-              <Button
-                onClick={handleServiceContinue}
-                disabled={selectedServiceIds.length === 0}
-                className="px-6"
-              >
-                Continuar
-                <ChevronRight className="ml-2 h-5 w-5" />
-              </Button>
-            </div>
-          </>
-        ) : (
-          <div className="p-6 text-center bg-muted rounded-lg">
-            <p>Nenhum serviço disponível para esta categoria.</p>
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={() => {
-                setSelectedCategoryId(null);
-                setCurrentStep("category");
-              }}
-            >
-              Voltar para categorias
-            </Button>
           </div>
         )}
       </div>
-    );
-  };
+      
+      <div className="flex flex-wrap gap-4 justify-center">
+        {services?.map((service) => {
+          const selecionado = selectedServiceIds.includes(service.id);
+          return (
+            <button
+              key={service.id}
+              className={`flex flex-col items-center justify-center rounded-2xl p-4 w-24 h-28 shadow transition-all transform hover:scale-105
+                ${selecionado 
+                  ? 'bg-teal-600 border-2 border-teal-600 text-white shadow-lg' 
+                  : 'bg-white border border-gray-200 text-teal-600 hover:border-teal-300'
+                }
+              `}
+              onClick={() => handleServiceSelect(service.id)}
+            >
+              {getServiceIcon(service.name)}
+              <span className="font-bold text-sm text-center mt-2">{service.name}</span>
+              {selecionado && (
+                <div className="absolute -top-1 -right-1 bg-teal-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
+                  ✓
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+      
+      {selectedServiceIds.length > 0 && (
+        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h4 className="font-semibold text-blue-800 mb-2">Próximo passo:</h4>
+          <p className="text-sm text-blue-700">
+            Após selecionar os serviços, você escolherá a data do agendamento.
+          </p>
+        </div>
+      )}
+    </div>
+  );
 
   const renderDateStep = () => {
     const today = new Date();
@@ -752,6 +670,12 @@ export function NewBookingWizard({
   };
 
   const renderProvidersStep = () => {
+    if (selectedServiceIds.length === 0) {
+      return <div className="p-6 text-center bg-yellow-100 rounded-lg text-yellow-800 font-semibold">Selecione pelo menos um serviço antes de escolher o prestador.</div>;
+    }
+    if (!selectedDate) {
+      return <div className="p-6 text-center bg-yellow-100 rounded-lg text-yellow-800 font-semibold">Selecione uma data antes de escolher o prestador.</div>;
+    }
     if (isLoadingProviders) {
       return (
         <div className="flex justify-center items-center py-8">
@@ -957,56 +881,51 @@ export function NewBookingWizard({
   };
 
   const renderTimeSlotStep = () => {
-    if (isLoadingTimeSlots) {
+    if (!selectedProvider || !selectedDate) {
       return (
-        <div className="flex justify-center items-center py-8">
-          <LoadingSpinner size="lg" />
-          <span className="ml-3">Buscando horários disponíveis...</span>
+        <div className="p-6 text-center bg-yellow-100 rounded-lg text-yellow-800 font-semibold">
+          Dados insuficientes para buscar horários. Selecione um prestador e uma data.
         </div>
       );
     }
 
+    // Preparar dados do serviço para o TimeSlotSelector
+    const selectedServicesData = services?.filter((s) => selectedServiceIds.includes(s.id)) || [];
+    const primaryService: Service | null = selectedServicesData.length > 0 ? {
+      id: selectedServicesData[0].id,
+      name: selectedServicesData[0].name,
+      durationMinutes: serviceExecutionTime || totalDuration || 60,
+      bufferTime: 0
+    } : null;
+
     return (
       <div className="space-y-4">
-        <p className="text-gray-500">Escolha um horário disponível</p>
+        <div className="text-center mb-6">
+          <h3 className="text-lg font-semibold mb-2">Escolha um horário disponível</h3>
+          <p className="text-gray-600">
+            {selectedDate && `Para ${format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`}
+          </p>
+        </div>
 
-        {availableTimeSlots && availableTimeSlots.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-            {availableTimeSlots.map((slot, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                className={`hover:border-primary ${selectedTimeSlot?.startTime === slot.startTime ? "border-primary bg-primary/5" : ""}`}
-                onClick={() => handleTimeSlotSelect(slot)}
-              >
-                {slot.startTime} - {slot.endTime}
-              </Button>
-            ))}
-          </div>
-        ) : (
-          <div className="p-6 text-center bg-muted rounded-lg">
-            <p>
-              Nenhum horário disponível para este prestador na data selecionada.
-            </p>
-            <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSelectedProvider(null);
-                  setCurrentStep("providers");
-                }}
-              >
-                Escolher outro prestador
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSelectedDate(null);
-                  setCurrentStep("date");
-                }}
-              >
-                Escolher outra data
-              </Button>
+        <TimeSlotSelector
+          providerId={selectedProvider}
+          date={selectedDate.toISOString().split("T")[0]}
+          service={primaryService}
+          onTimeSlotSelect={(timeSlot) => {
+            if (timeSlot) {
+              handleTimeSlotSelect(timeSlot);
+            }
+          }}
+          selectedTimeSlot={selectedTimeSlot}
+        />
+
+        {selectedTimeSlot && (
+          <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <div className="flex items-center justify-center space-x-2">
+              <Check className="h-5 w-5 text-green-600" />
+              <span className="text-green-800 font-medium">
+                Horário selecionado: {selectedTimeSlot.startTime} - {selectedTimeSlot.endTime}
+              </span>
             </div>
           </div>
         )}
@@ -1018,6 +937,10 @@ export function NewBookingWizard({
     const selectedServicesData =
       services?.filter((s) => selectedServiceIds.includes(s.id)) || [];
     const providerSelected = providers?.find((p) => p.id === selectedProvider);
+
+    // No passo de pagamento, ao calcular o valor final:
+    const adminFee = providerFee?.fixedFee || 0;
+    const totalWithFee = totalPrice + adminFee;
 
     return (
       <div className="space-y-6">
@@ -1046,12 +969,22 @@ export function NewBookingWizard({
                 <span>{totalDuration} minutos</span>
               </div>
               {totalPrice > 0 && (
-                <div className="flex justify-between text-sm font-medium">
-                  <span>Valor estimado:</span>
-                  <span>
-                    R$ {(totalPrice / 100).toFixed(2).replace(".", ",")}
-                  </span>
-                </div>
+                <>
+                  <div className="flex justify-between text-sm font-medium">
+                    <span>Subtotal:</span>
+                    <span>R$ {(totalPrice / 100).toFixed(2).replace(".", ",")}</span>
+                  </div>
+                  {adminFee > 0 && (
+                    <div className="flex justify-between text-sm font-medium">
+                      <span>Taxa administrativa:</span>
+                      <span>R$ {(adminFee / 100).toFixed(2).replace(".", ",")}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-base font-bold border-t pt-2 mt-2">
+                    <span>Total:</span>
+                    <span>R$ {(totalWithFee / 100).toFixed(2).replace(".", ",")}</span>
+                  </div>
+                </>
               )}
             </div>
 
@@ -1204,6 +1137,26 @@ export function NewBookingWizard({
     );
   };
 
+  const renderConfirmationStep = () => {
+    return (
+      <div className="space-y-6 text-center">
+        <div className="flex flex-col items-center justify-center py-10">
+          <span className="text-5xl mb-4">✅</span>
+          <h2 className="text-2xl font-bold mb-2">Agendamento Confirmado!</h2>
+          <p className="text-muted-foreground mb-4">
+            Seu agendamento foi realizado com sucesso.
+          </p>
+          <Button
+            className="mt-4"
+            onClick={() => window.location.href = '/client/booking-confirmation-page'}
+          >
+            Ver meus agendamentos
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   const renderStepTitle = () => {
     switch (currentStep) {
       case "niche":
@@ -1220,6 +1173,8 @@ export function NewBookingWizard({
         return "Escolha um horário";
       case "payment":
         return "Escolha o método de pagamento";
+      case "confirmation":
+        return "Confirmação do Agendamento";
       default:
         return "Novo Agendamento";
     }
@@ -1234,6 +1189,7 @@ export function NewBookingWizard({
       "providers",
       "time-slot",
       "payment",
+      "confirmation",
     ];
     const currentIndex = steps.indexOf(currentStep);
 
@@ -1247,34 +1203,84 @@ export function NewBookingWizard({
     );
   };
 
+  // --- NOVO WRAPPER DE LAYOUT ---
   return (
-    <div className="space-y-6">
-      {renderProgressBar()}
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-teal-400 via-cyan-200 to-blue-100 relative">
+      <div className="w-full max-w-md mx-auto px-2 sm:px-0 py-6 flex flex-col flex-1">
+        {/* Barra de progresso mais grossa e visual */}
+        <div className="sticky top-0 z-30">
+          {renderProgressBar()}
+        </div>
+        {/* Card principal do wizard */}
+        <div className="bg-white/95 shadow-2xl rounded-3xl px-4 py-6 sm:px-8 sm:py-8 mt-4 mb-28 sm:mb-16">
+          {/* Cabeçalho do passo */}
+          <div className="flex items-center justify-between mb-6">
+            <button
+              className={`rounded-full bg-white shadow p-2 transition hover:bg-gray-100 ${currentStep === 'niche' || currentStep === 'confirmation' ? 'invisible' : ''}`}
+              onClick={handleBack}
+              aria-label="Voltar"
+              disabled={currentStep === 'niche' || currentStep === 'confirmation'}
+              style={{ pointerEvents: currentStep === 'niche' || currentStep === 'confirmation' ? 'none' : 'auto' }}
+            >
+              <ChevronLeft className="h-6 w-6 text-teal-600" />
+            </button>
+            <h2 className="text-xl sm:text-2xl font-extrabold text-center flex-1">
+              {renderStepTitle()}
+            </h2>
+            <div className="w-10" /> {/* Espaço para alinhar */}
+          </div>
+          {/* Passos do wizard */}
+          <div className="min-h-[320px] flex flex-col justify-center">
+            
 
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-bold">{renderStepTitle()}</h2>
-
-        {currentStep !== "niche" && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleBack}
-            className="flex items-center"
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" /> Voltar
-          </Button>
-        )}
+            
+            {currentStep === "niche" && renderNicheStep()}
+            {currentStep === "category" && renderCategoryStep()}
+            {currentStep === "service" && renderServiceStep()}
+            {currentStep === "date" && renderDateStep()}
+            {currentStep === "providers" && renderProvidersStep()}
+            {currentStep === "time-slot" && renderTimeSlotStep()}
+            {currentStep === "payment" && renderPaymentStep()}
+            {currentStep === "confirmation" && renderConfirmationStep()}
+          </div>
+        </div>
       </div>
-
-      <div>
-        {currentStep === "niche" && renderNicheStep()}
-        {currentStep === "category" && renderCategoryStep()}
-        {currentStep === "service" && renderServiceStep()}
-        {currentStep === "date" && renderDateStep()}
-        {currentStep === "providers" && renderProvidersStep()}
-        {currentStep === "time-slot" && renderTimeSlotStep()}
-        {currentStep === "payment" && renderPaymentStep()}
-      </div>
+      {/* Botão de ação fixo no rodapé, exceto na confirmação */}
+      {currentStep !== "confirmation" && (
+        <div className="fixed bottom-4 left-0 right-0 flex justify-center z-40 pointer-events-none">
+          <div className="w-full max-w-md px-4 pointer-events-auto">
+            {/* Botão principal de ação, depende do passo */}
+            {currentStep === "service" && (
+              <Button 
+                className={`w-full h-14 rounded-full text-lg font-bold shadow-lg transition ${
+                  selectedServiceIds.length > 0 
+                    ? 'bg-teal-600 hover:bg-teal-700' 
+                    : 'bg-gray-400 cursor-not-allowed'
+                }`}
+                onClick={handleServiceContinue}
+                disabled={selectedServiceIds.length === 0}
+              >
+                {selectedServiceIds.length > 0 ? 'Continuar' : 'Selecione um serviço'} <ChevronRight className="ml-2 h-5 w-5" />
+              </Button>
+            )}
+            {currentStep === "date" && selectedDate && (
+              <Button className="w-full h-14 rounded-full text-lg font-bold shadow-lg bg-teal-600 hover:bg-teal-700 transition" onClick={handleNext}>
+                Ver Prestadores <ChevronRight className="ml-2 h-5 w-5" />
+              </Button>
+            )}
+            {currentStep === "providers" && selectedProvider && (
+              <Button className="w-full h-14 rounded-full text-lg font-bold shadow-lg bg-teal-600 hover:bg-teal-700 transition" onClick={handleNext}>
+                Escolher Horário <ChevronRight className="ml-2 h-5 w-5" />
+              </Button>
+            )}
+            {currentStep === "time-slot" && selectedTimeSlot && (
+              <Button className="w-full h-14 rounded-full text-lg font-bold shadow-lg bg-teal-600 hover:bg-teal-700 transition" onClick={handleNext}>
+                Ir para Pagamento <ChevronRight className="ml-2 h-5 w-5" />
+              </Button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

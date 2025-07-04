@@ -121,7 +121,8 @@ const StatusBadge = ({ status }: { status: string | null }) => {
 
 export default function ClientAppointmentsPage() {
   const [, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState("todos");
+  const [activeTab, setActiveTab] = useState("cards");
+  const [cardFilter, setCardFilter] = useState("upcoming");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<Date | undefined>(undefined);
@@ -250,10 +251,10 @@ export default function ClientAppointmentsPage() {
       <AppHeader title="Meus Agendamentos" />
       
       <div className="p-4">
-        <Tabs defaultValue="todos" value={activeTab} onValueChange={setActiveTab}>
+        <Tabs defaultValue="cards" value={activeTab} onValueChange={setActiveTab}>
           <div className="flex justify-between items-center mb-4">
             <TabsList>
-              <TabsTrigger value="todos">Todos</TabsTrigger>
+              <TabsTrigger value="todos">Tabela</TabsTrigger>
               <TabsTrigger value="cards">Cards</TabsTrigger>
             </TabsList>
             
@@ -378,8 +379,9 @@ export default function ClientAppointmentsPage() {
                         </TableBody>
                       </Table>
                     ) : (
-                      <div className="text-center py-8 text-neutral-500">
-                        <p>Nenhum agendamento encontrado com os filtros selecionados.</p>
+                      <div className="flex flex-col items-center py-6 text-neutral-500 dark:text-neutral-400">
+                        <svg width="64" height="64" fill="none" viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="#F3F4F6"/><path d="M32 20v12l8 4" stroke="#6366F1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                        <p className="mt-2">Nenhum agendamento encontrado.</p>
                       </div>
                     )}
                   </CardContent>
@@ -387,111 +389,162 @@ export default function ClientAppointmentsPage() {
               </TabsContent>
               
               <TabsContent value="cards">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
-                  <Card className="bg-blue-50">
-                    <CardContent className="p-4">
+                {/* Cards de estatísticas */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-lg transition-all">
+                    <CardContent className="p-6">
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="text-sm font-medium text-blue-800">Próximos</p>
-                          <p className="text-2xl font-bold text-blue-900 mt-1">{groupedAppointments.upcoming.length}</p>
+                          <p className="text-sm font-medium text-blue-700">Próximos</p>
+                          <p className="text-3xl font-bold text-blue-900 mt-2">{groupedAppointments.upcoming.length}</p>
+                          <p className="text-xs text-blue-600 mt-1">Agendamentos futuros</p>
                         </div>
-                        <div className="p-2 bg-blue-200 rounded-full">
-                          <Calendar className="h-5 w-5 text-blue-700" />
+                        <div className="p-3 bg-blue-200 rounded-full">
+                          <Calendar className="h-6 w-6 text-blue-700" />
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                   
-                  <Card className="bg-green-50">
-                    <CardContent className="p-4">
+                  <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-lg transition-all">
+                    <CardContent className="p-6">
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="text-sm font-medium text-green-800">Concluídos</p>
-                          <p className="text-2xl font-bold text-green-900 mt-1">{groupedAppointments.completed.length}</p>
+                          <p className="text-sm font-medium text-green-700">Concluídos</p>
+                          <p className="text-3xl font-bold text-green-900 mt-2">{groupedAppointments.completed.length}</p>
+                          <p className="text-xs text-green-600 mt-1">Serviços realizados</p>
                         </div>
-                        <div className="p-2 bg-green-200 rounded-full">
-                          <Check className="h-5 w-5 text-green-700" />
+                        <div className="p-3 bg-green-200 rounded-full">
+                          <Check className="h-6 w-6 text-green-700" />
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                   
-                  <Card className="bg-red-50">
-                    <CardContent className="p-4">
+                  <Card className="bg-gradient-to-br from-red-50 to-red-100 border-red-200 hover:shadow-lg transition-all">
+                    <CardContent className="p-6">
                       <div className="flex justify-between items-start">
                         <div>
-                          <p className="text-sm font-medium text-red-800">Cancelados</p>
-                          <p className="text-2xl font-bold text-red-900 mt-1">{groupedAppointments.canceled.length}</p>
+                          <p className="text-sm font-medium text-red-700">Cancelados</p>
+                          <p className="text-3xl font-bold text-red-900 mt-2">{groupedAppointments.canceled.length}</p>
+                          <p className="text-xs text-red-600 mt-1">Agendamentos cancelados</p>
                         </div>
-                        <div className="p-2 bg-red-200 rounded-full">
-                          <X className="h-5 w-5 text-red-700" />
+                        <div className="p-3 bg-red-200 rounded-full">
+                          <X className="h-6 w-6 text-red-700" />
                         </div>
                       </div>
                     </CardContent>
                   </Card>
                 </div>
                 
-                <TabsList className="grid grid-cols-1 sm:grid-cols-3 mb-4">
-                  <TabsTrigger value="upcoming" className="text-xs sm:text-sm">
-                    <Calendar className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                    <span>Próximos</span>
+                {/* Filtros por status */}
+                <div className="flex flex-wrap gap-2 mb-6">
+                  <Button
+                    variant={cardFilter === "upcoming" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCardFilter("upcoming")}
+                    className="flex items-center gap-2"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Próximos
                     {groupedAppointments.upcoming.length > 0 && (
-                      <Badge variant="secondary" className="ml-1 sm:ml-2 text-xs">
+                      <Badge variant="secondary" className="ml-1">
                         {groupedAppointments.upcoming.length}
                       </Badge>
                     )}
-                  </TabsTrigger>
-                  <TabsTrigger value="completed" className="text-xs sm:text-sm">
-                    <Check className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                    <span>Concluídos</span>
-                  </TabsTrigger>
-                  <TabsTrigger value="canceled" className="text-xs sm:text-sm">
-                    <X className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-                    <span>Cancelados</span>
-                  </TabsTrigger>
-                </TabsList>
+                  </Button>
+                  
+                  <Button
+                    variant={cardFilter === "completed" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCardFilter("completed")}
+                    className="flex items-center gap-2"
+                  >
+                    <Check className="h-4 w-4" />
+                    Concluídos
+                    {groupedAppointments.completed.length > 0 && (
+                      <Badge variant="secondary" className="ml-1">
+                        {groupedAppointments.completed.length}
+                      </Badge>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    variant={cardFilter === "canceled" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCardFilter("canceled")}
+                    className="flex items-center gap-2"
+                  >
+                    <X className="h-4 w-4" />
+                    Cancelados
+                    {groupedAppointments.canceled.length > 0 && (
+                      <Badge variant="secondary" className="ml-1">
+                        {groupedAppointments.canceled.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </div>
                 
-                <TabsContent value="upcoming">
-                  {groupedAppointments.upcoming.length > 0 ? (
-                    <div className="space-y-4">
-                      {groupedAppointments.upcoming.map((appointment) => (
+                {/* Grid de cards de agendamentos */}
+                {cardFilter === "upcoming" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {groupedAppointments.upcoming.length > 0 ? (
+                      groupedAppointments.upcoming.map((appointment) => (
                         <AppointmentCard key={appointment.id} appointment={appointment} />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-neutral-500">
-                      <p>Você não possui agendamentos próximos.</p>
-                    </div>
-                  )}
-                </TabsContent>
+                      ))
+                    ) : (
+                      <div className="col-span-full text-center py-12">
+                        <div className="flex flex-col items-center">
+                          <Calendar className="h-16 w-16 text-gray-300 mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum agendamento próximo</h3>
+                          <p className="text-gray-500">Você não possui agendamentos futuros no momento.</p>
+                          <Button 
+                            className="mt-4" 
+                            onClick={() => setLocation('/client/new-booking-wizard-page')}
+                          >
+                            Fazer novo agendamento
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 
-                <TabsContent value="completed">
-                  {groupedAppointments.completed.length > 0 ? (
-                    <div className="space-y-4">
-                      {groupedAppointments.completed.map((appointment) => (
+                {cardFilter === "completed" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {groupedAppointments.completed.length > 0 ? (
+                      groupedAppointments.completed.map((appointment) => (
                         <AppointmentCard key={appointment.id} appointment={appointment} />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-neutral-500">
-                      <p>Você não possui agendamentos concluídos.</p>
-                    </div>
-                  )}
-                </TabsContent>
+                      ))
+                    ) : (
+                      <div className="col-span-full text-center py-12">
+                        <div className="flex flex-col items-center">
+                          <Check className="h-16 w-16 text-gray-300 mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum agendamento concluído</h3>
+                          <p className="text-gray-500">Você ainda não possui agendamentos concluídos.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 
-                <TabsContent value="canceled">
-                  {groupedAppointments.canceled.length > 0 ? (
-                    <div className="space-y-4">
-                      {groupedAppointments.canceled.map((appointment) => (
+                {cardFilter === "canceled" && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {groupedAppointments.canceled.length > 0 ? (
+                      groupedAppointments.canceled.map((appointment) => (
                         <AppointmentCard key={appointment.id} appointment={appointment} />
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-neutral-500">
-                      <p>Você não possui agendamentos cancelados.</p>
-                    </div>
-                  )}
-                </TabsContent>
+                      ))
+                    ) : (
+                      <div className="col-span-full text-center py-12">
+                        <div className="flex flex-col items-center">
+                          <X className="h-16 w-16 text-gray-300 mb-4" />
+                          <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum agendamento cancelado</h3>
+                          <p className="text-gray-500">Você não possui agendamentos cancelados.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </TabsContent>
             </>
           )}
@@ -508,73 +561,130 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
   const goToAppointmentDetails = () => {
     navigate(`/client/appointments/${appointment.id}`);
   };
+
+  // Determinar cor baseada no status
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return 'border-blue-200 bg-blue-50';
+      case 'pending':
+        return 'border-yellow-200 bg-yellow-50';
+      case 'completed':
+        return 'border-green-200 bg-green-50';
+      case 'canceled':
+        return 'border-red-200 bg-red-50';
+      default:
+        return 'border-gray-200 bg-gray-50';
+    }
+  };
+
+  // Formatar preço
+  const formatPrice = (price?: number | null) => {
+    if (price === null || price === undefined) return "N/A";
+    return `R$ ${(price / 100).toFixed(2).replace('.', ',')}`;
+  };
   
   return (
-    <Card className="hover:shadow-md transition-shadow">
-      <CardHeader className="p-4 pb-2">
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-lg font-medium">{appointment.serviceName}</CardTitle>
+    <Card className={`rounded-xl shadow-md hover:shadow-xl transition-all duration-300 border-2 ${getStatusColor(appointment.status)} hover:scale-[1.02] cursor-pointer`} onClick={goToAppointmentDetails}>
+      <CardHeader className="pb-3">
+        <div className="flex justify-between items-start">
+          <div className="flex-1">
+            <CardTitle className="text-lg font-semibold text-gray-900 mb-1">
+              {appointment.serviceName || `Serviço #${appointment.serviceId}`}
+            </CardTitle>
+            <p className="text-sm text-gray-600 font-medium">
+              {appointment.providerName || `Prestador #${appointment.providerId}`}
+            </p>
+          </div>
           <StatusBadge status={appointment.status} />
         </div>
       </CardHeader>
-      <CardContent className="p-4 pt-2">
-        <div className="flex items-center mb-2">
-          <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center mr-2">
-            <Calendar className="w-4 h-4 text-primary" />
-          </div>
-          <span>{formatDate(appointment.date)}</span>
-        </div>
-        
-        <div className="flex items-center mb-2">
-          <div className="w-8 h-8 rounded-full bg-primary-50 flex items-center justify-center mr-2">
-            <Clock className="w-4 h-4 text-primary" />
-          </div>
-          <span>
-            {appointment.startTime} - {appointment.endTime}
-          </span>
-        </div>
-        
-        <div className="border-t border-neutral-100 my-3"></div>
-        
-        <div className="flex items-center">
-          <div className="w-10 h-10 rounded-full bg-neutral-100 overflow-hidden mr-3">
-            {/* Provider image would go here */}
-          </div>
-          <div className="flex-1">
-            <p className="font-medium">{appointment.providerName}</p>
-            
-            {appointment.providerAddress && (
-              <div className="flex items-center text-sm text-neutral-500 mt-1">
-                <MapPin className="h-3 w-3 mr-1" />
-                <span>{appointment.providerAddress}</span>
-              </div>
-            )}
-            
-            <div className="mt-3 flex gap-2">
-              {/* Botão de contato (WhatsApp ou telefone) */}
-              {appointment.status !== "canceled" && appointment.status !== "completed" && (
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="text-xs"
-                  onClick={() => {
-                    // Implementar a ação de contato aqui
-                  }}
-                >
-                  <Phone className="h-3 w-3 mr-1" /> Contatar
-                </Button>
-              )}
-              
-              <Button 
-                variant="secondary" 
-                size="sm" 
-                className="text-xs ml-auto"
-                onClick={goToAppointmentDetails}
-              >
-                Ver detalhes
-              </Button>
+      
+      <CardContent className="pt-0">
+        {/* Data e Hora */}
+        <div className="space-y-3 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
+              <Calendar className="w-4 h-4 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">{formatDate(appointment.date)}</p>
+              <p className="text-xs text-gray-500">Data do agendamento</p>
             </div>
           </div>
+          
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
+              <Clock className="w-4 h-4 text-green-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                {appointment.startTime} - {appointment.endTime}
+              </p>
+              <p className="text-xs text-gray-500">Horário</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Endereço se disponível */}
+        {appointment.providerAddress && (
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm">
+              <MapPin className="w-4 h-4 text-red-600" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">
+                {appointment.providerAddress}
+              </p>
+              <p className="text-xs text-gray-500">Local</p>
+            </div>
+          </div>
+        )}
+
+        {/* Preço */}
+        {appointment.totalPrice && (
+          <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-gray-200 mb-4">
+            <span className="text-sm font-medium text-gray-700">Valor total:</span>
+            <span className="text-lg font-bold text-green-600">
+              {formatPrice(appointment.totalPrice)}
+            </span>
+          </div>
+        )}
+
+        {/* Ações */}
+        <div className="flex gap-2 pt-2 border-t border-gray-200">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="flex-1 text-xs"
+            onClick={(e) => {
+              e.stopPropagation();
+              goToAppointmentDetails();
+            }}
+          >
+            <Eye className="h-3 w-3 mr-1" />
+            Ver detalhes
+          </Button>
+          
+          {appointment.status !== "canceled" && appointment.status !== "completed" && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="text-xs"
+              onClick={(e) => {
+                e.stopPropagation();
+                // Implementar contato via WhatsApp ou telefone
+                // TODO: Adicionar providerPhone ao tipo Appointment quando disponível
+                toast({
+                  title: "Contato",
+                  description: "Funcionalidade de contato será implementada em breve.",
+                });
+              }}
+            >
+              <Phone className="h-3 w-3 mr-1" />
+              Contatar
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

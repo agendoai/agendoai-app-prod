@@ -57,12 +57,6 @@ export function ClientNavbar() {
       isActive: (path: string) => path.startsWith("/client/search")
     },
     {
-      href: "/client/new-booking-wizard",
-      label: "Agendar",
-      icon: CalendarClock,
-      isActive: (path: string) => path.includes("booking") || path.includes("wizard")
-    },
-    {
       href: "/client/appointments",
       label: "Agenda",
       icon: CalendarCheck,

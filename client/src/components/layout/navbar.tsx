@@ -7,7 +7,8 @@ import {
   CalendarCheck, 
   CalendarClock, 
   User,
-  MapPin
+  MapPin,
+  PlusCircle
 } from 'lucide-react';
 
 /**
@@ -55,32 +56,27 @@ export default function Navbar({
   // Itens de navegação padrão se não forem fornecidos
   const defaultItems: NavItemType[] = [
     {
-      icon: <Home size={20} />,
+      icon: <Home size={26} />,
       label: 'Início',
       href: '/client/dashboard'
     },
     {
-      icon: <Search size={20} />,
+      icon: <Search size={26} />,
       label: 'Buscar',
       href: '/client/search'
     },
     {
-      icon: <MapPin size={20} />,
-      label: 'Mapa',
-      href: '/services/availability-map'
-    },
-    {
-      icon: <CalendarClock size={20} />,
-      label: 'Agendar',
+      icon: <PlusCircle size={32} className="animate-pulse" />,
+      label: 'Novo Agendamento',
       href: '/client/new-booking-wizard'
     },
     {
-      icon: <CalendarCheck size={20} />,
+      icon: <CalendarCheck size={26} />,
       label: 'Agenda',
       href: '/client/appointments'
     },
     {
-      icon: <User size={20} />,
+      icon: <User size={26} />,
       label: 'Perfil',
       href: '/profile'
     }
@@ -123,19 +119,37 @@ export default function Navbar({
       transition={{ duration: 0.3 }}
       className={`fixed ${positionStyle} left-0 right-0 bg-white border-neutral-200 h-16 z-50 max-w-md mx-auto ${className}`}
     >
-      <div className="flex justify-around items-center h-full px-1">
-        {navItems.map((item, index) => (
-          <NavItem 
-            key={index}
-            icon={item.icon}
-            label={item.label}
-            href={item.href}
-            active={isItemActive(item)}
-            onClick={() => handleNavClick(item.href)}
-            layoutId={`${layoutId}-${index}`}
-            showActiveIndicator={showActiveIndicator}
-          />
-        ))}
+      <div className="flex justify-around items-center h-full px-1 relative">
+        {navItems.map((item, index) => {
+          // Destacar o botão de novo agendamento
+          const isMainAction = item.href === '/client/new-booking-wizard';
+          if (isMainAction) {
+            return (
+              <div key={index} className="relative z-20 -mt-6 flex-1 flex justify-center">
+                <button
+                  onClick={() => handleNavClick(item.href)}
+                  className="bg-primary shadow-2xl shadow-primary/40 hover:bg-primary/90 transition-colors rounded-full w-20 h-20 flex flex-col items-center justify-center border-4 border-white outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 animate-pulse"
+                  style={{ boxShadow: '0 8px 32px 0 rgba(0,0,0,0.18)' }}
+                >
+                  <PlusCircle size={36} className="text-white mb-1 animate-pulse" />
+                  <span className="text-sm font-bold text-white">Agendar</span>
+                </button>
+              </div>
+            );
+          }
+          return (
+            <NavItem 
+              key={index}
+              icon={item.icon}
+              label={item.label}
+              href={item.href}
+              active={isItemActive(item)}
+              onClick={() => handleNavClick(item.href)}
+              layoutId={`${layoutId}-${index}`}
+              showActiveIndicator={showActiveIndicator}
+            />
+          );
+        })}
       </div>
     </motion.div>
   );
@@ -181,7 +195,7 @@ function NavItem({
       
       <motion.div 
         className={`flex items-center justify-center ${active ? 'text-primary' : 'text-gray-500'}`}
-        whileTap={{ scale: 0.9 }}
+        whileTap={{ scale: 1.2 }}
       >
         {icon}
       </motion.div>
