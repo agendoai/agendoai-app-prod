@@ -325,119 +325,66 @@ export function NewBookingWizard({
       selectedDate,
     ],
     queryFn: async () => {
-      if (!selectedProvider || !selectedDate || !selectedServiceTemplate)
+      console.log("🔍 Executando queryFn para time slots");
+      console.log("selectedProvider:", selectedProvider);
+      console.log("selectedDate:", selectedDate);
+      console.log("selectedServiceTemplate:", selectedServiceTemplate);
+      
+      if (!selectedProvider || !selectedDate || !selectedServiceTemplate) {
+        console.log("❌ Condições não atendidas, retornando array vazio");
         return { timeSlots: [] };
+      }
 
       try {
-        // Primeiro, tentar usar o endpoint inteligente com IA
+        // Usar diretamente o endpoint que sabemos que funciona
         const formattedDate = format(selectedDate, "yyyy-MM-dd");
-
-        // Melhor estratégia para encontrar o serviço correspondente ao template selecionado
-        let service = selectedProvider.services.find(
-          (s) =>
-            // Estratégia 1: Verificar correspondência exata de nome
-            s.name === selectedServiceTemplate.name ||
-            // Estratégia 2: Verificar se o nome do template está contido no nome do serviço
-            s.name.includes(selectedServiceTemplate.name) ||
-            // Estratégia 3: Verificar se o nome do serviço está contido no nome do template
-            selectedServiceTemplate.name.includes(s.name),
+        
+        console.log("🚀 Usando endpoint direto para time slots");
+        
+        const response = await fetch(
+          `/api/providers/${selectedProvider.id}/time-slots?date=${formattedDate}&serviceDuration=${selectedServiceTemplate.duration}`,
         );
-
-        // Se não encontrar por nome, tentar pela categoria e duração semelhante
-        if (!service) {
-          service = selectedProvider.services.find(
-            (s) =>
-              s.categoryId === selectedServiceTemplate.categoryId &&
-              Math.abs(s.duration - selectedServiceTemplate.duration) <= 10, // tolerância de 10 minutos
-          );
-        }
-
-        console.log("Serviço encontrado:", service);
-        console.log("Template selecionado:", selectedServiceTemplate);
-
-        if (!service) {
-          throw new Error("Serviço não encontrado para o prestador");
-        }
-
-        // Verificar se é um serviço longo (+ de 120 minutos)
-        const isLongService = service.duration >= 120;
-        console.log(
-          `Serviço ${service.name} (${service.duration} min) é um serviço longo? ${isLongService}`,
-        );
-
-        // Escolher o endpoint com base na duração do serviço
-        const endpoint = isLongService
-          ? "/api/time-slots/long-service-slots"
-          : "/api/time-slots/intelligent-service-slots";
-
-        console.log(
-          `Usando endpoint: ${endpoint} para serviço de ${service.duration} minutos`,
-        );
-
-        const response = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            providerId: selectedProvider.id, // teste rodrigo
-            serviceId: service.id,
-            date: formattedDate,
-          }),
-        });
 
         if (response.ok) {
-          const data = await response.json();
-          console.log("Dados do endpoint inteligente:", data);
-
-          // Verificar se os slots de tempo têm propriedade score
-          const hasScoredSlots =
-            data.timeSlots &&
-            data.timeSlots.length > 0 &&
-            data.timeSlots.some((slot: any) => slot.score !== undefined);
-
-          console.log("Slots têm pontuação (score)?", hasScoredSlots);
-          if (hasScoredSlots) {
-            console.log("Exemplo de slot com pontuação:", data.timeSlots[0]);
-          }
-
+          const timeSlots = await response.json();
+          console.log("✅ Time slots obtidos com sucesso:", timeSlots);
           return {
-            ...data,
-            aiRecommendations: true,
+            timeSlots,
+            aiRecommendations: false,
           };
         }
 
-        // Se falhar, tentar o endpoint tradicional
-        throw new Error("Falha ao usar algoritmo inteligente");
+        throw new Error("Falha ao carregar horários disponíveis");
       } catch (error) {
-        console.error(
-          "Falha no endpoint inteligente, usando método tradicional:",
-          error,
-        );
-
-        // Fallback para o endpoint tradicional
-        const formattedDate = format(selectedDate, "yyyy-MM-dd");
-        const response = await fetch(
-          `/api/providers/${selectedProvider.id}/time-slots?date=${formattedDate}&serviceDuration=${selectedServiceTemplate.duration}`,
-        ); // teste rodrigo
-
-        if (!response.ok) {
-          throw new Error("Falha ao carregar horários disponíveis");
-        }
-
-        const timeSlots = await response.json();
-        return {
-          timeSlots,
-          aiRecommendations: false,
-        };
+        console.error("Erro ao carregar time slots:", error);
+        throw error;
       }
     },
-    enabled: !!selectedProvider && !!selectedDate && !!selectedServiceTemplate,
+    enabled: (() => {
+      const isEnabled = !!selectedProvider && !!selectedDate && !!selectedServiceTemplate;
+      console.log("🔍 Query enabled check:", {
+        selectedProvider: !!selectedProvider,
+        selectedDate: !!selectedDate,
+        selectedServiceTemplate: !!selectedServiceTemplate,
+        isEnabled
+      });
+      return isEnabled;
+    })(),
+    onError: (error) => {
+      console.error("Erro na query de time slots:", error);
+    },
+    onSuccess: (data) => {
+      console.log("Query de time slots executada com sucesso:", data);
+    },
   });
 
   // Extrair os slots de tempo da resposta
   const availableTimeSlots = timeSlotsResponse?.timeSlots || [];
   console.log("Slots disponíveis recebidos da API:", availableTimeSlots);
+  console.log("Query enabled:", !!selectedProvider && !!selectedDate && !!selectedServiceTemplate);
+  console.log("selectedProvider:", selectedProvider);
+  console.log("selectedDate:", selectedDate);
+  console.log("selectedServiceTemplate:", selectedServiceTemplate);
 
   // Verificar slots de horários realmente disponíveis
   const [verifiedTimeSlots, setVerifiedTimeSlots] = useState<any[]>([]);
@@ -456,7 +403,7 @@ export function NewBookingWizard({
         // esperado selectedProvider.id
         console.log(selectedProvider);
         const response = await fetch(
-          `/api/providers/${selectedProvider.provider.id}/available-slots-check`, // teste rodrigo
+          `/api/providers/${selectedProvider.id}/available-slots-check`, // teste rodrigo
           {
             method: "POST",
             headers: {
@@ -2082,9 +2029,7 @@ export function NewBookingWizard({
     // Usar os horários verificados em vez dos originais, se disponíveis
     // Garantir também que só utilizamos horários que estão EXPLICITAMENTE marcados como disponíveis
     // Aplicar um filtro rigoroso para garantir que apenas slots com isAvailable=true sejam usados
-    const timeSlotsToUse = (
-      verifiedTimeSlots.length > 0 ? verifiedTimeSlots : uniqueTimeBlocks
-    ).filter((slot) => slot.isAvailable === true);
+    const timeSlotsToUse = (availableTimeSlots || []).filter((slot) => slot.isAvailable === true);
 
     console.log(
       `Slots filtrados por disponibilidade: ${timeSlotsToUse.length} (após verificação estrita)`,
@@ -2252,6 +2197,9 @@ export function NewBookingWizard({
         }
       }
     }
+
+    console.log('DEBUG - availableTimeSlots vindos da API:', availableTimeSlots);
+    console.log('DEBUG - timeSlotsToUse (filtrados):', timeSlotsToUse);
 
     return (
       <div className="space-y-4">
@@ -2681,6 +2629,11 @@ export function NewBookingWizard({
             </Button>
           </div>
         )}
+
+        {/* DEBUG VISUAL: Mostrar os dados vindos da API na tela */}
+        <pre style={{background:'#eee',color:'#222',padding:'8px',borderRadius:'4px',fontSize:'12px',overflow:'auto'}}>
+          {JSON.stringify(availableTimeSlots, null, 2)}
+        </pre>
       </div>
     );
   };

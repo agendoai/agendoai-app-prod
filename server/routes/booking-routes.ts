@@ -13,6 +13,53 @@ import { storage } from '../storage';
 const router = Router();
 
 /**
+ * Rota para buscar agendamentos existentes
+ * GET /api/bookings?providerId=2&date=2025-07-06
+ */
+router.get('/', async (req, res) => {
+  try {
+    const { providerId, date } = req.query;
+    
+    // Validação básica
+    if (!providerId || !date) {
+      return res.status(400).json({
+        error: 'providerId e date são obrigatórios'
+      });
+    }
+    
+    // Buscar agendamentos do prestador para a data específica
+    const appointments = await storage.getAppointmentsByProviderId(Number(providerId));
+    
+    // Filtrar por data e status
+    const bookingsForDate = appointments.filter(appointment => 
+      appointment.date === date && 
+      (appointment.status === 'confirmed' || appointment.status === 'pending')
+    );
+    
+    // Formatar os dados para o frontend
+    const bookings = bookingsForDate.map(appointment => ({
+      id: appointment.id,
+      startTime: appointment.startTime,
+      endTime: appointment.endTime,
+      status: appointment.status,
+      clientName: appointment.clientName || 'Cliente',
+      serviceName: appointment.serviceName || 'Serviço',
+      totalPrice: appointment.totalPrice
+    }));
+    
+    res.json({
+      bookings,
+      count: bookings.length
+    });
+  } catch (error) {
+    console.error('Erro ao buscar agendamentos:', error);
+    res.status(500).json({
+      error: 'Erro ao buscar agendamentos'
+    });
+  }
+});
+
+/**
  * Rota para agendar um serviço
  * POST /api/booking
  */
