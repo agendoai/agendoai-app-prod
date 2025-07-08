@@ -194,6 +194,104 @@ router.get("/:id", async (req, res) => {
 });
 
 /**
+ * Rota para buscar o cronograma de um prestador
+ * GET /api/providers/:id/schedule
+ *
+ * Retorna o cronograma completo do prestador incluindo:
+ * - Disponibilidades por dia da semana
+ * - Horários bloqueados
+ * - Pausas do prestador
+ */
+router.get("/:id/schedule", async (req, res) => {
+  try {
+    const providerId = parseInt(req.params.id);
+
+    if (isNaN(providerId)) {
+      return res.status(400).json({ error: "ID de prestador inválido" });
+    }
+
+    // Verificar se o prestador existe
+    const provider = await storage.getUser(providerId);
+    if (!provider || provider.userType !== "provider") {
+      return res.status(404).json({ error: "Prestador não encontrado" });
+    }
+
+    // Buscar disponibilidades do prestador
+    const availabilities = await storage.getAvailabilityByProviderId(providerId);
+    
+    // Buscar horários bloqueados
+    const blockedTimes = await storage.getBlockedTimesByProviderId(providerId);
+    
+    // Buscar pausas do prestador
+    const providerBreaks = await storage.getTimeSlotsByProviderId(providerId);
+
+    // Organizar disponibilidades por dia da semana
+    const availabilityByDay = availabilities.reduce((acc: any, availability) => {
+      const dayOfWeek = availability.dayOfWeek;
+      if (!acc[dayOfWeek]) {
+        acc[dayOfWeek] = [];
+      }
+      acc[dayOfWeek].push({
+        id: availability.id,
+        startTime: availability.startTime,
+        endTime: availability.endTime,
+        isAvailable: availability.isAvailable,
+        intervalMinutes: availability.intervalMinutes,
+        date: availability.date
+      });
+      return acc;
+    }, {});
+
+    // Organizar horários bloqueados por data
+    const blockedTimesByDate = blockedTimes.reduce((acc: any, blocked) => {
+      const date = blocked.date;
+      if (!acc[date]) {
+        acc[date] = [];
+      }
+      acc[date].push({
+        id: blocked.id,
+        startTime: blocked.startTime,
+        endTime: blocked.endTime,
+        reason: blocked.reason
+      });
+      return acc;
+    }, {});
+
+    // Organizar pausas por data
+    const breaksByDate = providerBreaks.reduce((acc: any, break_) => {
+      const date = break_.date;
+      if (!acc[date]) {
+        acc[date] = [];
+      }
+      acc[date].push({
+        id: break_.id,
+        startTime: break_.startTime,
+        endTime: break_.endTime,
+        reason: break_.reason
+      });
+      return acc;
+    }, {});
+
+    return res.json({
+      providerId,
+      providerName: provider.name,
+      availabilityByDay,
+      blockedTimesByDate,
+      breaksByDate,
+      summary: {
+        totalAvailabilities: availabilities.length,
+        totalBlockedTimes: blockedTimes.length,
+        totalBreaks: providerBreaks.length
+      }
+    });
+
+  } catch (error) {
+    console.error("Erro ao buscar cronograma do prestador:", error);
+    return res.status(500).json({ error: "Erro ao buscar cronograma do prestador" });
+  }
+});
+
+/**
  * Rota para atualizar o fuso horário do prestador
  * POST /api/providers/:id/update-timezone
  * 
@@ -276,25 +374,35 @@ router.post("/:id/update-timezone", isAuthenticated, async (req, res) => {
 router.post("/:id/available-slots-check", async (req, res) => {
   try {
     const { date, serviceId, timeSlots } = req.body;
-    if (!date || !serviceId || !timeSlots) {
-      return res.status(400).json({ error: "Dados inválidos" });
+    if (!date || !serviceId) {
+      return res.status(400).json({ error: "Data e serviceId são obrigatórios" });
     }
-    // validação do body desestruturado
 
-    // validação do provider
     const providerId = parseInt(req.params.id);
     const provider = await storage.getProvider(providerId);
     if (!provider) {
       return res.status(404).json({ error: "Prestador não encontrado" });
     }
 
-    console.log(provider);
+    console.log(`Verificando disponibilidade para prestador ${providerId} na data ${date} para serviço ${serviceId}`);
 
-    // BUSCAR SLOTS E RETORNAR PARA O FRONT EXIBIR
-    return res.json({ slots: "teste" });
+    // Gerar slots de tempo disponíveis usando o método generateTimeSlots
+    const availableSlots = await storage.generateTimeSlots(providerId, date, serviceId);
+    
+    console.log(`Slots gerados: ${availableSlots.length}`);
+
+    // Filtrar apenas slots disponíveis
+    const availableTimeSlots = availableSlots.filter(slot => slot.isAvailable);
+
+    return res.json({ 
+      availableSlots: availableTimeSlots,
+      totalSlots: availableSlots.length,
+      availableCount: availableTimeSlots.length,
+      message: `Encontrados ${availableTimeSlots.length} horários disponíveis`
+    });
   } catch (error) {
-    console.error("Erro ao buscar slots do prestador:", error);
-    return res.status(500).json({ error: "Erro ao buscar slots do prestador" });
+    console.error("Erro ao verificar slots disponíveis:", error);
+    return res.status(500).json({ error: "Erro ao verificar slots disponíveis" });
   }
 });
 

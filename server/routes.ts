@@ -381,6 +381,9 @@ export function registerRoutes(app: Express): Server {
 
 	// Registrar rotas do sistema de agendamento inteligente
 	app.use("/api/booking", bookingRouter)
+	
+	// Registrar rotas para buscar agendamentos existentes
+	app.use("/api/bookings", bookingRouter)
 
 	// Registrar rotas de configurações de integrações (Disponível apenas para administradores)
 	app.use("/api/admin/integrations-settings", integrationsRouter)
@@ -607,14 +610,14 @@ export function registerRoutes(app: Express): Server {
 	// Registrar nova rota otimizada para serviços com prestadores (resolve o problema de exibição)
 	app.use("/api/all-services", servicesWithProvidersRouter)
 
-	// Registrar rotas especializadas de prestadores
+	// Registrar rotas especializadas de prestadores (PRIMEIRO - antes das genéricas)
 	app.use("/api/providers/service-search", providerServiceSearchRouter) // Nova rota otimizada
+	app.use("/api/providers-optimized", optimizedProviderSearchRouter)
+	
+	// Registrar rotas genéricas de prestadores (depois das específicas)
+	app.use("/api/providers", providersRoutes)
 	app.use("/api/providers", specializedProviderSearchRouter)
 	app.use("/api/providers", providerSearchWithServicesRouter)
-
-	// Registrar rotas genéricas de prestadores (precisa vir depois das específicas)
-	app.use("/api/providers", providersRoutes)
-	app.use("/api/providers-optimized", optimizedProviderSearchRouter)
 
 	// Registrar rotas de relatórios administrativos
 	app.use("/api/admin/reports", adminReportsRoutes)
