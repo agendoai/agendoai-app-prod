@@ -32,6 +32,7 @@ export function TimeSlotSelector({
   onTimeSlotSelect,
   selectedTimeSlot,
 }: TimeSlotSelectorProps) {
+  console.log('TimeSlotSelector RENDERIZADO', { providerId, date, service });
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSelecting, setIsSelecting] = useState(false);
@@ -39,6 +40,9 @@ export function TimeSlotSelector({
     useState<ProviderSchedule | null>(null);
   const [existingBookings, setExistingBookings] = useState<TimeSlot[]>([]);
   const { toast } = useToast();
+
+  // Log para mostrar os timeSlots
+  console.log('TimeSlotSelector - timeSlots:', timeSlots);
 
   // Reset selection when service changes
   useEffect(() => {
@@ -76,7 +80,6 @@ export function TimeSlotSelector({
       const bookingsData = await bookingsResponse.json();
       setExistingBookings(bookingsData.bookings || []);
     } catch (error) {
-      console.error("Failed to load provider data:", error);
       toast({
         title: "Error",
         description: "Could not load provider availability",
@@ -120,34 +123,12 @@ export function TimeSlotSelector({
     const fetchTimeSlots = async () => {
       setIsLoading(true);
       try {
-        const params = new URLSearchParams({
-          providerId: providerId.toString(),
-          date,
-        });
-
-        if (service) {
-          params.append("serviceId", service.id.toString());
-          params.append("duration", service.durationMinutes.toString());
-
-          if (service.bufferTime) {
-            params.append("bufferTime", service.bufferTime.toString());
-          }
-        }
-
-        const isLongService = service && service.durationMinutes >= 120;
-        const endpoint = isLongService
-          ? "/api/time-slots/long-service-slots"
-          : "/api/time-slots/intelligent-service-slots";
-
-        const url = `${endpoint}?${params.toString()}`;
+        // Sempre usar o endpoint tradicional
+        const url = `/api/providers/${providerId}/time-slots?date=${date}&duration=${service?.durationMinutes || 30}`;
         const response = await apiRequest("GET", url);
-
-        if (!response.ok) {
-          throw new Error(`API request failed with status ${response.status}`);
-        }
-
         const data = await response.json();
-        const slots = data.timeSlots || data.slots || data.availableSlots || [];
+        console.log('[API] /api/providers/:id/time-slots - RESPOSTA:', data);
+        const slots = Array.isArray(data) ? data : data.timeSlots || [];
 
         // Filter today's past time slots
         const today = new Date().toISOString().split("T")[0];
@@ -179,7 +160,6 @@ export function TimeSlotSelector({
         const validatedSlots = processedSlots.filter(validateSlot);
         setTimeSlots(validatedSlots);
       } catch (error) {
-        console.error("Error loading available slots:", error);
         toast({
           title: "Error",
           description: "Could not load available time slots",
@@ -235,7 +215,6 @@ export function TimeSlotSelector({
         formattedSlot: `${formatTime(slot.startTime)} - ${formatTime(endTime)}`,
       });
     } catch (error) {
-      console.error("Error selecting time slot:", error);
       toast({
         title: "Error",
         description: "Could not select time slot",
@@ -305,6 +284,44 @@ export function TimeSlotSelector({
 
   // No provider schedule loaded
   if (!providerSchedule) {
+    // Se temos timeSlots mas não temos providerSchedule, mostrar os horários mesmo assim
+    if (timeSlots.length > 0) {
+      return (
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            {timeSlots.map((slot) => (
+              <Button
+                key={`${slot.startTime}-${slot.availabilityId || ""}`}
+                variant={
+                  selectedTimeSlot?.startTime === slot.startTime
+                    ? "default"
+                    : "outline"
+                }
+                size="sm"
+                className="justify-start relative"
+                onClick={() => handleSlotClick(slot)}
+                disabled={isSelecting}
+              >
+                {isSelecting && selectedTimeSlot?.startTime === slot.startTime ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <span className="flex-1 text-center">
+                      {formatTime(slot.startTime)}
+                      {slot.endTime && ` - ${formatTime(slot.endTime)}`}
+                    </span>
+                    {selectedTimeSlot?.startTime === slot.startTime && (
+                      <Check className="h-4 w-4 absolute right-2" />
+                    )}
+                  </>
+                )}
+              </Button>
+            ))}
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <Card>
         <CardContent className="p-6 text-center">
