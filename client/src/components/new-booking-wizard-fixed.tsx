@@ -28,6 +28,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
 import { TimeSlotSelector } from "@/components/booking/time-slot-selector";
 import { Service, TimeSlot } from "@/lib/utils";
+import React from "react"; // Added missing import
 
 // Tipos para os passos do assistente
 type BookingStep =
@@ -64,6 +65,7 @@ export function NewBookingWizard({
   onComplete,
   preSelectedServiceId = null,
 }: NewBookingWizardProps) {
+  console.log('NewBookingWizard RENDERIZADO');
   const { toast } = useToast();
 
   // Estado inicial sempre começa pela seleção de nicho para melhor experiência do usuário
@@ -97,8 +99,33 @@ export function NewBookingWizard({
     [providerId: number]: boolean;
   }>({});
   const [serviceExecutionTime, setServiceExecutionTime] = useState<number | null>(null);
+  const [timeSlots, setTimeSlots] = useState([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [selectedServiceDetails, setSelectedServiceDetails] = useState<any>(null);
+  const [showServiceModal, setShowServiceModal] = useState(false);
 
-
+  // Buscar horários da API
+  React.useEffect(() => {
+    if (!selectedProvider || !selectedDate || currentStep !== "time-slot") return;
+    
+    const fetchTimeSlots = async () => {
+      setLoadingSlots(true);
+      try {
+        const duration = serviceExecutionTime || totalDuration || 30;
+        const url = `/api/providers/${selectedProvider}/time-slots?date=${selectedDate.toISOString().split("T")[0]}&duration=${duration}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        console.log('[API] /api/providers/:id/time-slots - RESPOSTA:', data);
+        setTimeSlots(Array.isArray(data) ? data : data.timeSlots || []);
+      } catch (error) {
+        console.error('Erro ao buscar horários:', error);
+      } finally {
+        setLoadingSlots(false);
+      }
+    };
+    
+    fetchTimeSlots();
+  }, [selectedProvider, selectedDate, serviceExecutionTime, totalDuration, currentStep]);
 
   // Efeito para buscar dados do serviço pré-selecionado e seu nicho/categoria
   useEffect(() => {
@@ -152,8 +179,6 @@ export function NewBookingWizard({
 
   // Adicione logs para diagnosticar o estado antes da query de prestadores
   useEffect(() => {
-    console.log('selectedServiceIds:', selectedServiceIds);
-    console.log('selectedDate:', selectedDate);
   }, [selectedServiceIds, selectedDate]);
 
   // CONSULTA CORRIGIDA PARA BUSCAR PRESTADORES COM DISPONIBILIDADE REAL
@@ -161,27 +186,16 @@ export function NewBookingWizard({
     queryKey: ["/api/providers", selectedServiceIds, selectedDate],
     queryFn: async () => {
       if (selectedServiceIds.length === 0 || !selectedDate) return [];
-
       // Usando a API existente de busca de prestadores por serviço
       const serviceId = selectedServiceIds[0]; // Pega o primeiro serviço para consulta principal
       const response = await fetch(
         `/api/providers/service-search?serviceIds=${selectedServiceIds.join(',')}&date=${selectedDate.toISOString().split("T")[0]}`
       );
-
       const data = await response.json();
-      
-      // Adicionar log para debug do formato dos dados recebidos
-      console.log("Dados recebidos da API de prestadores:", data);
+      console.log('DADOS RECEBIDOS DA API /api/providers/service-search:', data);
       
       // Verificar o formato e normalizar a resposta se necessário
       let providersData = data.providers || [];
-      
-      // Log de cada prestador para identificar a estrutura
-      if (providersData.length > 0) {
-        console.log("Estrutura do primeiro prestador:", providersData[0]);
-      } else {
-        console.log("Nenhum prestador retornado da API");
-      }
       
       // Se os prestadores estiverem dentro de um objeto 'provider', extrair os dados
       const normalizedProviders = providersData.map(item => 
@@ -221,8 +235,6 @@ export function NewBookingWizard({
           [provider.id]: true,
         }));
         
-        console.log(`Buscando serviços para prestador ID: ${provider.id}`);
-        
         // Primeiro buscar os serviços do prestador usando a rota correta
         fetch(
           `/api/provider-services/provider/${provider.id}`,
@@ -258,14 +270,13 @@ export function NewBookingWizard({
             // Usar duração calculada ou valor padrão para evitar NaN
             const finalDuration = providerDuration > 0 ? providerDuration : (totalDuration || 60);
             
-            console.log(`Verificando slots para prestador ${provider.id} com duração ${finalDuration}`);
-            
             // Verificar se este prestador tem horários disponíveis
             return fetch(
               `/api/providers/${provider.id}/time-slots?date=${selectedDate.toISOString().split("T")[0]}&duration=${finalDuration}`
             )
               .then(slotsResponse => slotsResponse.json())
               .then(slots => {
+                console.log('[API] /api/providers/:id/time-slots - RESPOSTA:', slots);
                 // Só adicionar o prestador se tiver slots disponíveis
                 if (Array.isArray(slots) && slots.length > 0) {
                   validProviders[provider.id] = services;
@@ -300,11 +311,6 @@ export function NewBookingWizard({
             }
           })
           .catch((err) => {
-            console.error(
-              `Erro ao verificar disponibilidade do prestador ${provider.id}:`,
-              err,
-            );
-            
             setLoadingProviderServices((prev) => ({
               ...prev,
               [provider.id]: false,
@@ -448,7 +454,6 @@ export function NewBookingWizard({
 
   const handleTimeSlotSelect = (timeSlot: TimeSlot) => {
     setSelectedTimeSlot(timeSlot);
-    handleNext();
   };
 
   const handlePaymentTypeSelect = (type: "local" | "online") => {
@@ -543,390 +548,467 @@ export function NewBookingWizard({
 
   // Substitua as funções de renderização:
   const renderNicheStep = () => (
-    <div className="flex flex-wrap gap-4 justify-center mt-8">
-      {niches?.map((niche) => {
-        const selecionado = selectedNicheId === niche.id;
-        return (
+    <div className="space-y-8">
+      <div className="text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-2xl mb-4">
+          <span className="text-2xl">🎯</span>
+        </div>
+        <h3 className="text-xl font-bold text-gray-800 mb-2">Escolha sua área</h3>
+        <p className="text-gray-600">Selecione a categoria que melhor atende sua necessidade</p>
+      </div>
+      
+      <div className="grid grid-cols-1 gap-4">
+        {niches?.map((niche) => (
           <button
             key={niche.id}
-            className={`flex flex-col items-center justify-center rounded-2xl p-4 w-24 h-28 shadow transition-all
-              ${selecionado ? 'bg-teal-600 border-2 border-teal-600 text-white' : 'bg-white border border-gray-200 text-teal-600'}
-            `}
+            className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
+              selectedNicheId === niche.id
+                ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
+                : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
+            }`}
             onClick={() => handleNicheSelect(niche.id)}
           >
-            {getNicheIcon(niche.name)}
-            <span className="font-bold text-sm text-center mt-2">{niche.name}</span>
+            <div className="flex items-center space-x-4">
+              <div className={`text-2xl transition-transform group-hover:scale-110 ${
+                selectedNicheId === niche.id ? 'text-white' : 'text-teal-500'
+              }`}>
+                {getNicheIcon(niche.name)}
+              </div>
+              <div className="text-left">
+                <span className={`font-semibold text-lg ${
+                  selectedNicheId === niche.id ? 'text-white' : 'text-gray-800'
+                }`}>
+                  {niche.name}
+                </span>
+                <p className={`text-sm mt-1 ${
+                  selectedNicheId === niche.id ? 'text-white/80' : 'text-gray-500'
+                }`}>
+                  Serviços especializados
+                </p>
+              </div>
+            </div>
+            {selectedNicheId === niche.id && (
+              <div className="absolute top-3 right-3">
+                <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                  <Check className="w-4 h-4 text-white" />
+                </div>
+              </div>
+            )}
           </button>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
   const renderCategoryStep = () => (
-    <div className="flex flex-wrap gap-4 justify-center mt-8">
-      {categories?.map((cat) => {
-        const selecionado = selectedCategoryId === cat.id;
-        return (
+    <div className="space-y-8">
+      <div className="text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-2xl mb-4">
+          <span className="text-2xl">📂</span>
+        </div>
+        <h3 className="text-xl font-bold text-gray-800 mb-2">Selecione a categoria</h3>
+        <p className="text-gray-600">Escolha o tipo de serviço que você precisa</p>
+      </div>
+      
+      <div className="grid grid-cols-1 gap-4">
+        {categories?.map((cat) => (
           <button
             key={cat.id}
-            className={`flex flex-col items-center justify-center rounded-2xl p-4 w-24 h-28 shadow transition-all
-              ${selecionado ? 'bg-teal-600 border-2 border-teal-600 text-white' : 'bg-white border border-gray-200 text-teal-600'}
-            `}
+            className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
+              selectedCategoryId === cat.id
+                ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
+                : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
+            }`}
             onClick={() => handleCategorySelect(cat.id)}
           >
-            {getCategoryIcon(cat.name)}
-            <span className="font-bold text-sm text-center mt-2">{cat.name}</span>
+            <div className="flex items-center space-x-4">
+              <div className={`text-2xl transition-transform group-hover:scale-110 ${
+                selectedCategoryId === cat.id ? 'text-white' : 'text-teal-500'
+              }`}>
+                {getCategoryIcon(cat.name)}
+              </div>
+              <div className="text-left">
+                <span className={`font-semibold text-lg ${
+                  selectedCategoryId === cat.id ? 'text-white' : 'text-gray-800'
+                }`}>
+                  {cat.name}
+                </span>
+                <p className={`text-sm mt-1 ${
+                  selectedCategoryId === cat.id ? 'text-white/80' : 'text-gray-500'
+                }`}>
+                  Serviços disponíveis
+                </p>
+              </div>
+            </div>
+            {selectedCategoryId === cat.id && (
+              <div className="absolute top-3 right-3">
+                <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                  <Check className="w-4 h-4 text-white" />
+                </div>
+              </div>
+            )}
           </button>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
   const renderServiceStep = () => (
-    <div className="space-y-6">
-      <div className="text-center mb-6">
-        <p className="text-gray-600 mb-2">Selecione o(s) serviço(s) que você precisa:</p>
-        {selectedServiceIds.length > 0 && (
-          <div className="bg-teal-50 border border-teal-200 rounded-lg p-3">
-            <p className="text-sm text-teal-700 font-medium">
-              {selectedServiceIds.length} serviço(s) selecionado(s)
-            </p>
-          </div>
-        )}
+    <div className="space-y-8">
+      <div className="text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-2xl mb-4">
+          <span className="text-2xl">🛠️</span>
+        </div>
+        <h3 className="text-xl font-bold text-gray-800 mb-2">Escolha seus serviços</h3>
+        <p className="text-gray-600">Selecione um ou mais serviços que você precisa</p>
       </div>
       
-      <div className="flex flex-wrap gap-4 justify-center">
-        {services?.map((service) => {
-          const selecionado = selectedServiceIds.includes(service.id);
-          return (
-            <button
-              key={service.id}
-              className={`flex flex-col items-center justify-center rounded-2xl p-4 w-24 h-28 shadow transition-all transform hover:scale-105
-                ${selecionado 
-                  ? 'bg-teal-600 border-2 border-teal-600 text-white shadow-lg' 
-                  : 'bg-white border border-gray-200 text-teal-600 hover:border-teal-300'
-                }
-              `}
-              onClick={() => handleServiceSelect(service.id)}
-            >
-              {getServiceIcon(service.name)}
-              <span className="font-bold text-sm text-center mt-2">{service.name}</span>
-              {selecionado && (
-                <div className="absolute -top-1 -right-1 bg-teal-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs">
-                  ✓
+      <div className="grid grid-cols-1 gap-4">
+        {services?.map((service) => (
+          <div
+            key={service.id}
+            className={`group relative overflow-hidden rounded-2xl transition-all duration-300 transform hover:scale-[1.02] ${
+              selectedServiceIds.includes(service.id)
+                ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
+                : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
+            }`}
+          >
+            <div className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 ${
+                    selectedServiceIds.includes(service.id) 
+                      ? 'bg-white/20' 
+                      : 'bg-teal-100'
+                  }`}>
+                    <span className="text-xl">{getServiceIcon(service.name)}</span>
+                  </div>
+                  <div className="text-left">
+                    <h3 className={`font-semibold text-lg ${
+                      selectedServiceIds.includes(service.id) ? 'text-white' : 'text-gray-800'
+                    }`}>
+                      {service.name}
+                    </h3>
+                    <p className={`text-sm mt-1 ${
+                      selectedServiceIds.includes(service.id) ? 'text-white/80' : 'text-gray-600'
+                    }`}>
+                      {service.description.length > 60 
+                        ? `${service.description.substring(0, 60)}...` 
+                        : service.description
+                      }
+                    </p>
+                  </div>
                 </div>
-              )}
-            </button>
-          );
-        })}
+                <div className="text-right">
+                  <div className={`font-bold text-lg ${
+                    selectedServiceIds.includes(service.id) ? 'text-white' : 'text-teal-600'
+                  }`}>
+                    R$ {(service.price / 100).toFixed(2).replace(".", ",")}
+                  </div>
+                  <div className={`text-sm ${
+                    selectedServiceIds.includes(service.id) ? 'text-white/70' : 'text-gray-500'
+                  }`}>
+                    {service.duration} min
+                  </div>
+                </div>
+              </div>
+              
+              {/* Botão Ver Detalhes */}
+              <div className="mt-4 flex justify-between items-center">
+                                  <button
+                    className={`text-sm font-medium transition-colors ${
+                      selectedServiceIds.includes(service.id) 
+                        ? 'text-white/80 hover:text-white' 
+                        : 'text-teal-600 hover:text-teal-700'
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedServiceDetails(service);
+                      setShowServiceModal(true);
+                    }}
+                  >
+                    Ver detalhes
+                  </button>
+                
+                <button
+                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
+                    selectedServiceIds.includes(service.id)
+                      ? 'bg-white/20 text-white hover:bg-white/30'
+                      : 'bg-teal-500 text-white hover:bg-teal-600'
+                  }`}
+                  onClick={() => handleServiceSelect(service.id)}
+                >
+                  {selectedServiceIds.includes(service.id) ? 'Selecionado' : 'Selecionar'}
+                </button>
+              </div>
+            </div>
+            
+            {selectedServiceIds.includes(service.id) && (
+              <div className="absolute top-3 right-3">
+                <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                  <Check className="w-4 h-4 text-white" />
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
       
-      {selectedServiceIds.length > 0 && (
-        <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-          <h4 className="font-semibold text-blue-800 mb-2">Próximo passo:</h4>
-          <p className="text-sm text-blue-700">
-            Após selecionar os serviços, você escolherá a data do agendamento.
-          </p>
+      {/* Botão de continuar dentro da etapa */}
+      <div className="pt-6">
+        <Button 
+          className={`w-full h-14 rounded-xl text-lg font-bold shadow-lg transition-all transform hover:scale-[1.02] ${
+            selectedServiceIds.length > 0 
+              ? 'bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white' 
+              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+          }`}
+          onClick={handleServiceContinue}
+          disabled={selectedServiceIds.length === 0}
+        >
+          {selectedServiceIds.length > 0 ? 'Continuar' : 'Selecione um serviço'} 
+          <ChevronRight className="ml-2 h-5 w-5" />
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderDateStep = () => (
+    <div className="space-y-8">
+      <div className="text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-2xl mb-4">
+          <span className="text-2xl">📅</span>
+        </div>
+        <h3 className="text-xl font-bold text-gray-800 mb-2">Escolha a data</h3>
+        <p className="text-gray-600">Selecione quando você gostaria de agendar</p>
+      </div>
+      
+      <div className="flex justify-center">
+        <div className="bg-white rounded-2xl shadow-lg p-6 border border-gray-200">
+          <Calendar
+            mode="single"
+            selected={selectedDate}
+            onSelect={handleDateSelect}
+            disabled={(date) => date < new Date()}
+            className="rounded-xl"
+          />
+        </div>
+      </div>
+      
+      {/* Botão de continuar dentro da etapa */}
+      {selectedDate && (
+        <div className="pt-6">
+          <Button 
+            className="w-full h-14 rounded-xl text-lg font-bold shadow-lg bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white transition-all transform hover:scale-[1.02]" 
+            onClick={handleNext}
+          >
+            Ver Prestadores <ChevronRight className="ml-2 h-5 w-5" />
+          </Button>
         </div>
       )}
     </div>
   );
 
-  const renderDateStep = () => {
-    const today = new Date();
-
-    return (
-      <div className="space-y-6">
-        <p className="text-gray-500">Escolha uma data para o agendamento</p>
-
-        <div className="flex justify-center">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                className="w-full sm:w-auto justify-start text-left font-normal"
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {selectedDate ? (
-                  format(selectedDate, "PPP", { locale: ptBR })
-                ) : (
-                  <span>Selecione uma data</span>
-                )}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={selectedDate || undefined}
-                onSelect={(date) => date && handleDateSelect(date)}
-                initialFocus
-                locale={ptBR}
-                fromDate={today}
-                disabled={(date) => false}
-              />
-            </PopoverContent>
-          </Popover>
+  const renderProvidersStep = () => (
+    <div className="space-y-8">
+      <div className="text-center">
+        <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-2xl mb-4">
+          <span className="text-2xl">👥</span>
         </div>
+        <h3 className="text-xl font-bold text-gray-800 mb-2">Escolha o prestador</h3>
+        <p className="text-gray-600">Selecione quem irá realizar seu serviço</p>
       </div>
-    );
-  };
-
-  const renderProvidersStep = () => {
-    if (selectedServiceIds.length === 0) {
-      return <div className="p-6 text-center bg-yellow-100 rounded-lg text-yellow-800 font-semibold">Selecione pelo menos um serviço antes de escolher o prestador.</div>;
-    }
-    if (!selectedDate) {
-      return <div className="p-6 text-center bg-yellow-100 rounded-lg text-yellow-800 font-semibold">Selecione uma data antes de escolher o prestador.</div>;
-    }
-    if (isLoadingProviders) {
-      return (
-        <div className="flex justify-center items-center py-8">
-          <LoadingSpinner size="lg" />
-          <span className="ml-3">Buscando prestadores disponíveis...</span>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-4">
-        <p className="text-gray-500">Escolha um prestador para o serviço</p>
-
-        <div className="bg-gray-50 p-3 rounded-md mb-4">
-          <h3 className="font-medium">Serviços selecionados</h3>
-          <div>
-            {selectedServiceIds.length > 0 ? (
-              services
-                ?.filter((s) => selectedServiceIds.includes(s.id))
-                .map((service) => (
-                  <p key={service.id} className="mt-1">
-                    {service.name}
-                  </p>
-                ))
-            ) : (
-              <p className="text-sm text-gray-500 mt-1">
-                Nenhum serviço selecionado
-              </p>
-            )}
+      
+      {isLoadingProviders ? (
+        <div className="text-center py-12">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-2xl mb-6">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white"></div>
           </div>
+          <h3 className="text-lg font-semibold text-gray-800 mb-2">Buscando prestadores...</h3>
+          <p className="text-gray-600">Carregando profissionais disponíveis para sua data</p>
         </div>
-
-        {providers && providers.length > 0 ? (
-          <div className="grid grid-cols-1 gap-4">
-            {/* Adicionado log para debugging dos prestadores disponíveis */}
-            {console.log("Prestadores a serem exibidos:", providers)}
+      ) : providers && providers.length > 0 ? (
+        <div className="grid grid-cols-1 gap-4">
+          {providers.map((provider, index) => {
+            const totals = calculateTotals(provider.id);
             
-            {/* Mostrar TODOS os prestadores retornados da API sem nenhum filtro */}
-            {providers.map((provider, index) => {
-                console.log(`Processando prestador ${index}:`, provider);
-                
-                // Se não temos um objeto provider válido, mostrar uma mensagem de erro visual
-                if (!provider) {
-                  return (
-                    <Card key={`error-${index}`} className="p-4 border-red-300 bg-red-50">
-                      <p className="text-red-500">Erro ao carregar informações do prestador</p>
-                    </Card>
-                  );
-                }
-                
-                // Calcular totais para este prestador
-                const totalInfo = { duration: 0, price: 0 };
-                try {
-                  if (provider.id) {
-                    totalInfo.duration = totalDuration || 60;
-                    
-                    // Buscar o preço do serviço de template para este prestador
-                    const providerServicesData = providerServices[provider.id] || [];
-                    let totalPrice = 0;
-                    
-                    // Se temos serviços do prestador, buscamos os preços
-                    if (providerServicesData.length > 0) {
-                      // Calcula o preço total dos serviços selecionados
-                      selectedServiceIds.forEach(serviceId => {
-                        const service = providerServicesData.find(s => s.id === serviceId);
-                        if (service && service.price) {
-                          totalPrice += service.price;
-                        } else if (service && service.templatePrice) {
-                          // Caso não tenha preço customizado, usa o preço do template
-                          totalPrice += service.templatePrice;
-                        } else {
-                          // Se não encontrar preço em nenhum lugar, tenta usar o preço do banco (40,00)
-                          totalPrice += 4000; // R$ 40,00 em centavos
-                        }
-                      });
-                    } else {
-                      // Se não temos dados de serviço, usamos o preço padrão do banco
-                      totalPrice = 4000; // R$ 40,00 em centavos
-                    }
-                    
-                    totalInfo.price = totalPrice;
-                  }
-                } catch (error) {
-                  console.error("Erro ao calcular totais:", error);
-                }
-                
-                const isLoadingServices = provider.id ? loadingProviderServices[provider.id] : false;
-
-              return (
-                <Card
-                  key={provider.id}
-                  className="cursor-pointer hover:border-primary"
-                  onClick={() =>
-                    handleProviderSelect(provider.id, totalInfo.duration, totalInfo.price)
-                  }
-                >
-                  <CardContent className="pt-6">
-                    <div className="flex items-center space-x-4 mb-4">
-                      <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
-                        {provider.profileImage ? (
-                          <img
-                            src={provider.profileImage}
-                            alt={provider.name}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-2xl">👤</span>
-                        )}
-                      </div>
-                      <div>
-                        <h3 className="font-semibold">{provider.name}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {provider.userType === "provider"
-                            ? "Prestador de serviços"
-                            : "Profissional"}
-                        </p>
-
-                        <div className="mt-1 flex items-center">
-                          <div className="text-yellow-400">
-                            {Array(5)
-                              .fill(0)
-                              .map((_, i) => (
-                                <span key={i}>{i < 4 ? "★" : "☆"}</span>
-                              ))}
-                          </div>
-                          <span className="ml-1 text-sm text-gray-500">
-                            ({(provider.id % 20) + 10} avaliações)
-                          </span>
-                        </div>
-                      </div>
+            return (
+              <button
+                key={provider.id}
+                className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
+                  selectedProvider === provider.id
+                    ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
+                    : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
+                }`}
+                onClick={() => handleProviderSelect(provider.id, totals.duration, totals.price)}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 ${
+                      selectedProvider === provider.id 
+                        ? 'bg-white/20' 
+                        : 'bg-teal-100'
+                    }`}>
+                      <span className="text-lg">👤</span>
                     </div>
-
-                    {isLoadingServices ? (
-                      <div className="p-3 bg-gray-50 rounded-md mt-2">
-                        <div className="flex justify-center items-center py-2">
-                          <LoadingSpinner size="sm" />
-                          <span className="ml-2 text-sm">
-                            Carregando informações...
-                          </span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="p-3 bg-gray-50 rounded-md mt-2">
-                        <h4 className="font-medium mb-2">
-                          Serviços oferecidos
-                        </h4>
-                        {/* Seção de serviços oferecidos */}
-                        <div className="py-1 mb-2 border-b border-gray-100">
-                          <div className="flex justify-between items-center">
-                            <p className="font-medium">Serviços selecionados</p>
-                            <p className="text-sm font-semibold text-primary">
-                              R$ {(totalInfo.price / 100).toFixed(2)}
-                            </p>
-                          </div>
-                          <p className="text-sm text-gray-600 mt-2">
-                            Duração total: {totalInfo.duration} min
-                          </p>
-                        </div>
-                        
-                        <div className="flex justify-between items-center mt-3 pt-2 border-t border-gray-200">
-                          <p className="font-semibold">Total:</p>
-                          <p className="font-semibold">
-                            <span className="text-sm text-gray-600 mr-2">{totalInfo.duration} min</span>
-                            <span className="text-primary">R$ {(totalInfo.price / 100).toFixed(2)}</span>
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              );
-            })}
+                    <div className="text-left">
+                      <h3 className={`font-semibold text-lg ${
+                        selectedProvider === provider.id ? 'text-white' : 'text-gray-800'
+                      }`}>
+                        {provider.name}
+                      </h3>
+                      <p className={`text-sm mt-1 ${
+                        selectedProvider === provider.id ? 'text-white/80' : 'text-gray-600'
+                      }`}>
+                        Prestador disponível
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className={`font-bold text-lg ${
+                      selectedProvider === provider.id ? 'text-white' : 'text-teal-600'
+                    }`}>
+                      R$ {(totals.price / 100).toFixed(2).replace(".", ",")}
+                    </div>
+                    <div className={`text-sm ${
+                      selectedProvider === provider.id ? 'text-white/70' : 'text-gray-500'
+                    }`}>
+                      {totals.duration} min
+                    </div>
+                  </div>
+                </div>
+                {selectedProvider === provider.id && (
+                  <div className="absolute top-3 right-3">
+                    <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                      <Check className="w-4 h-4 text-white" />
+                    </div>
+                  </div>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="text-center py-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-2xl mb-4">
+            <span className="text-2xl">😔</span>
           </div>
-        ) : (
-          <div className="p-6 text-center bg-muted rounded-lg">
-            <p>
-              Nenhum prestador com horários disponíveis para o(s) serviço(s) na data selecionada.
-            </p>
-            <div className="flex justify-center mt-4 space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSelectedDate(null);
-                  setCurrentStep("date");
-                }}
-              >
-                Escolher outra data
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSelectedServiceIds([]);
-                  setCurrentStep("service");
-                }}
-              >
-                Selecionar outros serviços
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  };
+          <p className="text-gray-500 font-medium">Nenhum prestador disponível para esta data.</p>
+        </div>
+      )}
+      
+      {/* Botão de continuar dentro da etapa */}
+      {selectedProvider && (
+        <div className="pt-6">
+          <Button 
+            className="w-full h-14 rounded-xl text-lg font-bold shadow-lg bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white transition-all transform hover:scale-[1.02]" 
+            onClick={handleNext}
+          >
+            Escolher Horário <ChevronRight className="ml-2 h-5 w-5" />
+          </Button>
+        </div>
+      )}
+    </div>
+  );
 
   const renderTimeSlotStep = () => {
     if (!selectedProvider || !selectedDate) {
       return (
-        <div className="p-6 text-center bg-yellow-100 rounded-lg text-yellow-800 font-semibold">
-          Dados insuficientes para buscar horários. Selecione um prestador e uma data.
+        <div className="text-center py-8">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-yellow-100 rounded-2xl mb-4">
+            <span className="text-2xl">⚠️</span>
+          </div>
+          <p className="text-yellow-800 font-semibold">Dados insuficientes para buscar horários.</p>
+          <p className="text-yellow-700 text-sm mt-1">Selecione um prestador e uma data.</p>
         </div>
       );
     }
 
-    // Preparar dados do serviço para o TimeSlotSelector
-    const selectedServicesData = services?.filter((s) => selectedServiceIds.includes(s.id)) || [];
-    const primaryService: Service | null = selectedServicesData.length > 0 ? {
-      id: selectedServicesData[0].id,
-      name: selectedServicesData[0].name,
-      durationMinutes: serviceExecutionTime || totalDuration || 60,
-      bufferTime: 0
-    } : null;
-
     return (
-      <div className="space-y-4">
-        <div className="text-center mb-6">
-          <h3 className="text-lg font-semibold mb-2">Escolha um horário disponível</h3>
+      <div className="space-y-8">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-2xl mb-4">
+            <span className="text-2xl">⏰</span>
+          </div>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">Escolha o horário</h3>
           <p className="text-gray-600">
             {selectedDate && `Para ${format(selectedDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}`}
           </p>
         </div>
 
-        <TimeSlotSelector
-          providerId={selectedProvider}
-          date={selectedDate.toISOString().split("T")[0]}
-          service={primaryService}
-          onTimeSlotSelect={(timeSlot) => {
-            if (timeSlot) {
-              handleTimeSlotSelect(timeSlot);
-            }
-          }}
-          selectedTimeSlot={selectedTimeSlot}
-        />
+        {loadingSlots && (
+          <div className="text-center py-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-2xl mb-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-500"></div>
+            </div>
+            <p className="text-gray-600 font-medium">Carregando horários disponíveis...</p>
+          </div>
+        )}
+
+        {!loadingSlots && timeSlots.length === 0 && (
+          <div className="text-center py-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-2xl mb-4">
+              <span className="text-2xl">😔</span>
+            </div>
+            <p className="text-gray-500 font-medium">Nenhum horário disponível para esta data.</p>
+          </div>
+        )}
+
+        {!loadingSlots && timeSlots.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {timeSlots.map((slot, index) => (
+              <button
+                key={index}
+                className={`group relative overflow-hidden rounded-2xl p-4 transition-all duration-300 transform hover:scale-[1.02] ${
+                  selectedTimeSlot?.startTime === slot.startTime
+                    ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
+                    : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
+                }`}
+                onClick={() => handleTimeSlotSelect(slot)}
+              >
+                <div className="text-center">
+                  <div className={`font-bold text-lg ${
+                    selectedTimeSlot?.startTime === slot.startTime ? 'text-white' : 'text-gray-800'
+                  }`}>
+                    {slot.startTime}
+                  </div>
+                  <div className={`text-sm ${
+                    selectedTimeSlot?.startTime === slot.startTime ? 'text-white/80' : 'text-gray-500'
+                  }`}>
+                    até {slot.endTime}
+                  </div>
+                </div>
+                {selectedTimeSlot?.startTime === slot.startTime && (
+                  <div className="absolute top-2 right-2">
+                    <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                      <Check className="w-3 h-3 text-white" />
+                    </div>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
 
         {selectedTimeSlot && (
-          <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-            <div className="flex items-center justify-center space-x-2">
-              <Check className="h-5 w-5 text-green-600" />
-              <span className="text-green-800 font-medium">
+          <div className="mt-6 p-4 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl">
+            <div className="flex items-center justify-center space-x-3">
+              <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
+                <Check className="h-4 w-4 text-white" />
+              </div>
+              <span className="text-green-800 font-semibold">
                 Horário selecionado: {selectedTimeSlot.startTime} - {selectedTimeSlot.endTime}
               </span>
             </div>
+          </div>
+        )}
+        
+        {/* Botão de continuar dentro da etapa */}
+        {selectedTimeSlot && (
+          <div className="pt-6">
+            <Button 
+              className="w-full h-14 rounded-xl text-lg font-bold shadow-lg bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white transition-all transform hover:scale-[1.02]" 
+              onClick={handleNext}
+            >
+              Ir para Pagamento <ChevronRight className="ml-2 h-5 w-5" />
+            </Button>
           </div>
         )}
       </div>
@@ -943,14 +1025,25 @@ export function NewBookingWizard({
     const totalWithFee = totalPrice + adminFee;
 
     return (
-      <div className="space-y-6">
-        <div className="bg-muted p-4 rounded-lg mb-6">
-          <h3 className="font-medium mb-2">Resumo do agendamento</h3>
-          <div className="space-y-3 text-sm">
+      <div className="space-y-8">
+        <div className="text-center">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-teal-500 to-cyan-500 rounded-2xl mb-4">
+            <span className="text-2xl">💳</span>
+          </div>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">Método de pagamento</h3>
+          <p className="text-gray-600">Escolha como você deseja pagar</p>
+        </div>
+
+        <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-6 rounded-2xl border border-gray-200">
+          <h3 className="font-bold text-gray-800 mb-4 flex items-center">
+            <span className="mr-2">📋</span>
+            Resumo do agendamento
+          </h3>
+          <div className="space-y-4 text-sm">
             <div>
-              <div className="flex justify-between mb-1">
-                <span className="text-muted-foreground">Serviços:</span>
-                <span className="font-medium">
+              <div className="flex justify-between mb-2">
+                <span className="text-gray-600">Serviços:</span>
+                <span className="font-semibold text-gray-800">
                   {selectedServicesData.length} serviço(s)
                 </span>
               </div>
@@ -958,196 +1051,270 @@ export function NewBookingWizard({
               {selectedServicesData.map((service, index) => (
                 <div
                   key={service.id}
-                  className="ml-4 text-sm border-l-2 border-gray-200 pl-3 py-1"
+                  className="ml-4 text-sm border-l-2 border-teal-200 pl-3 py-1 bg-white/50 rounded-r-lg"
                 >
-                  <span>{service.name}</span>
+                  <span className="text-gray-700">{service.name}</span>
                 </div>
               ))}
 
-              <div className="mt-2 border-t border-gray-200 pt-2 flex justify-between text-sm font-medium">
+              <div className="mt-3 border-t border-gray-200 pt-3 flex justify-between text-sm font-semibold">
                 <span>Duração total:</span>
-                <span>{totalDuration} minutos</span>
+                <span className="text-teal-600">{totalDuration} minutos</span>
               </div>
               {totalPrice > 0 && (
                 <>
-                  <div className="flex justify-between text-sm font-medium">
+                  <div className="flex justify-between text-sm font-semibold">
                     <span>Subtotal:</span>
-                    <span>R$ {(totalPrice / 100).toFixed(2).replace(".", ",")}</span>
+                    <span className="text-teal-600">R$ {(totalPrice / 100).toFixed(2).replace(".", ",")}</span>
                   </div>
                   {adminFee > 0 && (
-                    <div className="flex justify-between text-sm font-medium">
+                    <div className="flex justify-between text-sm font-semibold">
                       <span>Taxa administrativa:</span>
-                      <span>R$ {(adminFee / 100).toFixed(2).replace(".", ",")}</span>
+                      <span className="text-teal-600">R$ {(adminFee / 100).toFixed(2).replace(".", ",")}</span>
                     </div>
                   )}
-                  <div className="flex justify-between text-base font-bold border-t pt-2 mt-2">
+                  <div className="flex justify-between text-lg font-bold border-t border-teal-200 pt-3 mt-3 bg-white/50 rounded-lg p-3">
                     <span>Total:</span>
-                    <span>R$ {(totalWithFee / 100).toFixed(2).replace(".", ",")}</span>
+                    <span className="text-teal-600">R$ {(totalWithFee / 100).toFixed(2).replace(".", ",")}</span>
                   </div>
                 </>
               )}
             </div>
 
-            <div className="flex justify-between pt-1">
-              <span className="text-muted-foreground">Prestador:</span>
-              <span className="font-medium">
-                {providerSelected?.name || "Prestador selecionado"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Data:</span>
-              <span className="font-medium">
-                {selectedDate
-                  ? format(selectedDate, "dd 'de' MMMM 'de' yyyy", {
-                      locale: ptBR,
-                    })
-                  : "Data selecionada"}
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Horário:</span>
-              <span className="font-medium">
-                {selectedTimeSlot
-                  ? `${selectedTimeSlot.startTime} - ${selectedTimeSlot.endTime}`
-                  : "Horário selecionado"}
-              </span>
+            <div className="grid grid-cols-1 gap-3 pt-3 border-t border-gray-200">
+              <div className="flex justify-between">
+                <span className="text-gray-600">Prestador:</span>
+                <span className="font-semibold text-gray-800">
+                  {providerSelected?.name || "Prestador selecionado"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Data:</span>
+                <span className="font-semibold text-gray-800">
+                  {selectedDate
+                    ? format(selectedDate, "dd 'de' MMMM 'de' yyyy", {
+                        locale: ptBR,
+                      })
+                    : "Data selecionada"}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-600">Horário:</span>
+                <span className="font-semibold text-gray-800">
+                  {selectedTimeSlot
+                    ? `${selectedTimeSlot.startTime} - ${selectedTimeSlot.endTime}`
+                    : "Horário selecionado"}
+                </span>
+              </div>
             </div>
           </div>
         </div>
 
         {!paymentType ? (
           <>
-            <p className="text-gray-500">Como você deseja pagar?</p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card
-                className="cursor-pointer hover:border-primary hover:shadow-md transition-all"
+            <div className="grid grid-cols-1 gap-4">
+              <button
+                className="group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg"
                 onClick={() => handlePaymentTypeSelect("local")}
               >
-                <CardContent className="pt-6 pb-6 flex flex-col items-center text-center">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-3">
-                    💵
+                <div className="flex items-center space-x-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110">
+                    <span className="text-2xl">💵</span>
                   </div>
-                  <h3 className="text-lg font-semibold">Pagamento Local</h3>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Pague diretamente ao prestador no dia do serviço
-                  </p>
-                </CardContent>
-              </Card>
+                  <div className="text-left">
+                    <h3 className="font-bold text-lg text-gray-800">Pagamento Local</h3>
+                    <p className="text-gray-600 mt-1">
+                      Pague diretamente ao prestador no dia do serviço
+                    </p>
+                  </div>
+                </div>
+              </button>
 
-              <Card
-                className="cursor-pointer hover:border-primary hover:shadow-md transition-all"
+              <button
+                className="group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg"
                 onClick={() => handlePaymentTypeSelect("online")}
               >
-                <CardContent className="pt-6 pb-6 flex flex-col items-center text-center">
-                  <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-3">
-                    💳
+                <div className="flex items-center space-x-4">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110">
+                    <span className="text-2xl">💳</span>
                   </div>
-                  <h3 className="text-lg font-semibold">Pagamento Online</h3>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Pague agora usando cartão de crédito ou PIX
-                  </p>
-                </CardContent>
-              </Card>
+                  <div className="text-left">
+                    <h3 className="font-bold text-lg text-gray-800">Pagamento Online</h3>
+                    <p className="text-gray-600 mt-1">
+                      Pague agora usando cartão de crédito ou PIX
+                    </p>
+                  </div>
+                </div>
+              </button>
             </div>
           </>
         ) : (
           <>
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-gray-500">
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="font-semibold text-gray-800">
                 {paymentType === "local"
                   ? "Escolha como deseja pagar no local"
                   : "Escolha como deseja pagar online"}
-              </p>
+              </h4>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setPaymentType(null)}
-                className="text-sm"
+                className="text-sm hover:bg-gray-100"
               >
                 Voltar
               </Button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {paymentType === "local" ? (
-                <Card
-                  className={`cursor-pointer hover:border-primary ${selectedPaymentMethod === "money" ? "border-primary" : ""}`}
+                <button
+                  className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
+                    selectedPaymentMethod === "money"
+                      ? 'bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-xl'
+                      : 'bg-white border border-gray-200 hover:border-green-300 hover:shadow-lg'
+                  }`}
                   onClick={() => handlePaymentMethodSelect("money")}
                 >
-                  <CardContent className="pt-6 flex flex-col items-center text-center">
-                    <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-3">
-                      💵
+                  <div className="flex items-center space-x-4">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${
+                      selectedPaymentMethod === "money" ? 'bg-white/20' : 'bg-green-100'
+                    }`}>
+                      <span className="text-xl">💵</span>
                     </div>
-                    <h3 className="font-semibold">Dinheiro</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Pague em dinheiro no local
-                    </p>
-                  </CardContent>
-                </Card>
+                    <div className="text-left">
+                      <h3 className={`font-semibold text-lg ${
+                        selectedPaymentMethod === "money" ? 'text-white' : 'text-gray-800'
+                      }`}>
+                        Dinheiro
+                      </h3>
+                      <p className={`text-sm mt-1 ${
+                        selectedPaymentMethod === "money" ? 'text-white/80' : 'text-gray-600'
+                      }`}>
+                        Pagamento em dinheiro
+                      </p>
+                    </div>
+                  </div>
+                  {selectedPaymentMethod === "money" && (
+                    <div className="absolute top-3 right-3">
+                      <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                        <Check className="w-4 h-4 text-white" />
+                      </div>
+                    </div>
+                  )}
+                </button>
               ) : (
                 <>
-                  <Card
-                    className={`cursor-pointer hover:border-primary ${selectedPaymentMethod === "credit_card" ? "border-primary" : ""}`}
+                  <button
+                    className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
+                      selectedPaymentMethod === "credit_card"
+                        ? 'bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-xl'
+                        : 'bg-white border border-gray-200 hover:border-blue-300 hover:shadow-lg'
+                    }`}
                     onClick={() => handlePaymentMethodSelect("credit_card")}
                   >
-                    <CardContent className="pt-6 flex flex-col items-center text-center">
-                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-3">
-                        💳
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${
+                        selectedPaymentMethod === "credit_card" ? 'bg-white/20' : 'bg-blue-100'
+                      }`}>
+                        <span className="text-xl">💳</span>
                       </div>
-                      <h3 className="font-semibold">Cartão de Crédito</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Pagamento seguro online
-                      </p>
-                    </CardContent>
-                  </Card>
+                      <div className="text-left">
+                        <h3 className={`font-semibold text-lg ${
+                          selectedPaymentMethod === "credit_card" ? 'text-white' : 'text-gray-800'
+                        }`}>
+                          Cartão de Crédito
+                        </h3>
+                        <p className={`text-sm mt-1 ${
+                          selectedPaymentMethod === "credit_card" ? 'text-white/80' : 'text-gray-600'
+                        }`}>
+                          Pagamento seguro online
+                        </p>
+                      </div>
+                    </div>
+                    {selectedPaymentMethod === "credit_card" && (
+                      <div className="absolute top-3 right-3">
+                        <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                          <Check className="w-4 h-4 text-white" />
+                        </div>
+                      </div>
+                    )}
+                  </button>
 
-                  <Card
-                    className={`cursor-pointer hover:border-primary ${selectedPaymentMethod === "pix" ? "border-primary" : ""}`}
+                  <button
+                    className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
+                      selectedPaymentMethod === "pix"
+                        ? 'bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-xl'
+                        : 'bg-white border border-gray-200 hover:border-green-300 hover:shadow-lg'
+                    }`}
                     onClick={() => handlePaymentMethodSelect("pix")}
                   >
-                    <CardContent className="pt-6 flex flex-col items-center text-center">
-                      <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-3">
-                        📱
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${
+                        selectedPaymentMethod === "pix" ? 'bg-white/20' : 'bg-green-100'
+                      }`}>
+                        <span className="text-xl">📱</span>
                       </div>
-                      <h3 className="font-semibold">PIX</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Transferência instantânea
-                      </p>
-                    </CardContent>
-                  </Card>
+                      <div className="text-left">
+                        <h3 className={`font-semibold text-lg ${
+                          selectedPaymentMethod === "pix" ? 'text-white' : 'text-gray-800'
+                        }`}>
+                          PIX
+                        </h3>
+                        <p className={`text-sm mt-1 ${
+                          selectedPaymentMethod === "pix" ? 'text-white/80' : 'text-gray-600'
+                        }`}>
+                          Transferência instantânea
+                        </p>
+                      </div>
+                    </div>
+                    {selectedPaymentMethod === "pix" && (
+                      <div className="absolute top-3 right-3">
+                        <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                          <Check className="w-4 h-4 text-white" />
+                        </div>
+                      </div>
+                    )}
+                  </button>
                 </>
               )}
             </div>
           </>
         )}
 
-        <div className="pt-4">
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={handleFinishBooking}
-            disabled={!paymentType || !selectedPaymentMethod}
-          >
-            Finalizar Agendamento
-            <ChevronRight className="ml-2 h-5 w-5" />
-          </Button>
-        </div>
+        {/* Botão de continuar dentro da etapa */}
+        {paymentType && selectedPaymentMethod && (
+          <div className="pt-6">
+            <Button 
+              className="w-full h-14 rounded-xl text-lg font-bold shadow-lg bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white transition-all transform hover:scale-[1.02]" 
+              onClick={handleFinishBooking}
+            >
+              Finalizar Agendamento <ChevronRight className="ml-2 h-5 w-5" />
+            </Button>
+          </div>
+        )}
       </div>
     );
   };
 
   const renderConfirmationStep = () => {
     return (
-      <div className="space-y-6 text-center">
-        <div className="flex flex-col items-center justify-center py-10">
-          <span className="text-5xl mb-4">✅</span>
-          <h2 className="text-2xl font-bold mb-2">Agendamento Confirmado!</h2>
-          <p className="text-muted-foreground mb-4">
+      <div className="space-y-8 text-center">
+        <div className="flex flex-col items-center justify-center py-8">
+          <div className="w-24 h-24 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center mb-6 shadow-xl">
+            <span className="text-4xl">✅</span>
+          </div>
+          <h2 className="text-3xl font-bold mb-3 text-gray-800">Agendamento Confirmado!</h2>
+          <p className="text-gray-600 mb-6 text-lg">
             Seu agendamento foi realizado com sucesso.
           </p>
+          <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl border border-green-200 mb-6">
+            <p className="text-green-800 font-semibold">
+              Você receberá uma confirmação por email em breve.
+            </p>
+          </div>
           <Button
-            className="mt-4"
+            className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white px-8 py-3 rounded-xl font-semibold shadow-lg transition-all transform hover:scale-105"
             onClick={() => window.location.href = '/client/booking-confirmation-page'}
           >
             Ver meus agendamentos
@@ -1180,104 +1347,151 @@ export function NewBookingWizard({
     }
   };
 
-  const renderProgressBar = () => {
-    const steps: BookingStep[] = [
-      "niche",
-      "category",
-      "service",
-      "date",
-      "providers",
-      "time-slot",
-      "payment",
-      "confirmation",
-    ];
-    const currentIndex = steps.indexOf(currentStep);
-
-    return (
-      <div className="w-full bg-muted h-2 rounded-full mb-6">
-        <div
-          className="bg-primary h-2 rounded-full transition-all"
-          style={{ width: `${((currentIndex + 1) / steps.length) * 100}%` }}
-        />
-      </div>
-    );
-  };
+  // Array de passos para o progress bar
+  const steps: BookingStep[] = [
+    "niche",
+    "category", 
+    "service",
+    "date",
+    "providers",
+    "time-slot",
+    "payment",
+    "confirmation",
+  ];
 
   // --- NOVO WRAPPER DE LAYOUT ---
   return (
-    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-teal-400 via-cyan-200 to-blue-100 relative">
-      <div className="w-full max-w-md mx-auto px-2 sm:px-0 py-6 flex flex-col flex-1">
-        {/* Barra de progresso mais grossa e visual */}
-        <div className="sticky top-0 z-30">
-          {renderProgressBar()}
-        </div>
-        {/* Card principal do wizard */}
-        <div className="bg-white/95 shadow-2xl rounded-3xl px-4 py-6 sm:px-8 sm:py-8 mt-4 mb-28 sm:mb-16">
-          {/* Cabeçalho do passo */}
-          <div className="flex items-center justify-between mb-6">
-            <button
-              className={`rounded-full bg-white shadow p-2 transition hover:bg-gray-100 ${currentStep === 'niche' || currentStep === 'confirmation' ? 'invisible' : ''}`}
-              onClick={handleBack}
-              aria-label="Voltar"
-              disabled={currentStep === 'niche' || currentStep === 'confirmation'}
-              style={{ pointerEvents: currentStep === 'niche' || currentStep === 'confirmation' ? 'none' : 'auto' }}
-            >
-              <ChevronLeft className="h-6 w-6 text-teal-600" />
-            </button>
-            <h2 className="text-xl sm:text-2xl font-extrabold text-center flex-1">
-              {renderStepTitle()}
-            </h2>
-            <div className="w-10" /> {/* Espaço para alinhar */}
-          </div>
-          {/* Passos do wizard */}
-          <div className="min-h-[320px] flex flex-col justify-center">
-            
+    <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-teal-900 to-cyan-900 relative overflow-hidden">
+      {/* Background decorativo */}
+      <div className="absolute inset-0">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-blue-500/5 rounded-full blur-2xl"></div>
+      </div>
 
+      {/* Header flutuante */}
+      <div className="relative z-10 pt-6 pb-4">
+        <div className="max-w-md mx-auto px-4">
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 border border-white/20">
+            <div className="flex items-center justify-between">
+              <button
+                className={`rounded-xl bg-white/20 backdrop-blur-sm p-3 transition-all hover:bg-white/30 hover:scale-105 ${
+                  currentStep === 'niche' || currentStep === 'confirmation' ? 'invisible' : ''
+                }`}
+                onClick={handleBack}
+                aria-label="Voltar"
+                disabled={currentStep === 'niche' || currentStep === 'confirmation'}
+                style={{ pointerEvents: currentStep === 'niche' || currentStep === 'confirmation' ? 'none' : 'auto' }}
+              >
+                <ChevronLeft className="h-5 w-5 text-white" />
+              </button>
+              <h2 className="text-lg font-bold text-white text-center flex-1">
+                {renderStepTitle()}
+              </h2>
+              <div className="w-10" />
+            </div>
             
-            {currentStep === "niche" && renderNicheStep()}
-            {currentStep === "category" && renderCategoryStep()}
-            {currentStep === "service" && renderServiceStep()}
-            {currentStep === "date" && renderDateStep()}
-            {currentStep === "providers" && renderProvidersStep()}
-            {currentStep === "time-slot" && renderTimeSlotStep()}
-            {currentStep === "payment" && renderPaymentStep()}
-            {currentStep === "confirmation" && renderConfirmationStep()}
+            {/* Progress bar moderna */}
+            <div className="mt-4">
+              <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-teal-400 to-cyan-400 h-2 rounded-full transition-all duration-500 ease-out"
+                  style={{ width: `${((steps.indexOf(currentStep) + 1) / steps.length) * 100}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-2 text-xs text-white/70">
+                <span>Passo {steps.indexOf(currentStep) + 1}</span>
+                <span>de {steps.length}</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      {/* Botão de ação fixo no rodapé, exceto na confirmação */}
-      {currentStep !== "confirmation" && (
-        <div className="fixed bottom-4 left-0 right-0 flex justify-center z-40 pointer-events-none">
-          <div className="w-full max-w-md px-4 pointer-events-auto">
-            {/* Botão principal de ação, depende do passo */}
-            {currentStep === "service" && (
-              <Button 
-                className={`w-full h-14 rounded-full text-lg font-bold shadow-lg transition ${
-                  selectedServiceIds.length > 0 
-                    ? 'bg-teal-600 hover:bg-teal-700' 
-                    : 'bg-gray-400 cursor-not-allowed'
-                }`}
-                onClick={handleServiceContinue}
-                disabled={selectedServiceIds.length === 0}
+
+      {/* Conteúdo principal */}
+      <div className="relative z-10 px-4 pb-8">
+        <div className="max-w-md mx-auto">
+          <div className="bg-white/95 backdrop-blur-lg rounded-3xl shadow-2xl border border-white/30 overflow-hidden">
+            <div className="p-6">
+              <div className="min-h-[400px] flex flex-col justify-center">
+                {currentStep === "niche" && renderNicheStep()}
+                {currentStep === "category" && renderCategoryStep()}
+                {currentStep === "service" && renderServiceStep()}
+                {currentStep === "date" && renderDateStep()}
+                {currentStep === "providers" && renderProvidersStep()}
+                {currentStep === "time-slot" && renderTimeSlotStep()}
+                {currentStep === "payment" && renderPaymentStep()}
+                {currentStep === "confirmation" && renderConfirmationStep()}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      {/* Modal de Detalhes do Serviço */}
+      {showServiceModal && selectedServiceDetails && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-3">
+                <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
+                  <span className="text-xl">{getServiceIcon(selectedServiceDetails.name)}</span>
+                </div>
+                <h3 className="text-xl font-bold text-gray-800">{selectedServiceDetails.name}</h3>
+              </div>
+              <button
+                onClick={() => setShowServiceModal(false)}
+                className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center hover:bg-gray-200 transition-colors"
               >
-                {selectedServiceIds.length > 0 ? 'Continuar' : 'Selecione um serviço'} <ChevronRight className="ml-2 h-5 w-5" />
-              </Button>
-            )}
-            {currentStep === "date" && selectedDate && (
-              <Button className="w-full h-14 rounded-full text-lg font-bold shadow-lg bg-teal-600 hover:bg-teal-700 transition" onClick={handleNext}>
-                Ver Prestadores <ChevronRight className="ml-2 h-5 w-5" />
-              </Button>
-            )}
-            {currentStep === "providers" && selectedProvider && (
-              <Button className="w-full h-14 rounded-full text-lg font-bold shadow-lg bg-teal-600 hover:bg-teal-700 transition" onClick={handleNext}>
-                Escolher Horário <ChevronRight className="ml-2 h-5 w-5" />
-              </Button>
-            )}
-            {currentStep === "time-slot" && selectedTimeSlot && (
-              <Button className="w-full h-14 rounded-full text-lg font-bold shadow-lg bg-teal-600 hover:bg-teal-700 transition" onClick={handleNext}>
-                Ir para Pagamento <ChevronRight className="ml-2 h-5 w-5" />
-              </Button>
-            )}
+                <span className="text-gray-600">×</span>
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-semibold text-gray-800 mb-2">Descrição</h4>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  {selectedServiceDetails.description}
+                </p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="text-sm text-gray-600">Preço</div>
+                  <div className="font-bold text-teal-600 text-lg">
+                    R$ {(selectedServiceDetails.price / 100).toFixed(2).replace(".", ",")}
+                  </div>
+                </div>
+                <div className="bg-gray-50 p-3 rounded-lg">
+                  <div className="text-sm text-gray-600">Duração</div>
+                  <div className="font-bold text-gray-800 text-lg">
+                    {selectedServiceDetails.duration} min
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex space-x-3 mt-6">
+              <button
+                onClick={() => setShowServiceModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+              >
+                Fechar
+              </button>
+              <button
+                onClick={() => {
+                  handleServiceSelect(selectedServiceDetails.id);
+                  setShowServiceModal(false);
+                }}
+                className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  selectedServiceIds.includes(selectedServiceDetails.id)
+                    ? 'bg-gray-500 text-white'
+                    : 'bg-teal-500 text-white hover:bg-teal-600'
+                }`}
+              >
+                {selectedServiceIds.includes(selectedServiceDetails.id) ? 'Já Selecionado' : 'Selecionar Serviço'}
+              </button>
+            </div>
           </div>
         </div>
       )}

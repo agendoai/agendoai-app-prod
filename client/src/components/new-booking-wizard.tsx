@@ -379,7 +379,9 @@ export function NewBookingWizard({
   });
 
   // Extrair os slots de tempo da resposta
-  const availableTimeSlots = timeSlotsResponse?.timeSlots || [];
+  const availableTimeSlots = Array.isArray(timeSlotsResponse)
+    ? timeSlotsResponse
+    : timeSlotsResponse?.timeSlots || [];
   console.log("Slots disponíveis recebidos da API:", availableTimeSlots);
   console.log("Query enabled:", !!selectedProvider && !!selectedDate && !!selectedServiceTemplate);
   console.log("selectedProvider:", selectedProvider);
@@ -2047,12 +2049,9 @@ export function NewBookingWizard({
         if (!slot || !slot.startTime) return false;
         try {
           const hourStr = slot.startTime.split(":")[0];
-          console.log(
-            `Verificando slot da manhã - horário: ${slot.startTime}, hora: ${hourStr}`,
-          );
           const hour = parseInt(hourStr);
-          const isMorning = !isNaN(hour) && hour >= 6 && hour < 12;
-          console.log(`Slot ${slot.startTime} é da manhã? ${isMorning}`);
+          // Alterado: agora inclui horários de 00:00 até 12:00
+          const isMorning = !isNaN(hour) && hour >= 0 && hour < 12;
           return isMorning;
         } catch (e) {
           console.error("Erro ao processar slot da manhã:", slot, e);
@@ -2063,12 +2062,8 @@ export function NewBookingWizard({
         if (!slot || !slot.startTime) return false;
         try {
           const hourStr = slot.startTime.split(":")[0];
-          console.log(
-            `Verificando slot da tarde - horário: ${slot.startTime}, hora: ${hourStr}`,
-          );
           const hour = parseInt(hourStr);
           const isAfternoon = !isNaN(hour) && hour >= 12 && hour < 18;
-          console.log(`Slot ${slot.startTime} é da tarde? ${isAfternoon}`);
           return isAfternoon;
         } catch (e) {
           console.error("Erro ao processar slot da tarde:", slot, e);
@@ -2079,12 +2074,8 @@ export function NewBookingWizard({
         if (!slot || !slot.startTime) return false;
         try {
           const hourStr = slot.startTime.split(":")[0];
-          console.log(
-            `Verificando slot da noite - horário: ${slot.startTime}, hora: ${hourStr}`,
-          );
           const hour = parseInt(hourStr);
           const isEvening = !isNaN(hour) && hour >= 18;
-          console.log(`Slot ${slot.startTime} é da noite? ${isEvening}`);
           return isEvening;
         } catch (e) {
           console.error("Erro ao processar slot da noite:", slot, e);
@@ -2975,6 +2966,12 @@ export function NewBookingWizard({
   // )
 
   // Repita o padrão para as demais etapas (nichos, categorias, serviços, horários, profissional, pagamento)
+
+  // LOGS DE DEPURAÇÃO PARA AJUDAR A IDENTIFICAR O PROBLEMA
+  console.log('DEBUG - selectedProvider:', selectedProvider);
+  console.log('DEBUG - selectedDate:', selectedDate);
+  console.log('DEBUG - selectedServiceTemplate:', selectedServiceTemplate);
+  console.log('DEBUG - isSlotsLoading:', isSlotsLoading);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 pb-24">
