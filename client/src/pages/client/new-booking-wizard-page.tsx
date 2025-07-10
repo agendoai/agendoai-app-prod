@@ -63,18 +63,13 @@ export default function NewBookingWizardPage() {
       </Helmet>
       
       <ClientLayout>
-        <div className="container mx-auto py-6 max-w-3xl">
-          <h1 className="text-3xl font-extrabold text-primary dark:text-white mb-6 text-center">Novo Agendamento</h1>
-          <NewBookingWizard 
-            onComplete={handleBookingComplete}
-            preSelectedServiceId={null} // Sempre passa null para forçar o início pelo primeiro passo
-          />
-          <div className="bg-white dark:bg-neutral-900 rounded-xl shadow-lg p-4 hover:scale-105 hover:shadow-2xl transition-transform cursor-pointer flex flex-col items-center gap-2">
-            {/* conteúdo do card */}
-          </div>
-          <div className="flex flex-col items-center py-6 text-neutral-500 dark:text-neutral-400">
-            <svg width="64" height="64" fill="none" viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="#F3F4F6"/><path d="M32 20v12l8 4" stroke="#6366F1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            <p className="mt-2">Nenhum horário disponível.</p>
+        <div className="w-full min-h-screen flex flex-col items-center bg-white">
+          <h1 className="text-xl sm:text-2xl font-bold text-neutral-900 mb-4 text-center mt-4 tracking-tight">Novo agendamento</h1>
+          <div className="w-full flex-1 flex flex-col items-center">
+            <NewBookingWizard 
+              onComplete={handleBookingComplete}
+              preSelectedServiceId={null} // Sempre passa null para forçar o início pelo primeiro passo
+            />
           </div>
         </div>
       </ClientLayout>

@@ -350,9 +350,17 @@ export function NewBookingWizard({
     updateExecutionTime();
   }, [selectedProvider, selectedServiceIds, fetchProviderServiceExecutionTime]);
 
-  // O TimeSlotSelector gerencia seu próprio estado de busca de horários
-
-
+  // Avançar automaticamente para a etapa de data quando selectedServiceIds for atualizado
+  useEffect(() => {
+    if (currentStep === 'service' && selectedServiceIds.length > 0) {
+      setCurrentStep('date');
+    }
+    // Limpar seleção de data, prestador, horários e serviços do prestador ao trocar serviço
+    setSelectedDate(null);
+    setSelectedProvider(null);
+    setSelectedTimeSlot(null);
+    setProviderServices({});
+  }, [selectedServiceIds]);
 
   // Funções de navegação
   const handleNext = () => {
@@ -410,7 +418,7 @@ export function NewBookingWizard({
     if (isSelected) {
       newSelectedIds = selectedServiceIds.filter((id) => id !== serviceId);
     } else {
-      newSelectedIds = [...selectedServiceIds, serviceId];
+      newSelectedIds = [serviceId]; // Permitir apenas um serviço por vez
     }
 
     setSelectedServiceIds(newSelectedIds);
@@ -484,16 +492,51 @@ export function NewBookingWizard({
       return;
     }
 
-    // Se for pagamento online, simular redirecionamento para gateway
-    if (paymentType === "online") {
-      // Aqui você pode integrar com o gateway real
-      // Simular espera/retorno do gateway
+    try {
+      let response;
+      if (selectedServiceIds.length === 1) {
+        // Agendamento simples
+        response = await fetch('/api/booking', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            providerId: selectedProvider,
+            serviceId: selectedServiceIds[0],
+            date: selectedDate.toISOString().split('T')[0],
+            startTime: selectedTimeSlot.startTime,
+          })
+        });
+      } else {
+        // Agendamento de múltiplos serviços consecutivos
+        response = await fetch('/api/booking/consecutive', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            providerId: selectedProvider,
+            date: selectedDate.toISOString().split('T')[0],
+            startTime: selectedTimeSlot.startTime,
+            services: selectedServiceIds.map(id => {
+              const service = (providerServices[selectedProvider] || []).find(s => s.id === id);
+              return {
+                serviceId: id,
+                duration: service?.duration || 30
+              };
+            })
+          })
+        });
+      }
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao criar agendamento');
+      }
       setCurrentStep("confirmation");
-      return;
+    } catch (error) {
+      toast({
+        title: "Erro ao criar agendamento",
+        description: error.message || "Tente novamente.",
+        variant: "destructive",
+      });
     }
-
-    // Se for pagamento local, vai direto para confirmação
-    setCurrentStep("confirmation");
   };
 
   // Função para calcular o total de duração e preço para um prestador
@@ -541,8 +584,11 @@ export function NewBookingWizard({
     // Adapte conforme suas categorias reais
     return getNicheIcon(name);
   }
-  function getServiceIcon(name) {
+  function getServiceIcon(name, isSmall = false) {
     // Adapte conforme seus serviços reais
+    if (isSmall) {
+      return <Sparkles className="h-8 w-8" />;
+    }
     return <Sparkles className="h-10 w-10" />;
   }
 
@@ -665,86 +711,67 @@ export function NewBookingWizard({
         {services?.map((service) => (
           <div
             key={service.id}
-            className={`group relative overflow-hidden rounded-2xl transition-all duration-300 transform hover:scale-[1.02] ${
+            className={`group relative overflow-hidden rounded-xl transition-all duration-300 transform hover:scale-[1.01] ${
               selectedServiceIds.includes(service.id)
                 ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
                 : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
             }`}
+            onClick={() => {
+              handleServiceSelect(service.id);
+            }}
+            style={{ cursor: 'pointer' }}
           >
-            <div className="p-6">
+            <div className="p-3 sm:p-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 ${
+                <div className="flex items-center space-x-2 sm:space-x-4">
+                  <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-105 ${
                     selectedServiceIds.includes(service.id) 
                       ? 'bg-white/20' 
                       : 'bg-teal-100'
                   }`}>
-                    <span className="text-xl">{getServiceIcon(service.name)}</span>
+                    <span className="text-lg sm:text-xl">{getServiceIcon(service.name, true)}</span>
                   </div>
                   <div className="text-left">
-                    <h3 className={`font-semibold text-lg ${
+                    <h3 className={`font-semibold text-base sm:text-lg ${
                       selectedServiceIds.includes(service.id) ? 'text-white' : 'text-gray-800'
                     }`}>
                       {service.name}
                     </h3>
-                    <p className={`text-sm mt-1 ${
+                    <p className={`text-xs sm:text-sm mt-1 ${
                       selectedServiceIds.includes(service.id) ? 'text-white/80' : 'text-gray-600'
                     }`}>
-                      {service.description.length > 60 
-                        ? `${service.description.substring(0, 60)}...` 
+                      {service.description.length > 40 
+                        ? `${service.description.substring(0, 40)}...` 
                         : service.description
                       }
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className={`font-bold text-lg ${
-                    selectedServiceIds.includes(service.id) ? 'text-white' : 'text-teal-600'
-                  }`}>
-                    R$ {(service.price / 100).toFixed(2).replace(".", ",")}
-                  </div>
-                  <div className={`text-sm ${
-                    selectedServiceIds.includes(service.id) ? 'text-white/70' : 'text-gray-500'
-                  }`}>
-                    {service.duration} min
-                  </div>
                 </div>
               </div>
-              
               {/* Botão Ver Detalhes */}
-              <div className="mt-4 flex justify-between items-center">
-                                  <button
-                    className={`text-sm font-medium transition-colors ${
-                      selectedServiceIds.includes(service.id) 
-                        ? 'text-white/80 hover:text-white' 
-                        : 'text-teal-600 hover:text-teal-700'
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedServiceDetails(service);
-                      setShowServiceModal(true);
-                    }}
-                  >
-                    Ver detalhes
-                  </button>
-                
+              <div className="mt-2 flex justify-between items-center">
                 <button
-                  className={`px-4 py-2 rounded-lg font-medium transition-all ${
-                    selectedServiceIds.includes(service.id)
-                      ? 'bg-white/20 text-white hover:bg-white/30'
-                      : 'bg-teal-500 text-white hover:bg-teal-600'
+                  className={`text-xs sm:text-sm font-medium transition-colors ${
+                    selectedServiceIds.includes(service.id) 
+                      ? 'text-white/80 hover:text-white' 
+                      : 'text-teal-600 hover:text-teal-700'
                   }`}
-                  onClick={() => handleServiceSelect(service.id)}
+                  onClick={e => {
+                    e.stopPropagation();
+                    setSelectedServiceDetails(service);
+                    setShowServiceModal(true);
+                  }}
                 >
-                  {selectedServiceIds.includes(service.id) ? 'Selecionado' : 'Selecionar'}
+                  Ver detalhes
                 </button>
               </div>
             </div>
-            
             {selectedServiceIds.includes(service.id) && (
-              <div className="absolute top-3 right-3">
-                <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
-                  <Check className="w-4 h-4 text-white" />
+              <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
+                <div className="w-5 h-5 sm:w-6 sm:h-6 bg-white/20 rounded-full flex items-center justify-center">
+                  <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
                 </div>
               </div>
             )}
@@ -753,20 +780,7 @@ export function NewBookingWizard({
       </div>
       
       {/* Botão de continuar dentro da etapa */}
-      <div className="pt-6">
-        <Button 
-          className={`w-full h-14 rounded-xl text-lg font-bold shadow-lg transition-all transform hover:scale-[1.02] ${
-            selectedServiceIds.length > 0 
-              ? 'bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white' 
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-          }`}
-          onClick={handleServiceContinue}
-          disabled={selectedServiceIds.length === 0}
-        >
-          {selectedServiceIds.length > 0 ? 'Continuar' : 'Selecione um serviço'} 
-          <ChevronRight className="ml-2 h-5 w-5" />
-        </Button>
-      </div>
+      {/* Removido para fluxo automático */}
     </div>
   );
 
@@ -862,11 +876,11 @@ export function NewBookingWizard({
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className={`font-bold text-lg ${
-                      selectedProvider === provider.id ? 'text-white' : 'text-teal-600'
-                    }`}>
-                      R$ {(totals.price / 100).toFixed(2).replace(".", ",")}
-                    </div>
+                    {providerServices[provider.id] && providerServices[provider.id].length > 0 && providerServices[provider.id].map((service, idx) => (
+                      <div key={service.id} className="text-sm font-semibold text-neutral-800">
+                        {service.name} - R$ {Number(service.price).toFixed(2).replace('.', ',')}
+                      </div>
+                    ))}
                     <div className={`text-sm ${
                       selectedProvider === provider.id ? 'text-white/70' : 'text-gray-500'
                     }`}>
@@ -1022,7 +1036,8 @@ export function NewBookingWizard({
 
     // No passo de pagamento, ao calcular o valor final:
     const adminFee = providerFee?.fixedFee || 0;
-    const totalWithFee = totalPrice + adminFee;
+    const bookingFee = 1.75; // Taxa fixa de agendamento
+    const totalWithFee = totalPrice + adminFee + bookingFee;
 
     return (
       <div className="space-y-8">
@@ -1065,17 +1080,21 @@ export function NewBookingWizard({
                 <>
                   <div className="flex justify-between text-sm font-semibold">
                     <span>Subtotal:</span>
-                    <span className="text-teal-600">R$ {(totalPrice / 100).toFixed(2).replace(".", ",")}</span>
+                    <span className="text-teal-600">R$ {totalPrice.toFixed(2).replace(".", ",")}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-semibold">
+                    <span>Taxa de agendamento:</span>
+                    <span className="text-teal-600">R$ 1,75</span>
                   </div>
                   {adminFee > 0 && (
                     <div className="flex justify-between text-sm font-semibold">
                       <span>Taxa administrativa:</span>
-                      <span className="text-teal-600">R$ {(adminFee / 100).toFixed(2).replace(".", ",")}</span>
+                      <span className="text-teal-600">R$ {adminFee.toFixed(2).replace(".", ",")}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-lg font-bold border-t border-teal-200 pt-3 mt-3 bg-white/50 rounded-lg p-3">
                     <span>Total:</span>
-                    <span className="text-teal-600">R$ {(totalWithFee / 100).toFixed(2).replace(".", ",")}</span>
+                    <span className="text-teal-600">R$ {totalWithFee.toFixed(2).replace(".", ",")}</span>
                   </div>
                 </>
               )}
@@ -1361,7 +1380,7 @@ export function NewBookingWizard({
 
   // --- NOVO WRAPPER DE LAYOUT ---
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-900 via-teal-900 to-cyan-900 relative overflow-hidden">
+    <div className="min-h-screen w-full bg-white relative overflow-hidden">
       {/* Background decorativo */}
       <div className="absolute inset-0">
         <div className="absolute top-0 left-0 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl"></div>
@@ -1375,7 +1394,7 @@ export function NewBookingWizard({
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-4 border border-white/20">
             <div className="flex items-center justify-between">
               <button
-                className={`rounded-xl bg-white/20 backdrop-blur-sm p-3 transition-all hover:bg-white/30 hover:scale-105 ${
+                className={`rounded-xl bg-gray-100 p-3 transition-all hover:bg-gray-200 hover:scale-105 ${
                   currentStep === 'niche' || currentStep === 'confirmation' ? 'invisible' : ''
                 }`}
                 onClick={handleBack}
@@ -1383,23 +1402,22 @@ export function NewBookingWizard({
                 disabled={currentStep === 'niche' || currentStep === 'confirmation'}
                 style={{ pointerEvents: currentStep === 'niche' || currentStep === 'confirmation' ? 'none' : 'auto' }}
               >
-                <ChevronLeft className="h-5 w-5 text-white" />
+                <ChevronLeft className="h-5 w-5 text-neutral-700" />
               </button>
-              <h2 className="text-lg font-bold text-white text-center flex-1">
+              <h2 className="text-lg font-extrabold text-neutral-900 text-center flex-1">
                 {renderStepTitle()}
               </h2>
               <div className="w-10" />
             </div>
-            
             {/* Progress bar moderna */}
             <div className="mt-4">
-              <div className="w-full bg-white/20 rounded-full h-2 overflow-hidden">
+              <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                 <div
                   className="bg-gradient-to-r from-teal-400 to-cyan-400 h-2 rounded-full transition-all duration-500 ease-out"
                   style={{ width: `${((steps.indexOf(currentStep) + 1) / steps.length) * 100}%` }}
                 />
               </div>
-              <div className="flex justify-between mt-2 text-xs text-white/70">
+              <div className="flex justify-between mt-2 text-xs text-neutral-500">
                 <span>Passo {steps.indexOf(currentStep) + 1}</span>
                 <span>de {steps.length}</span>
               </div>

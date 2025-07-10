@@ -577,228 +577,167 @@ export default function ClientDashboard() {
   const todayAppointments = appointments.filter(a => a.date === new Date().toISOString().split('T')[0]);
 
     return (
-    <div className="min-h-screen bg-[#f7f7f9] pb-24 flex justify-center">
-      <div className="w-full max-w-md mx-auto">
-        <header className="flex flex-col items-center justify-center px-4 pt-8 pb-4 relative">
-          <img src="/AgendoAilogo.png" alt="AgendoAI Logo" className="h-32 w-auto mb-4 transition-all duration-300" />
-          {/* Menu de usuário */}
-          <div className="absolute top-4 right-4">
+    <div className="min-h-screen w-full bg-white pb-24 flex justify-center items-start">
+      <div className="w-full max-w-md mx-auto px-2 sm:px-0">
+        <header className="flex flex-col items-center justify-center pt-6 pb-2 relative">
+          <img src="/AgendoAilogo.png" alt="AgendoAI Logo" className="h-12 w-auto mb-1 drop-shadow-2xl" />
+          {/* Saudação personalizada */}
+          <h1 className="text-xl sm:text-2xl font-extrabold text-cyan-700 text-center mb-2 mt-1 tracking-tight drop-shadow-sm">
+            {user?.name ? `Bem-vindo, ${user.name.split(' ')[0]}!` : 'Bem-vindo!'}
+          </h1>
+          <div className="absolute top-2 right-2">
             <div className="group relative">
-              <button className="flex items-center gap-2 bg-white/80 hover:bg-white shadow px-3 py-1.5 rounded-full border border-gray-200 text-blue-900 font-semibold focus:outline-none">
-                <User className="h-6 w-6" />
+              <button className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 shadow px-2 py-1 rounded-full border border-gray-200 text-neutral-900 font-semibold focus:outline-none transition-all duration-200 text-sm">
+                <User className="h-5 w-5 text-cyan-500" />
                 <span className="hidden sm:inline">Menu</span>
               </button>
-              <div className="hidden group-hover:flex group-focus:flex flex-col absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-100 z-50">
-                <button className="px-4 py-2 text-left hover:bg-blue-50" onClick={() => setLocation('/client/profile')}>Acessar Perfil</button>
-                <button className="px-4 py-2 text-left hover:bg-blue-50" onClick={() => setLocation('/client/support')}>Ajuda / Suporte</button>
-                <button className="px-4 py-2 text-left text-red-600 hover:bg-red-50" onClick={() => { if(window.confirm('Deseja realmente sair?')) { localStorage.clear(); setLocation('/'); } }}>Sair</button>
+              <div className="hidden group-hover:flex group-focus:flex flex-col absolute right-0 mt-2 w-44 bg-white rounded-2xl shadow-lg border border-gray-100 z-50">
+                <button className="px-3 py-2 text-left hover:bg-cyan-50 text-sm" onClick={() => setLocation('/client/profile')}>Acessar Perfil</button>
+                <button className="px-3 py-2 text-left hover:bg-cyan-50 text-sm" onClick={() => setLocation('/client/support')}>Ajuda / Suporte</button>
+                <button className="px-3 py-2 text-left text-red-600 hover:bg-red-50 text-sm" onClick={() => { if(window.confirm('Deseja realmente sair?')) { localStorage.clear(); setLocation('/'); } }}>Sair</button>
               </div>
             </div>
           </div>
         </header>
 
-        <div className="flex flex-col items-center mb-6">
-        <button
-            className="w-full max-w-xs h-16 rounded-2xl bg-gradient-to-br from-[#3EB9AA] to-[#2A9D8F] text-white text-xl shadow-xl flex flex-row items-center justify-center border-4 border-white mb-2 hover:scale-105 transition-transform duration-200 focus:outline-none focus:ring-4 focus:ring-[#3EB9AA]/40 font-bold gap-3"
+        {/* Botão de agendar fixo no topo */}
+        <div className="flex justify-center sticky top-0 z-30 bg-white pb-2 pt-2">
+          <button
+            className="w-[92%] h-11 rounded-lg bg-gradient-to-r from-cyan-400 via-teal-400 to-emerald-400 text-white text-base font-bold shadow flex flex-row items-center justify-center px-6 border-0 hover:brightness-105 hover:scale-[1.02] transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-300/40 gap-2"
             onClick={navigateToBookingWizard}
-        >
-            <PlusCircle className="h-8 w-8" />
+          >
+            <PlusCircle className="h-5 w-5 text-white mr-2" />
             Agendar
-        </button>
-      </div>
-
-        <div className="p-4 max-w-2xl mx-auto">
-      <div className="mx-4 mb-6">
-        <h2 className="font-bold text-blue-800 mb-2">Próximos Agendamentos</h2>
-            <AppointmentsSection 
-              appointments={appointments} 
-              isLoading={isAppointmentsLoading}
-              setLocation={setLocation}
-              limit={3}
-            />
-      </div>
-
-        <div className="mb-10">
-          <h2 className="text-lg sm:text-xl font-bold mb-3 text-neutral-800 border-l-4 border-primary pl-2">Serviços em Destaque</h2>
-          <div className="bg-white rounded-xl shadow p-4">
-            {isFeaturedServicesLoading ? (
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {[...Array(4)].map((_, index) => (
-                    <div key={`featured-skeleton-${index}`} className="w-40 flex-shrink-0">
-                    <Skeleton className="h-32 w-full rounded-md mb-2" />
-                    <Skeleton className="h-4 w-3/4 mb-1" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </div>
-                ))}
-              </div>
-            ) : featuredServices.length > 0 ? (
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {featuredServices.map(service => (
-                  <CategoryServiceCard 
-                      key={`featured-${service.id}`}
-                    service={service} 
-                      onClick={() => {}}
-                    setLocation={setLocation} 
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center py-6 text-neutral-500 dark:text-neutral-400">
-                <svg width="64" height="64" fill="none" viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="#F3F4F6"/><path d="M32 20v12l8 4" stroke="#6366F1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                <p className="mt-2">Nenhum serviço disponível no momento.</p>
-              </div>
-            )}
-          </div>
+          </button>
         </div>
 
-        <div className="h-4" />
-
-        <div className="mb-10">
-          <h2 className="text-lg sm:text-xl font-bold mb-3 text-neutral-800 border-l-4 border-primary pl-2">Serviços Populares</h2>
-          <div className="bg-white rounded-xl shadow p-4">
-            {isPopularServicesLoading ? (
-              <div className="space-y-3">
-                {[...Array(3)].map((_, index) => (
-                    <div key={`popular-skeleton-${index}`} className="w-full">
-                    <Skeleton className="h-24 w-full rounded-md" />
-                  </div>
-                ))}
-              </div>
-            ) : popularServices.length > 0 ? (
-              <div className="space-y-3">
-                {popularServices.map(service => (
-                  <ServiceCard 
-                      key={`popular-${service.id}`}
-                    service={service} 
-                      onClick={() => {}}
-                    setLocation={setLocation} 
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 text-neutral-500 dark:text-neutral-400">
-                <p>Nenhum serviço disponível no momento.</p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="h-4" />
-
-          {todayAppointments.length > 0 && (
-              <div className="mb-10">
-                <h2 className="text-lg sm:text-xl font-bold mb-3 text-neutral-800 border-l-4 border-primary pl-2">Agendamentos de Hoje</h2>
-                <div className="grid gap-4 sm:grid-cols-2">
-                {todayAppointments.map((appt) => (
-                  <div key={`today-appt-${appt.id}`} className="bg-green-100 border-l-4 border-green-500 rounded-lg p-4 shadow flex flex-col gap-2">
-                      <div className="flex items-center gap-2">
-                        <CheckCircle className="text-green-500" size={20} />
-                        <span className="font-semibold text-green-700 text-base">{appt.startTime} - {appt.endTime}</span>
-                      </div>
-                      <div className="text-sm text-neutral-700 font-medium">{appt.serviceName}</div>
-                      <div className="text-xs text-neutral-500">{appt.providerName}</div>
-                      <div className="flex justify-end">
-                        <Button size="sm" variant="outline" onClick={() => setLocation(`/client/appointments/${appt.id}`)}>Ver detalhes</Button>
-                      </div>
+        <div className="pt-1 pb-4 space-y-5">
+          <div className="mb-1">
+            <h2 className="font-bold text-neutral-900 text-[1.25rem] mb-2 tracking-wide">Próximos Agendamentos</h2>
+            <div className="space-y-2">
+              {isAppointmentsLoading ? (
+                <AppointmentsSkeleton />
+              ) : appointments.length > 0 ? (
+                appointments.slice(0, 3).map((appointment) => (
+                  <div key={`appointment-${appointment.id}`} className="flex items-center h-16 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-xl shadow p-2 hover:shadow-lg transition-all duration-150 cursor-pointer">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-cyan-50 mr-2">
+                      <CheckCircle className="text-cyan-400" size={22} />
                     </div>
-                  ))}
-                </div>
-              </div>
-          )}
-
-        <div className="h-4" />
-
-        <div className="mb-10">
-          <h2 className="text-lg sm:text-xl font-bold mb-3 text-neutral-800 border-l-4 border-primary pl-2">Por Categoria</h2>
-          <div className="bg-white rounded-xl shadow p-4">
-            <Tabs 
-              value={activeTab} 
-              onValueChange={setActiveTab}
-              className="mb-4"
-            >
-              <TabsList className="w-full overflow-x-auto flex flex-nowrap whitespace-nowrap pb-1 -mb-1">
-                <TabsTrigger value="all" className="flex-shrink-0">Todas</TabsTrigger>
-                {categories.map(category => (
-                  <TabsTrigger 
-                      key={`category-tab-${category.id}`}
-                    value={category.id.toString()}
-                    className="flex-shrink-0 flex items-center gap-2 transition-all duration-200"
-                  >
-                    <ScissorsIcon className="h-4 w-4 text-primary" />
-                    {category.name}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </Tabs>
-            {activeTab === "all" ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {categories.map(category => (
-                  <CategoryItem 
-                      key={`category-${category.id}`}
-                    category={category} 
-                    onClick={handleCategoryClick} 
-                  />
-                ))}
-              </div>
-            ) : isCategoryServicesLoading ? (
-              <div className="space-y-3">
-                {[...Array(3)].map((_, index) => (
-                    <div key={`category-skeleton-${index}`} className="w-full">
-                    <Skeleton className="h-24 w-full rounded-md" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-[1rem] text-neutral-900 truncate">{appointment.serviceName}</div>
+                      <div className="text-xs text-cyan-700 font-medium">{appointment.startTime} - {appointment.endTime}</div>
+                      <div className="text-xs text-neutral-400 truncate">{appointment.providerName}</div>
+                    </div>
+                    <Button size="sm" variant="outline" className="ml-2 px-3 py-1 text-xs" onClick={() => setLocation(`/client/appointments/${appointment.id}`)}>Ver</Button>
                   </div>
-                ))}
-              </div>
-            ) : categoryServices.length > 0 ? (
-              <div className="space-y-3">
-                {categoryServices.map(service => (
-                  <CategoryServiceCard 
-                      key={`category-service-${service.id}`}
-                    service={service} 
-                      onClick={() => {}}
-                    setLocation={setLocation} 
-                  />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-6 text-neutral-500 dark:text-neutral-400">
-                <p>Nenhum serviço disponível no momento.</p>
-              </div>
-            )}
+                ))
+              ) : (
+                <div className="flex flex-col items-center py-4 text-neutral-400 text-sm">Nenhum agendamento.</div>
+              )}
+            </div>
           </div>
+
+          <div className="mb-1">
+            <h2 className="text-[1.1rem] font-bold mb-2 text-neutral-900 border-l-4 border-cyan-400 pl-2 tracking-wide">Serviços em Destaque</h2>
+            <div className="space-y-2">
+              {isFeaturedServicesLoading ? (
+                <AppointmentsSkeleton />
+              ) : featuredServices.length > 0 ? (
+                featuredServices.map(service => (
+                  <div key={`featured-${service.id}`} className="flex items-center h-16 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-xl shadow p-2 hover:shadow-lg transition-all duration-150 cursor-pointer group">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-50 mr-2">
+                      <Star className="text-emerald-400" size={22} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-[1rem] text-neutral-900 truncate">{service.name}</div>
+                      <div className="text-xs text-emerald-700 font-medium">{service.providerName}</div>
+                      <div className="text-xs text-neutral-400 truncate">R$ {service.price.toFixed(2).replace('.', ',')}</div>
+                    </div>
+                    <Button size="sm" variant="outline" className="ml-2 px-3 py-1 text-xs opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity" onClick={() => setLocation('/client/new-booking-wizard')}>Agendar</Button>
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center py-4 text-neutral-400 text-sm">Nenhum serviço em destaque.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="mb-1">
+            <h2 className="text-[1.1rem] font-bold mb-2 text-neutral-900 border-l-4 border-cyan-400 pl-2 tracking-wide">Serviços Populares</h2>
+            <div className="space-y-2">
+              {isPopularServicesLoading ? (
+                <AppointmentsSkeleton />
+              ) : popularServices.length > 0 ? (
+                popularServices.map(service => (
+                  <div key={`popular-${service.id}`} className="flex items-center h-16 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-xl shadow p-2 hover:shadow-lg transition-all duration-150 cursor-pointer group">
+                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-50 mr-2">
+                      <Star className="text-blue-400" size={22} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-[1rem] text-neutral-900 truncate">{service.name}</div>
+                      <div className="text-xs text-blue-700 font-medium">{service.providerName}</div>
+                      <div className="text-xs text-neutral-400 truncate">R$ {service.price.toFixed(2).replace('.', ',')}</div>
+                    </div>
+                    <Button size="sm" variant="outline" className="ml-2 px-3 py-1 text-xs opacity-0 group-hover:opacity-100 group-focus:opacity-100 transition-opacity" onClick={() => setLocation('/client/new-booking-wizard')}>Agendar</Button>
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center py-4 text-neutral-400 text-sm">Nenhum serviço popular.</div>
+              )}
+            </div>
+          </div>
+
+          <div className="mb-1">
+            <h2 className="text-[1.1rem] font-bold mb-2 text-neutral-900 border-l-4 border-cyan-400 pl-2 tracking-wide">Por Categoria</h2>
+            <div className="space-y-2">
+              {categories.length > 0 ? (
+                categories.map(category => (
+                  <div key={`category-${category.id}`} className="flex items-center h-14 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-xl shadow p-2 hover:shadow-lg transition-all duration-150 cursor-pointer" onClick={() => handleCategoryClick(category.id)}>
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-cyan-50 mr-2">
+                      <ScissorsIcon className="h-5 w-5 text-cyan-400" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-[0.98rem] text-neutral-900 truncate">{category.name}</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="flex flex-col items-center py-4 text-neutral-400 text-sm">Nenhuma categoria.</div>
+              )}
             </div>
           </div>
         </div>
-
-      <nav className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-700 shadow-lg flex justify-around items-center py-1.5 rounded-t-xl z-50 border-t border-blue-200">
+      </div>
+      <nav className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white shadow-xl flex justify-around items-center py-2 rounded-t-2xl z-50 border-t border-gray-100">
         <button 
-          className="flex flex-col items-center text-white font-bold transition-all duration-200 drop-shadow-lg" 
+          className="flex flex-col items-center text-cyan-600 font-bold transition-all duration-200 drop-shadow-lg hover:text-cyan-900" 
           aria-current="page" 
           style={{ filter: 'brightness(1.2)' }}
           onClick={() => setLocation('/client/dashboard')}
         >
-          <Home className="h-6 w-6 mb-0.5" />
-            <span className="text-xs">Início</span>
+          <Home className="h-8 w-8 mb-0.5 text-cyan-400" />
+            <span className="text-[0.7rem]">Início</span>
           </button>
         <button 
-          className="flex flex-col items-center text-blue-100 hover:text-yellow-300 transition-all duration-200" 
+          className="flex flex-col items-center text-cyan-600 hover:text-emerald-400 transition-all duration-200" 
           onClick={navigateToBookingWizard}
         >
-          <PlusCircle className="h-6 w-6 mb-0.5" />
-            <span className="text-xs">Agendar</span>
+          <PlusCircle className="h-8 w-8 mb-0.5 text-emerald-400" />
+            <span className="text-[0.7rem]">Agendar</span>
           </button>
         <button 
-          className="flex flex-col items-center text-blue-100 hover:text-green-300 transition-all duration-200" 
+          className="flex flex-col items-center text-cyan-600 hover:text-blue-400 transition-all duration-200" 
           onClick={() => setLocation('/client/providers')}
         >
-          <Search className="h-6 w-6 mb-0.5" />
-          <span className="text-xs">Buscar Prestador</span>
+          <Search className="h-8 w-8 mb-0.5 text-blue-400" />
+          <span className="text-[0.7rem]">Buscar</span>
           </button>
         <button 
-          className="flex flex-col items-center text-blue-100 hover:text-pink-300 transition-all duration-200" 
+          className="flex flex-col items-center text-cyan-600 hover:text-pink-400 transition-all duration-200" 
           onClick={() => setLocation('/client/profile')}
         >
-          <User className="h-6 w-6 mb-0.5" />
-            <span className="text-xs">Perfil</span>
+          <User className="h-8 w-8 mb-0.5 text-pink-400" />
+            <span className="text-[0.7rem]">Perfil</span>
           </button>
         </nav>
     </div>
