@@ -68,18 +68,26 @@ export interface BookingDetails {
 
 export interface Appointment {
   id: number;
+  clientId: number;
+  providerId: number;
+  serviceId: number;
   date: string;
   startTime: string;
   endTime: string;
-  serviceName: string;
-  providerName: string;
-  providerAddress?: string;
   status: string;
+  notes?: string;
+  totalPrice?: number | null;
+  createdAt?: string;
+  // Informações do prestador
+  providerName?: string;
+  providerPhone?: string;
+  providerAddress?: string;
+  // Informações do serviço
+  serviceName?: string;
+  serviceDescription?: string;
+  // Informações do cliente
   clientName?: string;
   clientPhone?: string;
-  providerId: number;
-  serviceId: number;
-  totalPrice?: number | null;
 }
 
 export interface ProviderStats {

@@ -12,7 +12,9 @@ import {
   PlusCircle,
   User,
   Star,
-  CheckCircle
+  CheckCircle,
+  Clock,
+  XCircle
 } from "lucide-react";
 import { useAuth } from '@/hooks/use-auth';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -613,26 +615,91 @@ export default function ClientDashboard() {
 
         <div className="pt-1 pb-4 space-y-5">
           <div className="mb-1">
-            <h2 className="font-bold text-neutral-900 text-[1.25rem] mb-2 tracking-wide">Próximos Agendamentos</h2>
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="font-bold text-neutral-900 text-[1.25rem] tracking-wide">Próximos Agendamentos</h2>
+              <div className="flex items-center gap-2">
+                {appointments.filter(a => a.status === 'pending').length > 0 && (
+                  <div className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-medium">
+                    <Clock className="w-3 h-3" />
+                    {appointments.filter(a => a.status === 'pending').length} pendente{appointments.filter(a => a.status === 'pending').length > 1 ? 's' : ''}
+                  </div>
+                )}
+                {appointments.length > 0 && (
+                  <button 
+                    className="text-xs text-primary font-medium hover:text-primary/80 transition-colors"
+                    onClick={() => setLocation('/client/appointments')}
+                  >
+                    Ver todos
+                  </button>
+                )}
+              </div>
+            </div>
             <div className="space-y-2">
               {isAppointmentsLoading ? (
                 <AppointmentsSkeleton />
               ) : appointments.length > 0 ? (
-                appointments.slice(0, 3).map((appointment) => (
-                  <div key={`appointment-${appointment.id}`} className="flex items-center h-16 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-xl shadow p-2 hover:shadow-lg transition-all duration-150 cursor-pointer">
-                    <div className="flex items-center justify-center w-10 h-10 rounded-full bg-cyan-50 mr-2">
-                      <CheckCircle className="text-cyan-400" size={22} />
+                appointments
+                  .sort((a, b) => {
+                    // Priorizar agendamentos pendentes
+                    if (a.status === 'pending' && b.status !== 'pending') return -1;
+                    if (a.status !== 'pending' && b.status === 'pending') return 1;
+                    // Depois ordenar por data
+                    return new Date(a.date).getTime() - new Date(b.date).getTime();
+                  })
+                  .slice(0, 3)
+                  .map((appointment) => (
+                  <div key={`appointment-${appointment.id}`} className={`flex items-start bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-xl shadow p-2 hover:shadow-lg transition-all duration-150 cursor-pointer ${
+                    appointment.status === 'pending' ? 'min-h-[4.5rem]' : 'min-h-[3.5rem]'
+                  }`}>
+                    <div className={`flex items-center justify-center w-10 h-10 rounded-full mr-2 mt-1 ${
+                      appointment.status === 'pending' ? 'bg-yellow-50' : 
+                      appointment.status === 'confirmed' ? 'bg-green-50' : 
+                      appointment.status === 'cancelled' ? 'bg-red-50' : 'bg-cyan-50'
+                    }`}>
+                      {appointment.status === 'pending' ? (
+                        <Clock className="text-yellow-500" size={22} />
+                      ) : appointment.status === 'confirmed' ? (
+                        <CheckCircle className="text-green-400" size={22} />
+                      ) : appointment.status === 'cancelled' ? (
+                        <XCircle className="text-red-400" size={22} />
+                      ) : (
+                        <CheckCircle className="text-cyan-400" size={22} />
+                      )}
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-[1rem] text-neutral-900 truncate">{appointment.serviceName}</div>
-                      <div className="text-xs text-cyan-700 font-medium">{appointment.startTime} - {appointment.endTime}</div>
-                      <div className="text-xs text-neutral-400 truncate">{appointment.providerName}</div>
+                    <div className="flex-1 min-w-0 flex flex-col">
+                      <div className="font-semibold text-[0.9rem] text-neutral-900 truncate leading-tight mb-0.5">{appointment.serviceName}</div>
+                      <div className="text-xs text-cyan-700 font-medium leading-tight mb-0.5">
+                        {appointment.startTime} - {appointment.endTime}
+                        {(() => {
+                          const today = new Date().toISOString().split('T')[0];
+                          const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                          if (appointment.date === today) {
+                            return ' • Hoje';
+                          } else if (appointment.date === tomorrow) {
+                            return ' • Amanhã';
+                          }
+                          return '';
+                        })()}
+                      </div>
+                      <div className="text-xs text-neutral-400 truncate leading-tight mb-0.5">{appointment.providerName}</div>
+                      {appointment.status === 'pending' && (
+                        <div className="text-xs text-yellow-600 font-medium leading-tight">Aguardando confirmação</div>
+                      )}
                     </div>
-                    <Button size="sm" variant="outline" className="ml-2 px-3 py-1 text-xs" onClick={() => setLocation(`/client/appointments/${appointment.id}`)}>Ver</Button>
+                    <Button size="sm" variant="outline" className="ml-2 px-3 py-1 text-xs mt-1" onClick={() => setLocation(`/client/appointments/${appointment.id}`)}>Ver</Button>
                   </div>
                 ))
               ) : (
-                <div className="flex flex-col items-center py-4 text-neutral-400 text-sm">Nenhum agendamento.</div>
+                <div className="flex flex-col items-center py-4 text-neutral-400 text-sm">
+                  {appointments.filter(a => a.status === 'pending').length > 0 ? (
+                    <div className="text-center">
+                      <div className="text-yellow-600 font-medium mb-1">Você tem agendamentos pendentes</div>
+                      <div className="text-xs">Clique em "Ver todos" para visualizar</div>
+                    </div>
+                  ) : (
+                    "Nenhum agendamento."
+                  )}
+                </div>
               )}
             </div>
           </div>

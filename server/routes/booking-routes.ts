@@ -136,7 +136,7 @@ router.get('/check-availability', async (req, res) => {
       const service = await storage.getService(Number(serviceId));
       
       // Verificar se existe um tempo de execução personalizado
-      const providerService = await storage.getProviderService(
+      const providerService = await storage.getProviderServiceByService(
         Number(providerId), 
         Number(serviceId)
       );
