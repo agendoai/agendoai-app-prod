@@ -2262,9 +2262,30 @@ export class DatabaseStorage implements IStorage {
 
 	async getClientAppointments(clientId: number): Promise<Appointment[]> {
 		return await db
-			.select()
+			.select({
+				id: appointments.id,
+				clientId: appointments.clientId,
+				providerId: appointments.providerId,
+				serviceId: appointments.serviceId,
+				date: appointments.date,
+				startTime: appointments.startTime,
+				endTime: appointments.endTime,
+				status: appointments.status,
+				notes: appointments.notes,
+				totalPrice: appointments.totalPrice,
+				createdAt: appointments.createdAt,
+				// Informações do prestador
+				providerName: users.name,
+				providerPhone: users.phone,
+				// Informações do serviço
+				serviceName: services.name,
+				serviceDescription: services.description
+			})
 			.from(appointments)
+			.leftJoin(users, eq(appointments.providerId, users.id))
+			.leftJoin(services, eq(appointments.serviceId, services.id))
 			.where(eq(appointments.clientId, clientId))
+			.orderBy(desc(appointments.createdAt))
 	}
 
 	async getProviderClients(providerId: number): Promise<{ id: number, name: string, email: string }[]> {

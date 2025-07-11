@@ -50,9 +50,21 @@ export class IntelligentBookingSystem {
     try {
       const { providerId, date, startTime, endTime, reason, appointmentId, blockType } = options;
       
+      // Obter o dia da semana para buscar a disponibilidade
+      const dateObj = new Date(date);
+      const dayOfWeek = dateObj.getDay();
+      const adjustedDayOfWeek = dayOfWeek + 1; // Ajustar para formato do banco (1-7)
+      
+      // Buscar a disponibilidade para o dia
+      const availability = await storage.getAvailabilityByDay(providerId, adjustedDayOfWeek);
+      if (!availability) {
+        throw new Error('Não há disponibilidade configurada para este dia');
+      }
+      
       // Bloquear o slot no banco de dados
-      await storage.blockTimeSlot({
+      await storage.createBlockedTime({
         providerId,
+        availabilityId: availability.id,
         date,
         startTime,
         endTime,
@@ -85,19 +97,29 @@ export class IntelligentBookingSystem {
     try {
       const { providerId, date, startTime, endTime, appointmentId } = options;
       
-      // Se temos o ID do agendamento, liberar bloqueios associados a ele
+      // Buscar todos os bloqueios do prestador na data
+      const blockedSlots = await storage.getBlockedTimesByProviderId(providerId);
+      
+      // Filtrar bloqueios da data específica
+      const slotsOnDate = blockedSlots.filter(slot => slot.date === date);
+      
+      // Se temos appointmentId, remover bloqueios associados a ele
       if (appointmentId) {
-        await storage.unblockTimeSlotByAppointment(appointmentId);
+        const appointmentSlots = slotsOnDate.filter(slot => slot.appointmentId === appointmentId);
+        for (const slot of appointmentSlots) {
+          await storage.deleteBlockedTime(slot.id);
+        }
         return true;
       }
       
-      // Caso contrário, liberamos pelo horário específico
-      await storage.unblockTimeSlot({
-        providerId,
-        date,
-        startTime,
-        endTime
-      });
+      // Caso contrário, remover bloqueios que correspondem ao horário específico
+      const matchingSlots = slotsOnDate.filter(slot => 
+        slot.startTime === startTime && slot.endTime === endTime
+      );
+      
+      for (const slot of matchingSlots) {
+        await storage.deleteBlockedTime(slot.id);
+      }
       
       return true;
     } catch (error) {
@@ -301,12 +323,50 @@ export class IntelligentBookingSystem {
         return false;
       }
       
-      // Verificar se há conflitos com bloqueios ou agendamentos existentes
-      const blockedSlots = await storage.getBlockedTimeSlotsByDateAndTime(
-        providerId, date, startTime, endTime
+      // Verificar se há conflitos com bloqueios existentes
+      const blockedSlots = await storage.getBlockedTimeSlotsByDate(
+        providerId, date
       );
       
-      return blockedSlots.length === 0;
+      // Verificar se há conflitos com agendamentos existentes
+      const existingAppointments = await storage.getAppointmentsByProviderId(providerId);
+      
+      // Filtrar agendamentos da data específica
+      const appointmentsOnDate = existingAppointments.filter(
+        appointment => appointment.date === date
+      );
+      
+      // Converter horários para minutos para facilitar comparação
+      const startTimeMinutes = timeToMinutes(startTime);
+      const endTimeMinutes = timeToMinutes(endTime);
+      
+      // Verificar conflitos com bloqueios
+      for (const blockedSlot of blockedSlots) {
+        const blockedStartMinutes = timeToMinutes(blockedSlot.startTime);
+        const blockedEndMinutes = timeToMinutes(blockedSlot.endTime);
+        
+        // Verificar se há sobreposição
+        if (
+          (startTimeMinutes < blockedEndMinutes && endTimeMinutes > blockedStartMinutes)
+        ) {
+          return false;
+        }
+      }
+      
+      // Verificar conflitos com agendamentos existentes
+      for (const appointment of appointmentsOnDate) {
+        const appointmentStartMinutes = timeToMinutes(appointment.startTime);
+        const appointmentEndMinutes = timeToMinutes(appointment.endTime);
+        
+        // Verificar se há sobreposição
+        if (
+          (startTimeMinutes < appointmentEndMinutes && endTimeMinutes > appointmentStartMinutes)
+        ) {
+          return false;
+        }
+      }
+      
+      return true;
     } catch (error) {
       console.error('Erro ao verificar disponibilidade de slot:', error);
       return false;
@@ -330,13 +390,13 @@ export class IntelligentBookingSystem {
       // Ajustar para formato do banco (1-7, onde 1 = domingo)
       const adjustedDayOfWeek = dayOfWeek + 1;
       
-      // Buscar disponibilidades para o dia
-      const availabilities = await storage.getAvailabilityByProviderAndDay(
+      // Buscar disponibilidade para o dia
+      const availability = await storage.getAvailabilityByDay(
         providerId, adjustedDayOfWeek
       );
       
       // Se não houver disponibilidade configurada para o dia, não está disponível
-      if (availabilities.length === 0) {
+      if (!availability) {
         return false;
       }
       
@@ -344,17 +404,15 @@ export class IntelligentBookingSystem {
       const startTimeMinutes = timeToMinutes(startTime);
       const endTimeMinutes = timeToMinutes(endTime);
       
-      // Verificar se o horário está dentro de alguma disponibilidade
-      for (const availability of availabilities) {
-        const availStartMinutes = timeToMinutes(availability.startTime);
-        const availEndMinutes = timeToMinutes(availability.endTime);
-        
-        if (
-          startTimeMinutes >= availStartMinutes && 
-          endTimeMinutes <= availEndMinutes
-        ) {
-          return true;
-        }
+      // Verificar se o horário está dentro da disponibilidade
+      const availStartMinutes = timeToMinutes(availability.startTime);
+      const availEndMinutes = timeToMinutes(availability.endTime);
+      
+      if (
+        startTimeMinutes >= availStartMinutes && 
+        endTimeMinutes <= availEndMinutes
+      ) {
+        return true;
       }
       
       return false;
@@ -376,7 +434,7 @@ export class IntelligentBookingSystem {
       }
       
       // Verificar se há duração personalizada para este prestador
-      const customizedService = await storage.getProviderServiceByIds(providerId, serviceId);
+      const customizedService = await storage.getProviderServiceByService(providerId, serviceId);
       
       // Se existir tempo personalizado, usar ele
       if (customizedService && customizedService.executionTime) {

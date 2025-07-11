@@ -1481,8 +1481,8 @@ export function registerRoutes(app: Express): Server {
 				// Prestador vê apenas seus próprios agendamentos
 				appointments = await storage.getAppointmentsByProviderId(userId)
 			} else {
-				// Cliente vê apenas seus próprios agendamentos
-				appointments = await storage.getAppointmentsByClientId(userId)
+				// Cliente vê apenas seus próprios agendamentos com informações completas
+				appointments = await storage.getClientAppointments(userId)
 			}
 
 			res.json(appointments)
@@ -1830,7 +1830,15 @@ export function registerRoutes(app: Express): Server {
 				const paymentSettings = await storage.getPaymentSettings()
 
 				// Calcular preço do serviço + taxa de serviço fixa
-				const servicePrice = service.price || 0
+				// Usar o preço personalizado do prestador se disponível, senão usar o preço padrão do serviço
+				const servicePrice = providerService?.price || service.price || 0
+				
+				console.log(`Cálculo de preço do serviço:`, {
+					providerServicePrice: providerService?.price,
+					servicePrice: service.price,
+					finalServicePrice: servicePrice,
+					providerServiceId: providerService?.id
+				})
 
 				// Obter a taxa fixa da plataforma (padrão R$ 1,75 em centavos se não configurada)
 				const serviceFee = paymentSettings?.serviceFee || 175 // Taxa em centavos de real
@@ -1874,12 +1882,24 @@ export function registerRoutes(app: Express): Server {
 						2
 					)})`
 				)
+				
+				console.log(`Dados do agendamento criado:`, {
+					providerServiceId: providerService?.id,
+					servicePrice: servicePrice,
+					discount: discount,
+					discountAmount: discountAmount,
+					appliedServiceFee: appliedServiceFee,
+					totalPrice: totalPrice,
+					providerId: providerId,
+					serviceId: serviceId
+				})
 
 				// Criar objeto de agendamento
 				const appointmentData = {
 					clientId,
 					providerId,
 					serviceId,
+					providerServiceId: providerService?.id, // Salvar referência ao serviço personalizado do prestador
 					date,
 					startTime,
 					endTime,
@@ -1894,9 +1914,10 @@ export function registerRoutes(app: Express): Server {
 					clientName: client.name || "",
 					clientPhone: client.phone || "",
 					isManuallyCreated,
-					discount, // Adicionar informação de desconto aplicado
-					originalPrice: servicePrice, // Manter o preço original para referência
-					discountAmount, // Armazenar o valor do desconto em centavos
+					// Campos adicionais para referência de preços (serão armazenados em metadata se necessário)
+					// discount, // Adicionar informação de desconto aplicado
+					// originalPrice: servicePrice, // Manter o preço original para referência
+					// discountAmount, // Armazenar o valor do desconto em centavos
 				}
 
 				// Criar o agendamento
