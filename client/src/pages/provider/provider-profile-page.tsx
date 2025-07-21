@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import AppHeader from "@/components/layout/app-header";
 import { Button } from "@/components/ui/button";
@@ -51,13 +52,17 @@ import {
   AlertCircle,
   CreditCardIcon,
   BadgeHelp,
-  AlertTriangle
+  AlertTriangle,
+  DollarSign,
+  Settings,
+  Shield
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import ProviderLayout from "@/components/layout/provider-layout";
 
 export default function ProviderProfilePage() {
+  const [, setLocation] = useLocation();
   const { user, logoutMutation } = useAuth();
   const { toast } = useToast();
   
@@ -103,6 +108,9 @@ export default function ProviderProfilePage() {
   // Business Hours state
   const [businessHours, setBusinessHours] = useState("");
   
+  // Adicione o estado de carregamento do Stripe Connect
+  const [stripeLoading, setStripeLoading] = useState(false);
+
   // Fetch provider settings
   const { data: providerSettings, isLoading } = useQuery({
     queryKey: ["/api/provider-settings"],
@@ -302,6 +310,43 @@ export default function ProviderProfilePage() {
       if (coverImageInputRef.current) {
         coverImageInputRef.current.value = '';
       }
+    }
+  };
+
+  // Função para conectar Stripe
+  const handleConnectStripe = async () => {
+    setStripeLoading(true);
+    try {
+      console.log('[DEBUG] Chamando /api/provider/stripe-connect-onboarding');
+      const res = await apiRequest("POST", "/api/provider/stripe-connect-onboarding", {});
+      console.log('[DEBUG] Resposta da API:', res);
+      if (res.status === 401) {
+        toast({
+          title: "Não autenticado",
+          description: "Faça login novamente para conectar com o Stripe.",
+          variant: "destructive",
+        });
+        return;
+      }
+      const data = await res.json();
+      console.log('[DEBUG] Dados recebidos:', data);
+      if (data.onboardingUrl) {
+        window.location.href = data.onboardingUrl;
+      } else {
+        toast({
+          title: "Erro ao conectar Stripe",
+          description: data.error || "Não foi possível gerar o link de conexão.",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      toast({
+        title: "Erro ao conectar Stripe",
+        description: err.message || "Não foi possível conectar ao Stripe.",
+        variant: "destructive",
+      });
+    } finally {
+      setStripeLoading(false);
     }
   };
   
@@ -809,6 +854,41 @@ export default function ProviderProfilePage() {
                               </Label>
                             </div>
                             
+                            {/* Configuração Asaas */}
+                            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center">
+                                  <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
+                                  <h4 className="font-medium text-blue-900">Sistema de Pagamentos Asaas</h4>
+                                </div>
+                                <Badge variant="secondary" className="text-xs">
+                                  Marketplace
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-blue-700 mb-3">
+                                Configure sua conta para receber pagamentos automaticamente dos clientes.
+                              </p>
+                              <div className="flex gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => setLocation('/provider/asaas-onboarding')}
+                                  className="flex-1"
+                                >
+                                  <Settings className="h-4 w-4 mr-2" />
+                                  Configurar Conta
+                                </Button>
+                                <Button 
+                                  size="sm"
+                                  onClick={() => setLocation('/provider/payment-balance')}
+                                  className="flex-1"
+                                >
+                                  <DollarSign className="h-4 w-4 mr-2" />
+                                  Ver Saldo
+                                </Button>
+                              </div>
+                            </div>
+                            
                             {acceptOnlinePayments && (
                               <div className="ml-6 mt-2">
                                 <Label htmlFor="merchantCode" className="text-sm text-neutral-500 mb-1 block">
@@ -880,6 +960,44 @@ export default function ProviderProfilePage() {
                                 )}
                               </div>
                             )}
+                            
+                            {/* Sistema Asaas - Visualização */}
+                            <div className="mt-4 pt-3 border-t border-neutral-200">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center text-black">
+                                  <DollarSign className="h-4 w-4 mr-2 text-blue-600" />
+                                  Sistema de Pagamentos Asaas
+                                  <span className="ml-2 text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">
+                                    Marketplace
+                                  </span>
+                                </div>
+                                <div className="flex gap-2">
+                                  <Button 
+                                    size="sm" 
+                                    variant="outline"
+                                    onClick={() => setLocation('/provider/asaas-onboarding')}
+                                  >
+                                    <Settings className="h-4 w-4 mr-2" />
+                                    Configurar
+                                  </Button>
+                                  <Button 
+                                    size="sm"
+                                    onClick={() => setLocation('/provider/payment-balance')}
+                                  >
+                                    <DollarSign className="h-4 w-4 mr-2" />
+                                    Saldo
+                                  </Button>
+                                  <Button 
+                                    size="sm"
+                                    variant="secondary"
+                                    onClick={() => setLocation('/provider/asaas-payments')}
+                                  >
+                                    <Shield className="h-4 w-4 mr-2" />
+                                    Pagamentos
+                                  </Button>
+                                </div>
+                              </div>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -938,7 +1056,8 @@ export default function ProviderProfilePage() {
                               alt="Profile"
                               className="w-full h-full object-cover"
                               onError={(e) => {
-                                e.currentTarget.src = "https://via.placeholder.com/64?text=Profile";
+                                e.currentTarget.onerror = null;
+                                e.currentTarget.src = "/src/assets/service-images/perfil de usuario.png";
                               }}
                             />
                           ) : (
@@ -1013,6 +1132,48 @@ export default function ProviderProfilePage() {
                         {uploadingCoverImage ? "Enviando..." : "Atualizar Imagem de Capa"}
                       </Button>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              {/* Receba pagamentos online Card */}
+              <Card className="mb-6">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5 text-blue-600" />
+                    Conta de Pagamentos Asaas
+                  </CardTitle>
+                  <CardDescription>
+                    Configure sua conta Asaas para receber pagamentos automaticamente dos clientes com custódia segura.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <h4 className="font-medium text-blue-900 mb-2">Como funciona:</h4>
+                    <ul className="text-sm text-blue-700 space-y-1">
+                      <li>• Cliente paga o valor total (ex: R$ 30,00)</li>
+                      <li>• Taxa da plataforma (R$ 1,75) vai direto para empresa</li>
+                      <li>• Valor do serviço (R$ 28,25) fica retido na custódia</li>
+                      <li>• Você libera o valor quando confirmar o serviço</li>
+                    </ul>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => setLocation('/provider/asaas-onboarding')}
+                      className="flex-1 text-lg py-3"
+                      variant="default"
+                    >
+                      <Settings className="mr-2 h-5 w-5" />
+                      Criar/Configurar Conta Asaas
+                    </Button>
+                    <Button
+                      onClick={() => setLocation('/provider/asaas-payments')}
+                      className="flex-1 text-lg py-3"
+                      variant="outline"
+                    >
+                      <Shield className="mr-2 h-5 w-5" />
+                      Ver Pagamentos/Custódia
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

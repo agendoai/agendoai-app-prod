@@ -26,6 +26,7 @@ const FAQPage = lazy(() => import("@/pages/faq-page"));
 const TermsPage = lazy(() => import("@/pages/terms-page"));
 const PaymentSuccessPage = lazy(() => import("@/pages/payment-success-page"));
 const StripeCheckoutPage = lazy(() => import("@/pages/checkout-page"));
+const PaymentPage = lazy(() => import("@/pages/client/payment-page"));
 
 // Páginas de cliente
 const ClientDashboard = lazy(() => import("@/pages/client/client-dashboard"));
@@ -81,10 +82,13 @@ const ProviderAppointmentDetailsPage = lazy(() => import("@/pages/provider/appoi
 const ProviderAppointmentsPage = lazy(() => import("@/pages/provider/appointments-page"));
 const ProviderClientsPage = lazy(() => import("@/pages/provider/clients-page"));
 const ProviderFinancesPage = lazy(() => import("@/pages/provider/provider-finances-page"));
+const AsaasOnboardingPage = lazy(() => import("@/pages/provider/asaas-onboarding-page"));
+const PaymentBalancePage = lazy(() => import("@/pages/provider/payment-balance-page"));
+const AsaasPaymentsPage = lazy(() => import("@/pages/provider/asaas-payments-page"));
 
 // Páginas de admin
 const AdminDashboard = lazy(() => import("@/pages/admin/admin-dashboard-new"));
-const PaymentSettingsPage = lazy(() => import("@/pages/admin/payment-settings-page"));
+const PaymentSettingsPage = lazy(() => import("./pages/admin/payment-settings-page"));
 const FinancialSettingsPage = lazy(() => import("@/pages/admin/financial-settings-page"));
 const ProviderFeesPage = lazy(() => import("@/pages/admin/provider-fees-page"));
 const CategoryFeesPage = lazy(() => import("@/pages/admin/category-fees-page"));
@@ -104,6 +108,9 @@ const AppointmentsPage = lazy(() => import("@/pages/admin/appointments-page"));
 const ReportsPage = lazy(() => import("@/pages/admin/reports-page"));
 const PromotionsManagementPage = lazy(() => import("@/pages/admin/promotions-management-page"));
 const ServicesPage = lazy(() => import("@/pages/admin/services-page"));
+const StripeSettingsPage = lazy(() => import("@/pages/admin/stripe-settings-page"));
+const AsaasSubAccountsPage = lazy(() => import("@/pages/admin/asaas-subaccounts-page"));
+
 
 // Páginas de suporte
 const SupportDashboardPage = lazy(() => import("@/pages/support/support-dashboard-page"));
@@ -140,6 +147,9 @@ function RouterWithTransitions() {
         <Route path="/faq" component={() => <LazyWrapper component={FAQPage} />} />
         <Route path="/client/payment-success" component={() => <LazyWrapper component={PaymentSuccessPage} />} />
         <Route path="/checkout" component={() => <LazyWrapper component={StripeCheckoutPage} />} />
+        <Route path="/client/payment" component={() => <LazyWrapper component={PaymentPage} />} />
+        <Route path="/onboarding/stripe/return" component={() => <LazyWrapper component={OnboardingStripeReturnPage} />} />
+        <Route path="/onboarding/stripe/refresh" component={() => <LazyWrapper component={OnboardingStripeRefreshPage} />} />
 
         {/* Client Protected Routes */}
         <ProtectedRoute
@@ -411,6 +421,21 @@ function RouterWithTransitions() {
           component={() => <LazyWrapper component={ProviderFinancesPage} />}
           userType="provider"
         />
+        <ProtectedRoute
+          path="/provider/asaas-onboarding"
+          component={() => <LazyWrapper component={AsaasOnboardingPage} />}
+          userType="provider"
+        />
+        <ProtectedRoute
+          path="/provider/payment-balance"
+          component={() => <LazyWrapper component={PaymentBalancePage} />}
+          userType="provider"
+        />
+        <ProtectedRoute
+          path="/provider/asaas-payments"
+          component={() => <LazyWrapper component={AsaasPaymentsPage} />}
+          userType="provider"
+        />
 
         {/* Shared Routes that require authentication */}
         <ProtectedRoute
@@ -530,6 +555,17 @@ function RouterWithTransitions() {
           component={() => <LazyWrapper component={ServicesPage} />}
           userType="admin"
         />
+        <ProtectedRoute
+          path="/admin/stripe-settings"
+          component={() => <LazyWrapper component={StripeSettingsPage} />}
+          userType="admin"
+        />
+        <ProtectedRoute
+          path="/admin/asaas-subaccounts"
+          component={() => <LazyWrapper component={AsaasSubAccountsPage} />}
+          userType="admin"
+        />
+
         <ProtectedRoute
           path="/admin/profile"
           component={() => <LazyWrapper component={ProfilePage} />}

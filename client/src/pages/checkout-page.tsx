@@ -23,9 +23,7 @@ if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
 }
 
 // Inicializar o Stripe fora da função do componente para evitar recriações
-const stripePromise = import.meta.env.VITE_STRIPE_PUBLIC_KEY 
-  ? loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY as string)
-  : null;
+const stripePromise = loadStripe('pk_test_51RkqXrRr6s3UmWYUrWgAlgej5ir5MpLUjjpQLkGPeHeg8vy3ZJAbIttYkjR3EzrI9zzvFgI6lPRMZhGj55NnIFYF00F1YurTA7');
 
 // Componente de formulário de pagamento do Stripe
 const CheckoutForm = ({ amount, description }: { amount: number, description?: string }) => {
@@ -174,9 +172,22 @@ const CheckoutPage = () => {
   const serviceId = urlParams.get('serviceId');
   const amountParam = urlParams.get('amount');
   const description = urlParams.get('description');
+  const clientSecretParam = urlParams.get('clientSecret');
 
   useEffect(() => {
     const initPayment = async () => {
+      // Se já temos clientSecret na URL, usar diretamente
+      if (clientSecretParam) {
+        setClientSecret(clientSecretParam);
+        const amountValue = amountParam ? parseInt(amountParam, 10) : 0;
+        setAmount(amountValue);
+        if (description) {
+          setPaymentDescription(decodeURIComponent(description));
+        }
+        setIsLoading(false);
+        return;
+      }
+
       if (!appointmentId && !amountParam) {
         setError('Informações de pagamento incompletas na URL');
         setIsLoading(false);

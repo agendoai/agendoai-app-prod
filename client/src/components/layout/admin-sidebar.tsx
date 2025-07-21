@@ -3,7 +3,10 @@ import {
   LayoutDashboard,
   Package,
   CreditCard,
-  LogOut
+  LogOut,
+  Settings,
+  Users,
+  DollarSign
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/use-auth";
@@ -27,6 +30,16 @@ export default function AdminSidebar() {
       title: "Pagamentos",
       icon: <CreditCard className="h-5 w-5 text-indigo-600" />,
       path: "/admin/payment-settings",
+    },
+    {
+      title: "Financeiro",
+      icon: <DollarSign className="h-5 w-5 text-green-600" />,
+      path: "/admin/financial-settings",
+    },
+    {
+      title: "Subcontas Asaas",
+      icon: <Users className="h-5 w-5 text-purple-600" />,
+      path: "/admin/asaas-subaccounts",
     },
   ];
 

@@ -25,6 +25,9 @@ import {
   Search,
   Home,
   User,
+  AlertCircle,
+  CheckCircle,
+  ExternalLink,
 } from "lucide-react";
 import { AppointmentItem } from "@/components/appointment-item";
 import { NotificationsMenu } from "@/components/ui/notifications-menu";
@@ -85,6 +88,12 @@ export default function ProviderDashboard() {
   // Online/Offline status
   const [isOnline, setIsOnline] = useState<boolean>(false);
   
+  // Adicionar busca do status da conta Stripe Connect
+  const { data: stripeStatus, isLoading: isStripeStatusLoading, refetch: refetchStripeStatus } = useQuery({
+    queryKey: ["/api/provider/stripe-status"],
+    retry: 1,
+  });
+
   useEffect(() => {
     if (providerSettings && !isSettingsLoading) {
       setIsOnline(providerSettings.isOnline ?? false);
@@ -237,6 +246,43 @@ export default function ProviderDashboard() {
               </div>
             </motion.div>
             
+            {/* Stripe Connect Status */}
+            {!isStripeStatusLoading && stripeStatus && (
+              <div className="mb-6">
+                {stripeStatus.status === "enabled" ? (
+                  <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg p-4">
+                    <CheckCircle className="text-green-600" />
+                    <div>
+                      <p className="font-semibold text-green-700">Conta Stripe conectada e habilitada para receber pagamentos.</p>
+                      <a href={stripeStatus.dashboardUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:underline mt-1">
+                        <ExternalLink className="h-4 w-4" /> Acessar painel Stripe
+                      </a>
+                    </div>
+                  </div>
+                ) : stripeStatus.status === "pending" ? (
+                  <div className="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <AlertCircle className="text-yellow-600" />
+                    <div>
+                      <p className="font-semibold text-yellow-700">Conta Stripe conectada, mas pendente de verificação.</p>
+                      <button onClick={stripeStatus.onboardingUrl ? () => window.open(stripeStatus.onboardingUrl, '_blank') : undefined} className="inline-flex items-center gap-1 text-blue-700 hover:underline mt-1">
+                        <ExternalLink className="h-4 w-4" /> Completar onboarding Stripe
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-lg p-4">
+                    <AlertCircle className="text-red-600" />
+                    <div>
+                      <p className="font-semibold text-red-700">Conta Stripe não conectada.</p>
+                      <button onClick={stripeStatus.onboardingUrl ? () => window.open(stripeStatus.onboardingUrl, '_blank') : undefined} className="inline-flex items-center gap-1 text-blue-700 hover:underline mt-1">
+                        <ExternalLink className="h-4 w-4" /> Conectar conta Stripe
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mb-6 w-full max-w-full min-w-0 overflow-x-auto">
               <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-0 shadow-lg p-0">

@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useLocation } from 'wouter';
 import {
   ChevronRight,
   ChevronLeft,
@@ -67,6 +68,7 @@ export function NewBookingWizard({
 }: NewBookingWizardProps) {
   console.log('NewBookingWizard RENDERIZADO');
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
 
   // Estado inicial sempre começa pela seleção de nicho para melhor experiência do usuário
   const [currentStep, setCurrentStep] = useState<BookingStep>("niche");
@@ -88,7 +90,7 @@ export function NewBookingWizard({
     null,
   );
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<
-    "credit_card" | "pix" | "money" | null
+    'credit_card' | 'debit_card' | 'pix' | 'money' | null
   >(null);
   const [totalDuration, setTotalDuration] = useState<number>(0);
   const [totalPrice, setTotalPrice] = useState<number>(0);
@@ -470,7 +472,7 @@ export function NewBookingWizard({
   };
 
   const handlePaymentMethodSelect = (
-    method: "credit_card" | "pix" | "money",
+    method: 'credit_card' | 'debit_card' | 'pix' | 'money',
   ) => {
     setSelectedPaymentMethod(method);
   };
@@ -492,6 +494,45 @@ export function NewBookingWizard({
       return;
     }
 
+    // Calcular o valor total com taxas
+    const adminFee = providerFee?.fixedFee || 0;
+    const bookingFee = 1.75;
+    const totalWithFee = totalPrice + adminFee + bookingFee;
+
+    // Para pagamentos online (PIX/Cartão), redirecionar para página de pagamento
+    if (selectedPaymentMethod === 'pix' || selectedPaymentMethod === 'credit_card' || selectedPaymentMethod === 'debit_card') {
+      // Preparar dados do agendamento para a página de pagamento
+      const bookingData = {
+        providerId: selectedProvider,
+        serviceId: selectedServiceIds[0],
+        date: selectedDate.toISOString().split('T')[0],
+        startTime: selectedTimeSlot.startTime,
+        endTime: selectedTimeSlot.endTime,
+        totalPrice: totalWithFee,
+        paymentMethod: selectedPaymentMethod,
+        // Dados adicionais para múltiplos serviços
+        ...(selectedServiceIds.length > 1 && {
+          multipleServices: true,
+          serviceIds: selectedServiceIds,
+          services: selectedServiceIds.map(id => {
+            const service = (providerServices[selectedProvider] || []).find(s => s.id === id);
+            return {
+              serviceId: id,
+              duration: service?.duration || 30
+            };
+          })
+        })
+      };
+
+      // Salvar dados do agendamento no sessionStorage
+      sessionStorage.setItem('pendingBookingData', JSON.stringify(bookingData));
+      
+      // Redirecionar para página de pagamento
+      setLocation(`/client/payment?amount=${totalWithFee}&paymentMethod=${selectedPaymentMethod}`);
+      return;
+    }
+
+    // Para pagamentos locais (dinheiro), criar agendamento direto
     try {
       let response;
       if (selectedServiceIds.length === 1) {
@@ -504,6 +545,8 @@ export function NewBookingWizard({
             serviceId: selectedServiceIds[0],
             date: selectedDate.toISOString().split('T')[0],
             startTime: selectedTimeSlot.startTime,
+            paymentMethod: selectedPaymentMethod,
+            totalPrice: totalWithFee,
           })
         });
       } else {
@@ -515,6 +558,8 @@ export function NewBookingWizard({
             providerId: selectedProvider,
             date: selectedDate.toISOString().split('T')[0],
             startTime: selectedTimeSlot.startTime,
+            paymentMethod: selectedPaymentMethod,
+            totalPrice: totalWithFee,
             services: selectedServiceIds.map(id => {
               const service = (providerServices[selectedProvider] || []).find(s => s.id === id);
               return {
@@ -525,10 +570,12 @@ export function NewBookingWizard({
           })
         });
       }
+      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Erro ao criar agendamento');
       }
+      
       setCurrentStep("confirmation");
     } catch (error) {
       toast({
@@ -1247,7 +1294,7 @@ export function NewBookingWizard({
                         <p className={`text-sm mt-1 ${
                           selectedPaymentMethod === "credit_card" ? 'text-white/80' : 'text-gray-600'
                         }`}>
-                          Pagamento seguro online
+                          Pague com cartão de crédito
                         </p>
                       </div>
                     </div>
@@ -1262,17 +1309,53 @@ export function NewBookingWizard({
 
                   <button
                     className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
-                      selectedPaymentMethod === "pix"
-                        ? 'bg-gradient-to-br from-green-500 to-emerald-500 text-white shadow-xl'
+                      selectedPaymentMethod === "debit_card"
+                        ? 'bg-gradient-to-br from-green-500 to-cyan-500 text-white shadow-xl'
                         : 'bg-white border border-gray-200 hover:border-green-300 hover:shadow-lg'
+                    }`}
+                    onClick={() => handlePaymentMethodSelect("debit_card")}
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${
+                        selectedPaymentMethod === "debit_card" ? 'bg-white/20' : 'bg-green-100'
+                      }`}>
+                        <span className="text-xl">🏦</span>
+                      </div>
+                      <div className="text-left">
+                        <h3 className={`font-semibold text-lg ${
+                          selectedPaymentMethod === "debit_card" ? 'text-white' : 'text-gray-800'
+                        }`}>
+                          Cartão de Débito
+                        </h3>
+                        <p className={`text-sm mt-1 ${
+                          selectedPaymentMethod === "debit_card" ? 'text-white/80' : 'text-gray-600'
+                        }`}>
+                          Pague com cartão de débito
+                        </p>
+                      </div>
+                    </div>
+                    {selectedPaymentMethod === "debit_card" && (
+                      <div className="absolute top-3 right-3">
+                        <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                          <Check className="w-4 h-4 text-white" />
+                        </div>
+                      </div>
+                    )}
+                  </button>
+
+                  <button
+                    className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
+                      selectedPaymentMethod === "pix"
+                        ? 'bg-gradient-to-br from-yellow-400 to-green-400 text-white shadow-xl'
+                        : 'bg-white border border-gray-200 hover:border-yellow-400 hover:shadow-lg'
                     }`}
                     onClick={() => handlePaymentMethodSelect("pix")}
                   >
                     <div className="flex items-center space-x-4">
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${
-                        selectedPaymentMethod === "pix" ? 'bg-white/20' : 'bg-green-100'
+                        selectedPaymentMethod === "pix" ? 'bg-white/20' : 'bg-yellow-100'
                       }`}>
-                        <span className="text-xl">📱</span>
+                        <span className="text-xl">⚡</span>
                       </div>
                       <div className="text-left">
                         <h3 className={`font-semibold text-lg ${
@@ -1283,7 +1366,7 @@ export function NewBookingWizard({
                         <p className={`text-sm mt-1 ${
                           selectedPaymentMethod === "pix" ? 'text-white/80' : 'text-gray-600'
                         }`}>
-                          Transferência instantânea
+                          Pague com PIX (QR Code)
                         </p>
                       </div>
                     </div>

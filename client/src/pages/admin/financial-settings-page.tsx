@@ -598,6 +598,27 @@ export default function FinancialSettingsPage() {
     }
   });
 
+  // Mutation para consultar saldo da plataforma Asaas
+  const asaasBalanceMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("GET", "/api/admin/asaas/balance");
+      return await res.json();
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Saldo consultado",
+        description: `Saldo da plataforma: R$ ${(data.balance / 100).toFixed(2)}`,
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro",
+        description: `Erro ao consultar saldo: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  });
+
   // Mutation para salvar cupom
   const saveCouponMutation = useMutation({
     mutationFn: async (couponData: any) => {
@@ -827,20 +848,25 @@ export default function FinancialSettingsPage() {
           onValueChange={setActiveTab}
           className="w-full"
         >
-          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3">
+          <TabsList className="grid w-full grid-cols-1 sm:grid-cols-4">
             <TabsTrigger value="payment-providers" className="text-xs sm:text-sm">
               <CreditCard className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Gateways de Pagamento</span>
-              <span className="sm:hidden">Pagamentos</span>
+              <span className="hidden sm:inline">Stripe</span>
+              <span className="sm:hidden">Stripe</span>
+            </TabsTrigger>
+            <TabsTrigger value="asaas" className="text-xs sm:text-sm">
+              <Wallet className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
+              <span className="hidden sm:inline">Asaas</span>
+              <span className="sm:hidden">Asaas</span>
             </TabsTrigger>
             <TabsTrigger value="fees" className="text-xs sm:text-sm">
               <Percent className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Taxas e Pagamentos</span>
+              <span className="hidden sm:inline">Taxas</span>
               <span className="sm:hidden">Taxas</span>
             </TabsTrigger>
             <TabsTrigger value="coupons" className="text-xs sm:text-sm">
               <Ticket className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
-              <span className="hidden sm:inline">Cupons de Desconto</span>
+              <span className="hidden sm:inline">Cupons</span>
               <span className="sm:hidden">Cupons</span>
             </TabsTrigger>
           </TabsList>
@@ -1180,6 +1206,171 @@ export default function FinancialSettingsPage() {
                                   <>
                                     <RefreshCw className="h-4 w-4 mr-2" />
                                     Testar Conexão
+                                  </>
+                                )}
+                              </Button>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+
+                  <TabsContent value="asaas" className="space-y-6">
+                    <Card>
+                      <CardHeader>
+                        <CardTitle>Configurações do Asaas</CardTitle>
+                        <CardDescription>
+                          Configure a integração com o gateway de pagamento Asaas (PIX, Boleto, Cartão)
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <FormField
+                          control={form.control}
+                          name="asaasEnabled"
+                          render={({ field }) => (
+                            <FormItem className="flex flex-row items-center space-x-3 space-y-0 bg-slate-50 p-4 rounded-md">
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div className="space-y-1 leading-none">
+                                <FormLabel>Habilitar processamento de pagamentos via Asaas</FormLabel>
+                                <FormDescription>
+                                  Ative para permitir pagamentos online via PIX, Boleto e Cartão
+                                </FormDescription>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+
+                        <div className={!form.watch("asaasEnabled") ? "opacity-50 pointer-events-none" : ""}>
+
+
+                          <div className="grid grid-cols-1 gap-4 mt-4">
+                            <FormField
+                              control={form.control}
+                              name="asaasApiKey"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>API Key do Asaas</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      type="password"
+                                      placeholder="Sua chave de API do Asaas"
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Chave de API obtida no painel do Asaas
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="asaasWalletId"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Wallet ID da Plataforma</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      type="text"
+                                      placeholder="ID da carteira principal"
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    ID da carteira principal da plataforma no Asaas
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="asaasWebhookToken"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Token do Webhook</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      type="password"
+                                      placeholder="Token para webhooks (opcional)"
+                                    />
+                                  </FormControl>
+                                  <FormDescription>
+                                    Token usado para verificar eventos do Asaas (opcional)
+                                  </FormDescription>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="asaasSplitEnabled"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-center space-x-3 space-y-0 bg-slate-50 p-4 rounded-md">
+                                  <FormControl>
+                                    <Checkbox
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                    />
+                                  </FormControl>
+                                  <div className="space-y-1 leading-none">
+                                    <FormLabel>Habilitar Split Automático</FormLabel>
+                                    <FormDescription>
+                                      Divide automaticamente os pagamentos entre plataforma e prestador
+                                    </FormDescription>
+                                  </div>
+                                </FormItem>
+                              )}
+                            />
+
+                            <div className="flex justify-between mt-4">
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => testAsaasConnectionMutation.mutate()}
+                                disabled={testAsaasConnectionMutation.isPending}
+                                className="flex items-center"
+                              >
+                                {testAsaasConnectionMutation.isPending ? (
+                                  <>
+                                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                    Testando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <RefreshCw className="h-4 w-4 mr-2" />
+                                    Testar Conexão
+                                  </>
+                                )}
+                              </Button>
+
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => asaasBalanceMutation.mutate()}
+                                disabled={asaasBalanceMutation.isPending}
+                                className="flex items-center"
+                              >
+                                {asaasBalanceMutation.isPending ? (
+                                  <>
+                                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                                    Consultando...
+                                  </>
+                                ) : (
+                                  <>
+                                    <DollarSign className="h-4 w-4 mr-2" />
+                                    Consultar Saldo
                                   </>
                                 )}
                               </Button>
