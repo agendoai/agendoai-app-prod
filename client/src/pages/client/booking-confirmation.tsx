@@ -32,6 +32,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { ClientNavbar } from "@/components/client-navbar";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { shareOnWhatsApp } from "@/lib/whatsapp";
+import { createAsaasPayment } from "@/lib/api";
 import { 
   ArrowLeft, 
   Calendar, 
@@ -310,7 +311,7 @@ export default function BookingConfirmation() {
   }, [user, parsedProviderId, parsedServiceId, date, startTime, endTime, parsedAvailabilityId, setLocation, toast]);
 
   // Manipular envio do formulário
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!user) {
       toast({
         title: "Usuário não autenticado",
@@ -337,6 +338,46 @@ export default function BookingConfirmation() {
         variant: "destructive",
       });
       return;
+    }
+
+    // Verificar se é pagamento online com Asaas
+    const selectedMethod = availablePaymentMethods?.find(m => m.id === paymentMethod);
+    const isAsaasPayment = selectedMethod?.processor === 'asaas' && selectedMethod?.type === 'online';
+
+    if (isAsaasPayment) {
+      // Processar pagamento Asaas antes de criar o agendamento
+      try {
+        toast({
+          title: "Processando pagamento...",
+          description: "Aguarde enquanto processamos seu pagamento.",
+        });
+
+        const paymentResult = await createAsaasPayment({
+          customerId: user.id.toString(),
+          providerId: parsedProviderId,
+          serviceValue: serviceData.price / 100, // Converter de centavos para reais
+          billingType: paymentMethod.includes('pix') ? 'PIX' : 'CREDIT_CARD',
+          description: `Agendamento - ${serviceData.name} com ${providerData.name || providerData.email}`,
+          dueDate: date
+        });
+
+        if (paymentResult.success) {
+          toast({
+            title: "Pagamento processado!",
+            description: "Pagamento realizado com sucesso. Criando agendamento...",
+          });
+        } else {
+          throw new Error(paymentResult.message || 'Erro ao processar pagamento');
+        }
+      } catch (error: any) {
+        console.error('Erro no pagamento Asaas:', error);
+        toast({
+          title: "Erro no pagamento",
+          description: error.message || "Não foi possível processar o pagamento. Tente novamente.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
     
     const appointmentData = {

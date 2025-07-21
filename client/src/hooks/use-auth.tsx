@@ -38,6 +38,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   
+  console.log("AuthProvider - Inicializando...");
+  
+  // Efeito para verificar sessão quando a página carrega
+  React.useEffect(() => {
+    console.log("AuthProvider - Verificando sessão na inicialização...");
+    refetchUser();
+  }, []);
+  
   const {
     data: user,
     error,
@@ -45,10 +53,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetch: refetchUser
   } = useQuery<User | undefined, Error>({
     queryKey: ["/api/user"],
+    enabled: true, // Forçar execução da query
+    staleTime: 0, // Sempre buscar dados frescos
+    refetchOnWindowFocus: true, // Refazer query quando a janela ganhar foco
+    refetchOnMount: true, // Refazer query quando o componente montar
     queryFn: async ({ queryKey }) => {
+      console.log("useAuth - Executando queryFn para /api/user");
       try {
-        console.log("Fazendo requisição GET para", queryKey[0], null);
-        console.log("Estado de autenticação para requisição " + queryKey[0] + ":", "Não autenticado");
+        console.log("useAuth - Fazendo requisição GET para", queryKey[0]);
+        console.log("useAuth - Estado de autenticação:", "Verificando...");
         
         const response = await fetch(queryKey[0] as string, {
           credentials: "include",
@@ -58,26 +71,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         });
         
-        console.log("Resposta recebida de " + queryKey[0] + ":", {
+        console.log("useAuth - Resposta recebida:", {
           status: response.status,
           statusText: response.statusText,
-          headers: Object.fromEntries(response.headers.entries())
+          url: response.url
         });
         
         if (response.status === 401) {
-          console.log("Usuário não autenticado");
+          console.log("useAuth - Usuário não autenticado (401)");
           return null;
         }
         
         if (!response.ok) {
+          console.log("useAuth - Erro na resposta:", response.status, response.statusText);
           throw new Error("Erro ao buscar dados do usuário");
         }
         
         const userData = await response.json();
-        console.log("Dados do usuário obtidos:", userData);
+        console.log("useAuth - Dados do usuário obtidos:", {
+          id: userData?.id,
+          email: userData?.email,
+          userType: userData?.userType,
+          name: userData?.name
+        });
         return userData;
       } catch (error) {
-        console.error("Erro ao buscar usuário:", error);
+        console.error("useAuth - Erro ao buscar usuário:", error);
         return null;
       }
     },
@@ -105,32 +124,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: (user: User) => {
-      console.log("Login bem-sucedido, atualizando cache:", user);
+      console.log("Login bem-sucedido, limpando cache e atualizando dados:", user);
+      
+      // Limpar todo o cache para garantir dados frescos
+      queryClient.clear();
       queryClient.setQueryData(["/api/user"], user);
       
-      // Verificar a sessão para garantir que o login foi bem-sucedido
-      refetchUser().then(result => {
-        console.log("Verificação após login:", result.data);
-        
-        const userData = result.data || user;
-        console.log("Dados do usuário para redirecionamento:", userData);
-        
-        // Verificar tipo de usuário para redirecionamento
-        const userType = userData.userType || 'client';
-        
-        console.log("Redirecionando para:", userType);
-        
-        // Usar setTimeout para dar tempo ao navegador processar os cookies
-        setTimeout(() => {
-          if (userType === "client") {
-            setLocation("/client/dashboard");
-          } else if (userType === "provider") {
-            setLocation("/provider/dashboard");
-          } else if (userType === "admin" || userType === "support") {
-            setLocation("/admin/dashboard");
-          }
-        }, 500);
-      });
+      // DESABILITADO: Redirecionamento automático do hook
+      // O redirecionamento será feito pela página de login
+      console.log("Hook useAuth - login bem-sucedido, cache limpo, redirecionamento desabilitado");
       
       toast({
         title: "Login realizado com sucesso!",
@@ -175,29 +177,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Atualizar cache do usuário
       queryClient.setQueryData(["/api/user"], user);
       
-      // Verificar a sessão para garantir que o registro foi bem-sucedido
-      refetchUser().then(result => {
-        console.log("Verificação após registro:", result.data);
-        
-        const userData = result.data || user;
-        console.log("Dados do usuário para redirecionamento:", userData);
-        
-        // Verificar tipo de usuário para redirecionamento
-        const userType = userData.userType || 'client';
-        
-        console.log("Redirecionando para:", userType);
-        
-        // Usar setTimeout para dar tempo ao navegador processar os cookies
-        setTimeout(() => {
-          if (userType === "client") {
-            setLocation("/client/dashboard");
-          } else if (userType === "provider") {
-            setLocation("/provider/dashboard");
-          } else if (userType === "admin" || userType === "support") {
-            setLocation("/admin/dashboard");
-          }
-        }, 1000);
-      });
+      // DESABILITADO: Redirecionamento automático do hook
+      // O redirecionamento será feito pela página de login
+      console.log("Hook useAuth - registro bem-sucedido, mas redirecionamento desabilitado");
       
       toast({
         title: "Conta criada com sucesso!",

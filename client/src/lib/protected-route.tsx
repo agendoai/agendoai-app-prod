@@ -16,21 +16,45 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const { user, isLoading } = useAuth();
 
+  console.log(`ProtectedRoute [${path}]:`, {
+    isLoading,
+    user: user ? { 
+      id: user.id, 
+      email: user.email, 
+      userType: user.userType,
+      name: user.name 
+    } : null,
+    requiredUserType: userType,
+    isAuthenticated: !!user
+  });
+  
+  // Log adicional para debug
+  if (user) {
+    console.log(`ProtectedRoute [${path}] - Dados completos do usuário:`, user);
+  }
+
   // Função auxiliar para verificar se o usuário tem permissão para acessar a rota
   const hasAccess = () => {
-    if (!userType || !user) return false;
+    if (!userType || !user) {
+      console.log(`ProtectedRoute [${path}]: hasAccess = false (no userType or no user)`);
+      return false;
+    }
     
     // Support users can access admin routes
     if (userType === "admin" && (user.userType === "support" || user.userType === "admin")) {
+      console.log(`ProtectedRoute [${path}]: hasAccess = true (admin/support access)`);
       return true;
     }
     
     // Admin users can access support routes
     if (userType === "support" && (user.userType === "support" || user.userType === "admin")) {
+      console.log(`ProtectedRoute [${path}]: hasAccess = true (support access)`);
       return true;
     }
     
-    return user.userType === userType;
+    const hasAccess = user.userType === userType;
+    console.log(`ProtectedRoute [${path}]: hasAccess = ${hasAccess} (userType: ${user.userType} === required: ${userType})`);
+    return hasAccess;
   };
 
   return (
