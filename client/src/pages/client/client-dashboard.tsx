@@ -14,10 +14,27 @@ import {
   Star,
   CheckCircle,
   Clock,
-  XCircle
+  XCircle,
+  Cog,
+  Briefcase,
+  Scissors,
+  Car,
+  Heart,
+  Home as HomeIcon,
+  Camera,
+  Music,
+  Utensils,
+  Dumbbell,
+  Palette,
+  BookOpen,
+  Zap,
+  TrendingUp,
+  Users,
+  FolderOpen
 } from "lucide-react";
 import { useAuth } from '@/hooks/use-auth';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 interface Appointment {
   id: number;
@@ -27,6 +44,8 @@ interface Appointment {
   serviceName: string;
   providerName: string;
   status: string;
+  paymentStatus?: string;
+  totalPrice?: number;
 }
 
 interface Service {
@@ -320,6 +339,101 @@ const formatPrice = (price: number): string => {
   return `R$ ${price.toFixed(2).replace('.', ',')}`;
 };
 
+// Badge de status igual appointments-page
+const StatusBadge = ({ status }: { status: string | null }) => {
+  if (!status) return null;
+  let variant = "outline";
+  let label = status;
+  let className = "text-[10px] px-1.5 py-0.5";
+  switch (status) {
+    case "confirmed":
+    case "confirmado":
+      variant = "default";
+      label = "Confirmado";
+      className += " bg-green-100 text-green-800 border-green-200";
+      break;
+    case "pending":
+      variant = "secondary";
+      label = "Pendente";
+      className += " bg-yellow-100 text-yellow-800 border-yellow-200";
+      break;
+    case "completed":
+      variant = "outline";
+      label = "Concluído";
+      className += " bg-cyan-100 text-cyan-800 border-cyan-200";
+      break;
+    case "canceled":
+      variant = "destructive";
+      label = "Cancelado";
+      className += " bg-red-100 text-red-800 border-red-200";
+      break;
+    default:
+      variant = "outline";
+  }
+  return (
+    <Badge variant={variant as any} className={className}>{label}</Badge>
+  );
+};
+// Badge de status de pagamento igual appointments-page
+const PaymentStatusBadge = ({ status }: { status: string | null | undefined }) => {
+  let className = "text-[10px] px-1.5 py-0.5";
+  if (!status || status === 'pending' || status === 'aguardando_pagamento') {
+    return <Badge variant="warning" className={className + " bg-yellow-100 text-yellow-800 border-yellow-200"}>Aguardando pagamento</Badge>;
+  }
+  if (status === 'confirmado' || status === 'paid') {
+    return <Badge variant="success" className={className + " bg-green-100 text-green-800 border-green-200"}>Pago</Badge>;
+  }
+  if (status === 'failed') {
+    return <Badge variant="destructive" className={className + " bg-red-100 text-red-800 border-red-200"}>Pagamento falhou</Badge>;
+  }
+  if (status === 'refunded') {
+    return <Badge variant="info" className={className + " bg-blue-100 text-blue-800 border-blue-200"}>Pagamento reembolsado</Badge>;
+  }
+  return <Badge variant="outline" className={className}>{status}</Badge>;
+};
+
+// Função para obter ícone baseado no nome da categoria
+function getCategoryIcon(categoryName: string) {
+  const iconMap: { [key: string]: any } = {
+    scissors: Scissors,
+    car: Car,
+    heart: Heart,
+    home: HomeIcon,
+    briefcase: Briefcase,
+    camera: Camera,
+    music: Music,
+    utensils: Utensils,
+    dumbbell: Dumbbell,
+    palette: Palette,
+    book: BookOpen,
+    zap: Zap,
+    star: Star,
+    trending: TrendingUp,
+    users: Users,
+    folder: FolderOpen,
+    default: Briefcase
+  };
+  // Busca por palavra-chave no nome da categoria
+  const name = categoryName?.toLowerCase() || "";
+  if (name.includes("carro") || name.includes("auto") || name.includes("veículo")) return Car;
+  if (name.includes("beleza") || name.includes("cabelo") || name.includes("barbearia")) return Scissors;
+  if (name.includes("casa") || name.includes("domiciliar")) return HomeIcon;
+  if (name.includes("limpeza")) return Palette;
+  if (name.includes("alimentação") || name.includes("comida") || name.includes("restaurante")) return Utensils;
+  if (name.includes("reparo") || name.includes("conserto")) return Cog; // Changed from Wrench to Cog
+  if (name.includes("saúde")) return Heart;
+  if (name.includes("arte")) return Palette;
+  if (name.includes("consultoria")) return TrendingUp;
+  if (name.includes("infantil") || name.includes("criança")) return Users;
+  if (name.includes("música")) return Music;
+  if (name.includes("livro") || name.includes("educação")) return BookOpen;
+  if (name.includes("foto") || name.includes("câmera")) return Camera;
+  if (name.includes("academia") || name.includes("fitness")) return Dumbbell;
+  if (name.includes("evento")) return Star;
+  if (name.includes("negócio") || name.includes("empresa")) return Briefcase;
+  return iconMap[categoryName?.toLowerCase()] || Briefcase;
+}
+
 export default function ClientDashboard() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -339,7 +453,7 @@ export default function ClientDashboard() {
     data: appointments = [], 
     isLoading: isAppointmentsLoading 
   } = useQuery<Appointment[]>({
-    queryKey: ["/api/appointments"],
+    queryKey: ["/api/client/appointments"],
     staleTime: 2 * 60 * 1000,
     retry: 1,
   });
@@ -605,7 +719,7 @@ export default function ClientDashboard() {
         {/* Botão de agendar fixo no topo */}
         <div className="flex justify-center sticky top-0 z-30 bg-white pb-2 pt-2">
           <button
-            className="w-[92%] h-11 rounded-lg bg-gradient-to-r from-cyan-400 via-teal-400 to-emerald-400 text-white text-base font-bold shadow flex flex-row items-center justify-center px-6 border-0 hover:brightness-105 hover:scale-[1.02] transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-300/40 gap-2"
+            className="w-[92%] h-11 rounded-lg bg-[#58c9d1] text-white text-base font-bold shadow-lg flex flex-row items-center justify-center px-6 border-0 hover:shadow-xl hover:scale-[1.03] transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#58c9d1]/40 gap-2"
             onClick={navigateToBookingWizard}
           >
             <PlusCircle className="h-5 w-5 text-white mr-2" />
@@ -616,7 +730,7 @@ export default function ClientDashboard() {
         <div className="pt-1 pb-4 space-y-5">
           <div className="mb-1">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="font-bold text-neutral-900 text-[1.25rem] tracking-wide">Próximos Agendamentos</h2>
+              <h2 className="font-bold text-neutral-900 text-base tracking-wide">Próximos Agendamentos</h2>
               <div className="flex items-center gap-2">
                 {appointments.filter(a => a.status === 'pending').length > 0 && (
                   <div className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-medium">
@@ -637,58 +751,79 @@ export default function ClientDashboard() {
             <div className="space-y-2">
               {isAppointmentsLoading ? (
                 <AppointmentsSkeleton />
-              ) : appointments.length > 0 ? (
+              ) : appointments.filter(a => a.status === 'pending').length > 0 ? (
                 appointments
-                  .sort((a, b) => {
-                    // Priorizar agendamentos pendentes
-                    if (a.status === 'pending' && b.status !== 'pending') return -1;
-                    if (a.status !== 'pending' && b.status === 'pending') return 1;
-                    // Depois ordenar por data
-                    return new Date(a.date).getTime() - new Date(b.date).getTime();
-                  })
+                  .filter(a => a.status === 'pending')
+                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
                   .slice(0, 3)
                   .map((appointment) => (
-                  <div key={`appointment-${appointment.id}`} className={`flex items-start bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-xl shadow p-2 hover:shadow-lg transition-all duration-150 cursor-pointer ${
-                    appointment.status === 'pending' ? 'min-h-[4.5rem]' : 'min-h-[3.5rem]'
-                  }`}>
-                    <div className={`flex items-center justify-center w-10 h-10 rounded-full mr-2 mt-1 ${
-                      appointment.status === 'pending' ? 'bg-yellow-50' : 
-                      appointment.status === 'confirmed' ? 'bg-green-50' : 
-                      appointment.status === 'cancelled' ? 'bg-red-50' : 'bg-cyan-50'
-                    }`}>
-                      {appointment.status === 'pending' ? (
+                    <div key={`appointment-${appointment.id}`} className={`flex items-start bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-xl shadow p-2 hover:shadow-lg transition-all duration-150 min-h-[4.5rem]`}>
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full mr-2 mt-1 bg-yellow-50">
                         <Clock className="text-yellow-500" size={22} />
-                      ) : appointment.status === 'confirmed' ? (
-                        <CheckCircle className="text-green-400" size={22} />
-                      ) : appointment.status === 'cancelled' ? (
-                        <XCircle className="text-red-400" size={22} />
-                      ) : (
-                        <CheckCircle className="text-cyan-400" size={22} />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0 flex flex-col">
-                      <div className="font-semibold text-[0.9rem] text-neutral-900 truncate leading-tight mb-0.5">{appointment.serviceName}</div>
-                      <div className="text-xs text-cyan-700 font-medium leading-tight mb-0.5">
-                        {appointment.startTime} - {appointment.endTime}
-                        {(() => {
-                          const today = new Date().toISOString().split('T')[0];
-                          const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-                          if (appointment.date === today) {
-                            return ' • Hoje';
-                          } else if (appointment.date === tomorrow) {
-                            return ' • Amanhã';
-                          }
-                          return '';
-                        })()}
                       </div>
-                      <div className="text-xs text-neutral-400 truncate leading-tight mb-0.5">{appointment.providerName}</div>
-                      {appointment.status === 'pending' && (
-                        <div className="text-xs text-yellow-600 font-medium leading-tight">Aguardando confirmação</div>
-                      )}
+                      <div className="flex-1 min-w-0 flex flex-col">
+                        <div className="font-semibold text-[0.9rem] text-neutral-900 truncate leading-tight mb-0.5">{appointment.serviceName}</div>
+                        <div className="text-xs text-cyan-700 font-medium leading-tight mb-0.5">
+                          {appointment.startTime} - {appointment.endTime}
+                          {(() => {
+                            const today = new Date().toISOString().split('T')[0];
+                            const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                            if (appointment.date === today) {
+                              return ' • Hoje';
+                            } else if (appointment.date === tomorrow) {
+                              return ' • Amanhã';
+                            }
+                            return '';
+                          })()}
+                        </div>
+                        <div className="text-xs text-neutral-400 truncate leading-tight mb-0.5">{appointment.providerName}</div>
+                        <div className="flex flex-col gap-1 mt-1">
+                          <StatusBadge status={appointment.status} />
+                          <PaymentStatusBadge status={appointment.paymentStatus} />
+                        </div>
+                        {typeof appointment.totalPrice === 'number' && appointment.totalPrice > 0 && (
+                          <div className="text-xs text-neutral-600 font-medium leading-tight mt-1">
+                            R$ {(appointment.totalPrice / 100).toFixed(2).replace('.', ',')}
+                          </div>
+                        )}
+                        {/* Botões de ação */}
+                        <div className="flex flex-row gap-2 mt-3 justify-end">
+                          {/* Botão de pagar à esquerda, destacado, sem animação */}
+                          {['pending', 'aguardando_pagamento'].includes(appointment.paymentStatus) && (
+                            <button
+                              className="px-4 py-1.5 text-xs rounded-full bg-[#58c9d1] text-white font-semibold shadow-sm hover:bg-[#3eb9aa] hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#58c9d1]/40 order-first mr-auto"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setLocation(`/client/appointments/${appointment.id}/pay`);
+                              }}
+                            >
+                              Pagar
+                            </button>
+                          )}
+                          <button
+                            className="px-4 py-1.5 text-xs rounded-full bg-gray-100 text-cyan-700 font-semibold shadow-sm hover:bg-cyan-100 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-200"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLocation(`/client/appointments/${appointment.id}`);
+                            }}
+                          >
+                            Ver
+                          </button>
+                          {(appointment.status === 'pending' || appointment.status === 'confirmed' || appointment.status === 'confirmado') && (
+                            <button
+                              className="px-4 py-1.5 text-xs rounded-full bg-red-100 text-red-700 font-semibold shadow-sm hover:bg-red-200 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-red-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                alert('Funcionalidade de cancelamento em breve!');
+                              }}
+                            >
+                              Cancelar
+                            </button>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <Button size="sm" variant="outline" className="ml-2 px-3 py-1 text-xs mt-1" onClick={() => setLocation(`/client/appointments/${appointment.id}`)}>Ver</Button>
-                  </div>
-                ))
+                  ))
               ) : (
                 <div className="flex flex-col items-center py-4 text-neutral-400 text-sm">
                   {appointments.filter(a => a.status === 'pending').length > 0 ? (
@@ -713,7 +848,7 @@ export default function ClientDashboard() {
                 featuredServices.map(service => (
                   <div key={`featured-${service.id}`} className="flex items-center h-16 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-xl shadow p-2 hover:shadow-lg transition-all duration-150 cursor-pointer group">
                     <div className="flex items-center justify-center w-10 h-10 rounded-full bg-emerald-50 mr-2">
-                      <Star className="text-emerald-400" size={22} />
+                      <Cog className="text-emerald-400" size={22} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-[1rem] text-neutral-900 truncate">{service.name}</div>
@@ -738,7 +873,7 @@ export default function ClientDashboard() {
                 popularServices.map(service => (
                   <div key={`popular-${service.id}`} className="flex items-center h-16 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-xl shadow p-2 hover:shadow-lg transition-all duration-150 cursor-pointer group">
                     <div className="flex items-center justify-center w-10 h-10 rounded-full bg-blue-50 mr-2">
-                      <Star className="text-blue-400" size={22} />
+                      <Cog className="text-blue-400" size={22} />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-[1rem] text-neutral-900 truncate">{service.name}</div>
@@ -761,7 +896,10 @@ export default function ClientDashboard() {
                 categories.map(category => (
                   <div key={`category-${category.id}`} className="flex items-center h-14 bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-xl shadow p-2 hover:shadow-lg transition-all duration-150 cursor-pointer" onClick={() => handleCategoryClick(category.id)}>
                     <div className="flex items-center justify-center w-8 h-8 rounded-full bg-cyan-50 mr-2">
-                      <ScissorsIcon className="h-5 w-5 text-cyan-400" />
+                      {(() => {
+                        const Icon = getCategoryIcon(category.name);
+                        return <Icon className="h-5 w-5 text-cyan-400" />;
+                      })()}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="font-semibold text-[0.98rem] text-neutral-900 truncate">{category.name}</div>
@@ -777,36 +915,35 @@ export default function ClientDashboard() {
       </div>
       <nav className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white shadow-xl flex justify-around items-center py-2 rounded-t-2xl z-50 border-t border-gray-100">
         <button 
-          className="flex flex-col items-center text-cyan-600 font-bold transition-all duration-200 drop-shadow-lg hover:text-cyan-900" 
-          aria-current="page" 
-          style={{ filter: 'brightness(1.2)' }}
+          className="flex flex-col items-center text-[#58c9d1] font-bold transition-all duration-200 drop-shadow-lg hover:text-[#3eb9aa]"
+          aria-current="page"
           onClick={() => setLocation('/client/dashboard')}
         >
-          <Home className="h-8 w-8 mb-0.5 text-cyan-400" />
-            <span className="text-[0.7rem]">Início</span>
-          </button>
+          <Home className="h-8 w-8 mb-0.5 text-[#58c9d1]" />
+          <span className="text-[0.7rem]">Início</span>
+        </button>
         <button 
-          className="flex flex-col items-center text-cyan-600 hover:text-emerald-400 transition-all duration-200" 
+          className="flex flex-col items-center text-[#58c9d1] font-bold transition-all duration-200 drop-shadow-lg hover:text-[#3eb9aa]"
           onClick={navigateToBookingWizard}
         >
-          <PlusCircle className="h-8 w-8 mb-0.5 text-emerald-400" />
-            <span className="text-[0.7rem]">Agendar</span>
-          </button>
+          <PlusCircle className="h-8 w-8 mb-0.5 text-[#58c9d1]" />
+          <span className="text-[0.7rem]">Agendar</span>
+        </button>
         <button 
-          className="flex flex-col items-center text-cyan-600 hover:text-blue-400 transition-all duration-200" 
+          className="flex flex-col items-center text-[#58c9d1] font-bold transition-all duration-200 drop-shadow-lg hover:text-[#3eb9aa]"
           onClick={() => setLocation('/client/providers')}
         >
-          <Search className="h-8 w-8 mb-0.5 text-blue-400" />
+          <Search className="h-8 w-8 mb-0.5 text-[#58c9d1]" />
           <span className="text-[0.7rem]">Buscar</span>
-          </button>
+        </button>
         <button 
-          className="flex flex-col items-center text-cyan-600 hover:text-pink-400 transition-all duration-200" 
+          className="flex flex-col items-center text-[#58c9d1] font-bold transition-all duration-200 drop-shadow-lg hover:text-[#3eb9aa]"
           onClick={() => setLocation('/client/profile')}
         >
-          <User className="h-8 w-8 mb-0.5 text-pink-400" />
-            <span className="text-[0.7rem]">Perfil</span>
-          </button>
-        </nav>
+          <User className="h-8 w-8 mb-0.5 text-[#58c9d1]" />
+          <span className="text-[0.7rem]">Perfil</span>
+        </button>
+      </nav>
     </div>
   );
 }

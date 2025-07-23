@@ -50,31 +50,22 @@ import { Separator } from "@/components/ui/separator";
 
 // Função auxiliar para agrupar agendamentos por status
 const groupAppointmentsByStatus = (appointments: Appointment[]) => {
-  const upcoming = appointments.filter(
-    (a) => a.status !== "completed" && a.status !== "canceled"
-  ).sort((a, b) => {
-    const dateA = new Date(`${a.date}T${a.startTime}`);
-    const dateB = new Date(`${b.date}T${b.startTime}`);
-    return dateA.getTime() - dateB.getTime();
-  });
-  
+  const pending = appointments.filter(
+    (a) => a.status === "pending"
+  );
+
   const completed = appointments.filter(
-    (a) => a.status === "completed"
-  ).sort((a, b) => {
-    const dateA = new Date(`${a.date}T${a.startTime}`);
-    const dateB = new Date(`${b.date}T${b.startTime}`);
-    return dateB.getTime() - dateA.getTime();
-  });
-  
+    (a) => a.status === "confirmed" || a.status === "confirmado"
+  );
+
   const canceled = appointments.filter(
     (a) => a.status === "canceled"
-  ).sort((a, b) => {
-    const dateA = new Date(`${a.date}T${a.startTime}`);
-    const dateB = new Date(`${b.date}T${b.startTime}`);
-    return dateB.getTime() - dateA.getTime();
-  });
-  
-  return { upcoming, completed, canceled };
+  );
+
+  // "Próximos" agora é igual aos pendentes
+  const upcoming = pending;
+
+  return { upcoming, pending, completed, canceled };
 };
 
 // Função para formatar data em formato legível
@@ -109,6 +100,7 @@ const StatusBadge = ({ status }: { status: string | null }) => {
   
   switch (status) {
     case "confirmed":
+    case "confirmado":
       variant = "default";
       label = "Confirmado";
       className = "bg-green-100 text-green-800 border-green-200";
@@ -137,6 +129,23 @@ const StatusBadge = ({ status }: { status: string | null }) => {
       {label}
     </Badge>
   );
+};
+
+// Componente para badge de status de pagamento
+const PaymentStatusBadge = ({ status }: { status: string | null | undefined }) => {
+  if (!status || status === 'pending' || status === 'aguardando_pagamento') {
+    return <Badge variant="warning" className="bg-yellow-100 text-yellow-800 border-yellow-200">Aguardando pagamento</Badge>;
+  }
+  if (status === 'confirmado' || status === 'paid') {
+    return <Badge variant="success" className="bg-green-100 text-green-800 border-green-200">Pago</Badge>;
+  }
+  if (status === 'failed') {
+    return <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-200">Pagamento falhou</Badge>;
+  }
+  if (status === 'refunded') {
+    return <Badge variant="info" className="bg-blue-100 text-blue-800 border-blue-200">Pagamento reembolsado</Badge>;
+  }
+  return <Badge variant="outline">{status}</Badge>;
 };
 
 export default function ClientAppointmentsPage() {
@@ -213,6 +222,7 @@ export default function ClientAppointmentsPage() {
         statusText = "Concluído";
         break;
       case "confirmed":
+      case "confirmado":
         badgeClass = "bg-green-100 text-green-800 hover:bg-green-100";
         statusText = "Confirmado";
         break;
@@ -308,7 +318,7 @@ export default function ClientAppointmentsPage() {
               </div>
               <div className="bg-gradient-to-br from-yellow-50 to-white border border-yellow-200 rounded-xl p-3 text-center">
                 <div className="text-2xl font-bold text-yellow-700">
-                  {groupedAppointments.upcoming.filter(a => a.status === 'pending').length}
+                  {groupedAppointments.pending.length}
                 </div>
                 <div className="text-xs text-yellow-600 font-medium">Pendentes</div>
               </div>
@@ -423,8 +433,8 @@ export default function ClientAppointmentsPage() {
                 
                 <TabsContent value="overview" className="mt-0">
                   <div className="space-y-2">
-                    {groupedAppointments.upcoming.length > 0 ? (
-                      groupedAppointments.upcoming.slice(0, 6).map((appointment) => (
+                    {appointments.filter(a => a.status === 'pending' || a.status === 'confirmed' || a.status === 'confirmado').length > 0 ? (
+                      appointments.filter(a => a.status === 'pending' || a.status === 'confirmed' || a.status === 'confirmado').slice(0, 6).map((appointment) => (
                         <AppointmentCard key={appointment.id} appointment={appointment} />
                       ))
                     ) : (
@@ -502,6 +512,7 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'confirmed':
+      case 'confirmado':
         return 'bg-green-50';
       case 'pending':
         return 'bg-yellow-50';
@@ -517,6 +528,7 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'confirmed':
+      case 'confirmado':
         return <CheckCircle2 className="text-green-400" size={22} />;
       case 'pending':
         return <Clock className="text-yellow-500" size={22} />;
@@ -532,7 +544,7 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
   // Função para traduzir status do pagamento
   const getPaymentStatusText = (status: string | null | undefined) => {
     if (!status || status === 'pending' || status === 'aguardando_pagamento') return 'Aguardando pagamento';
-    if (status === 'confirmado') return 'Pago';
+    if (status === 'confirmado' || status === 'paid') return 'Pago';
     if (status === 'failed') return 'Pagamento falhou';
     if (status === 'refunded') return 'Pagamento reembolsado';
     return status;
@@ -587,12 +599,12 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
           {appointment.providerName || `Prestador #${appointment.providerId}`}
         </div>
         {/* Status do agendamento */}
-        <div className="flex flex-row gap-2 mt-1">
-          <span className="text-xs font-medium text-neutral-700">
-            Status: <span className="font-bold">{getAppointmentStatusText(appointment.status)}</span>
+        <div className="flex flex-col gap-1 mt-1">
+          <span className="text-xs font-medium text-neutral-700 flex items-center gap-1">
+            <StatusBadge status={appointment.status} />
           </span>
-          <span className="text-xs font-medium text-neutral-700">
-            Pagamento: <span className="font-bold">{getPaymentStatusText(appointment.paymentStatus)}</span>
+          <span className="text-xs font-medium text-neutral-700 flex items-center gap-1">
+            <PaymentStatusBadge status={appointment.paymentStatus} />
           </span>
         </div>
         {appointment.totalPrice && appointment.totalPrice > 0 && (

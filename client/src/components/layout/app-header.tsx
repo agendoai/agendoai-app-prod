@@ -141,7 +141,7 @@ export default function AppHeader({
       initial={{ opacity: 0.8, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className={`sticky top-0 z-50 ${transparent ? '' : 'border-b bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400'} h-14 flex items-center px-4 ${className}`}
+      className={`sticky top-0 z-50 ${transparent ? '' : 'border-b bg-[#3EB9AA]'} h-14 flex items-center px-4 ${className}`}
     >
       {showBackButton && (
         <Button
