@@ -7,7 +7,25 @@
 import { Router } from 'express';
 import Stripe from 'stripe';
 import { storage } from '../storage';
+import { getStripeConnectAccountStatus } from '../stripe-service';
 import { z } from 'zod';
+import { db } from '../db';
+import { appointments } from '@shared/schema';
+import { eq } from 'drizzle-orm';
+import axios from 'axios';
+import { getAsaasBaseUrl, asaasConfig } from '../asaas-service';
+
+// Função utilitária para converter HH:MM em minutos
+function timeToMinutes(time) {
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+}
+// Função utilitária para converter minutos em HH:MM
+function minutesToTime(minutes) {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
+}
 
 // Verificação de chave secreta do Stripe
 if (!process.env.STRIPE_SECRET_KEY) {
@@ -34,86 +52,152 @@ const createPaymentIntentSchema = z.object({
  */
 paymentRouter.post('/create-payment-intent', async (req, res) => {
   try {
-    // Verifica se o usuário está autenticado
     if (!req.isAuthenticated()) {
       return res.status(401).json({ message: 'Usuário não autenticado' });
     }
 
-    // Valida os dados da requisição
-    const validation = createPaymentIntentSchema.safeParse(req.body);
-    if (!validation.success) {
-      return res.status(400).json({ 
-        message: 'Dados inválidos', 
-        errors: validation.error.format() 
-      });
+    const { amount, description, metadata, customerId } = req.body;
+    const { providerId, serviceId, paymentMethod, date, startTime, endTime: endTimeFromFront } = metadata || {};
+    if (!providerId || !serviceId || !paymentMethod) {
+      return res.status(400).json({ message: 'providerId, serviceId e paymentMethod são obrigatórios no metadata' });
     }
 
-    const { amount, description, metadata } = validation.data;
+    // Buscar dados do serviço para calcular a duração
+    const service = await storage.getService(serviceId);
+    const serviceDuration = service?.duration || 30; // 30 minutos padrão se não achar
+    let endTime = endTimeFromFront;
+    if (!endTime) {
+      const startMinutes = timeToMinutes(startTime);
+      const endMinutes = startMinutes + serviceDuration;
+      endTime = minutesToTime(endMinutes);
+    }
+
+    // Buscar dados do provider e serviço para descrição
+    // (Opcional: pode buscar do banco se quiser enriquecer a descrição)
+
+    // Montar split
+    const platformFee = 1.75;
+    const serviceValue = amount - platformFee;
+    const totalValue = Math.round(amount * 100); // totalValue em centavos (inteiro)
+
+    // IDs das carteiras
+    const subAccountWalletId = process.env.ASAAS_WALLET_ID_SUBCONTA;
+    const platformWalletId = process.env.ASAAS_WALLET_ID;
     
-    // Verificar se o usuário já tem um ID de cliente no Stripe
-    const paymentMethods = await storage.getUserPaymentMethods(req.user.id);
-    let stripeCustomerId = paymentMethods.length > 0 ? paymentMethods[0].stripeCustomerId : null;
+    console.log('🔍 Verificando carteiras para split:');
+    console.log('Carteira Subconta:', subAccountWalletId);
+    console.log('Carteira Plataforma:', platformWalletId);
+    console.log('São iguais?', subAccountWalletId === platformWalletId);
     
-    // Se não tiver, cria um novo cliente no Stripe
-    if (!stripeCustomerId) {
-      const customer = await stripe.customers.create({
-        email: req.user.email,
-        name: req.user.name || "Cliente " + req.user.id,
-        metadata: {
-          userId: String(req.user.id)
+    // Verificar se as carteiras são diferentes para evitar erro de split na própria carteira
+    // if (subAccountWalletId === platformWalletId) {
+      // console.log('⚠️ Carteiras iguais detectadas, criando pagamento sem split');
+      // 1. Crie o pré-agendamento no banco
+      const clientId = req.user.id;
+      const [preAppointment] = await db
+        .insert(appointments)
+        .values({
+          clientId,
+          providerId,
+          serviceId,
+          date,
+          startTime,
+          endTime, // <-- agora sempre preenchido!
+          status: "pending",
+          paymentStatus: "aguardando_pagamento",
+          totalPrice: totalValue // agora inteiro (centavos)
+        })
+        .returning();
+
+      // Criar pagamento sem split
+      const { createAsaasPayment, initializeAsaas } = await import('../asaas-service');
+      await initializeAsaas();
+      const paymentResult = await createAsaasPayment({
+        customerId: customerId,
+        billingType: paymentMethod === 'pix' ? 'PIX' : paymentMethod === 'credit_card' ? 'CREDIT_CARD' : 'DEBIT_CARD',
+        value: amount, // valor em reais (float) para o Asaas
+        description: description || `Agendamento - Serviço ${serviceId} com prestador ${providerId}`,
+        dueDate: date
+      });
+      if (!paymentResult.success) {
+        return res.status(400).json({ message: 'Erro ao criar pagamento no Asaas', error: paymentResult.error });
+      }
+      // Atualize o pré-agendamento com o paymentId do Asaas
+      await db.update(appointments)
+        .set({ paymentId: paymentResult.paymentId })
+        .where(eq(appointments.id, preAppointment.id));
+      return res.json({
+        paymentId: paymentResult.paymentId,
+        message: 'Pagamento criado com sucesso no Asaas (sem split)',
+        pixQrCode: paymentResult.pixQrCode,
+        pixQrCodeImage: paymentResult.pixQrCodeImage,
+        invoiceUrl: paymentResult.invoiceUrl,
+        appointmentId: preAppointment.id
+      });
+    // }
+    
+    // --- COMENTADO: Lógica de split para debug ---
+    /*
+    if (!subAccountWalletId || !platformWalletId) {
+      return res.status(400).json({ message: 'Carteiras do split não configuradas' });
+    }
+
+    // Chamar função de criação de pagamento do Asaas com split
+    const { createAsaasPaymentWithSubAccountSplit, initializeAsaas } = await import('../asaas-service');
+    await initializeAsaas();
+    // 1. Crie o pré-agendamento no banco
+    const clientId = req.user.id;
+    const [preAppointment] = await db
+      .insert(appointments)
+      .values({
+        clientId,
+        providerId,
+        serviceId,
+        date,
+        startTime,
+        endTime, // <-- agora sempre preenchido!
+        status: "aguardando_pagamento"
+      })
+      .returning();
+    const paymentResult = await createAsaasPaymentWithSubAccountSplit({
+      customerId: customerId, // agora usa o asaasCustomerId enviado do frontend
+      billingType: paymentMethod === 'pix' ? 'PIX' : paymentMethod === 'credit_card' ? 'CREDIT_CARD' : 'DEBIT_CARD',
+      value: totalValue,
+      description: description || `Agendamento - Serviço ${serviceId} com prestador ${providerId}`,
+      dueDate: date,
+      split: [
+        {
+          walletId: subAccountWalletId,
+          fixedValue: serviceValue,
+          status: 'RELEASED'
+        },
+        {
+          walletId: platformWalletId,
+          fixedValue: platformFee,
+          status: 'RELEASED'
         }
-      });
-      
-      stripeCustomerId = customer.id;
-      
-      // Atualiza o ID do cliente no banco de dados
-      await storage.updateStripeCustomerId(req.user.id, stripeCustomerId);
+      ]
+    });
+    if (!paymentResult.success) {
+      return res.status(400).json({ message: 'Erro ao criar pagamento no Asaas', error: paymentResult.error });
     }
-    
-    // Cria o PaymentIntent
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Converte para centavos
-      currency: 'brl',
-      customer: stripeCustomerId,
-      description: description || `Pagamento AgendoAI - Usuário ${req.user.id}`,
-      metadata: {
-        userId: String(req.user.id),
-        ...metadata
-      },
-      receipt_email: req.user.email, // Envia recibo por email
-      payment_method_types: ['card'],
-      automatic_payment_methods: {
-        enabled: true,
-        allow_redirects: 'always'
-      },
-      setup_future_usage: 'off_session', // Permite uso futuro do método de pagamento
+    // Atualize o pré-agendamento com o paymentId do Asaas
+    await db.update(appointments)
+      .set({ paymentId: paymentResult.paymentId })
+      .where(eq(appointments.id, preAppointment.id));
+    // Retornar dados para o frontend (ajustar conforme resposta do Asaas)
+    res.json({
+      paymentId: paymentResult.paymentId,
+      message: 'Pagamento criado com sucesso no Asaas',
+      pixQrCode: paymentResult.pixQrCode,
+      pixQrCodeImage: paymentResult.pixQrCodeImage,
+      invoiceUrl: paymentResult.invoiceUrl,
+      appointmentId: preAppointment.id
     });
-
-    // Registra a intenção de pagamento
-    try {
-      await storage.createPaymentLog({
-        userId: req.user.id,
-        paymentIntentId: paymentIntent.id,
-        amount: amount,
-        status: 'pending',
-        metadata: JSON.stringify(metadata)
-      });
-    } catch (err) {
-      console.error('Erro ao registrar pagamento no log:', err);
-      // Não interrompe o fluxo se o log falhar
-    }
-
-    // Retorna o clientSecret para o frontend
-    res.json({ 
-      clientSecret: paymentIntent.client_secret,
-      paymentIntentId: paymentIntent.id 
-    });
-  } catch (error: any) {
-    console.error('Erro ao criar payment intent:', error);
-    res.status(500).json({ 
-      message: 'Erro ao processar o pagamento', 
-      error: error.message 
-    });
+    */
+  } catch (error) {
+    console.error('Erro ao criar payment intent no Asaas:', error);
+    res.status(500).json({ message: 'Erro ao processar o pagamento', error: error.message });
   }
 });
 
@@ -223,19 +307,82 @@ paymentRouter.post('/webhook', async (req, res) => {
           
           try {
             // Atualiza o status do pagamento no log
-            await storage.updatePaymentLog(paymentIntent.id, {
+            await storage.createPaymentLog({
+              userId: userId,
+              paymentIntentId: paymentIntent.id,
+              amount: paymentIntent.amount / 100, // Converter de centavos
               status: 'completed',
-              completedAt: new Date()
+              metadata: JSON.stringify(paymentIntent.metadata)
             });
             
-            // Se for um pagamento de agendamento, atualizar o status do agendamento
-            if (paymentIntent.metadata?.appointmentId && 
-                paymentIntent.metadata.appointmentId !== 'none') {
-              const appointmentId = parseInt(paymentIntent.metadata.appointmentId);
+            // Se for um pagamento de agendamento, criar o agendamento automaticamente
+            if (paymentIntent.metadata?.providerId && 
+                paymentIntent.metadata?.serviceId &&
+                paymentIntent.metadata?.date &&
+                paymentIntent.metadata?.startTime) {
               
-              // Atualiza o status de pagamento do agendamento
-              await storage.updateAppointmentPaymentStatus(appointmentId, 'paid');
-              console.log(`📅 Agendamento #${appointmentId} marcado como pago`);
+              const appointmentData = {
+                providerId: parseInt(paymentIntent.metadata.providerId),
+                serviceId: parseInt(paymentIntent.metadata.serviceId),
+                clientId: userId,
+                date: paymentIntent.metadata.date,
+                startTime: paymentIntent.metadata.startTime,
+                paymentMethod: paymentIntent.metadata.paymentMethod || 'credit_card',
+                totalPrice: paymentIntent.amount / 100, // Converter de centavos
+                paymentId: paymentIntent.id,
+                appointmentType: paymentIntent.metadata.appointmentType || 'single'
+              };
+              
+              // Importar o sistema de booking
+              const { bookingSystem } = require('../intelligent-booking-system');
+              
+              try {
+                let appointmentId;
+                
+                if (appointmentData.appointmentType === 'consecutive') {
+                  // Agendamento de múltiplos serviços
+                  appointmentId = await bookingSystem.bookConsecutiveServices({
+                    providerId: appointmentData.providerId,
+                    clientId: appointmentData.clientId,
+                    date: appointmentData.date,
+                    startTime: appointmentData.startTime,
+                    services: JSON.parse(paymentIntent.metadata.services || '[]')
+                  });
+                } else {
+                  // Agendamento simples
+                  appointmentId = await bookingSystem.bookAppointment({
+                    providerId: appointmentData.providerId,
+                    serviceId: appointmentData.serviceId,
+                    clientId: appointmentData.clientId,
+                    date: appointmentData.date,
+                    startTime: appointmentData.startTime,
+                    paymentMethod: appointmentData.paymentMethod,
+                    totalPrice: appointmentData.totalPrice,
+                    paymentId: appointmentData.paymentId
+                  });
+                }
+                
+                console.log(`✅ Agendamento criado automaticamente: ${appointmentId}`);
+                
+                // Enviar notificação para o cliente
+                try {
+                  const { sendNotification } = require('../push-notification-service');
+                  await sendNotification(userId, {
+                    title: 'Agendamento Confirmado!',
+                    body: `Seu agendamento foi confirmado e pago com sucesso.`,
+                    data: {
+                      type: 'appointment_confirmed',
+                      appointmentId: appointmentId.toString()
+                    }
+                  });
+                } catch (notificationError) {
+                  console.error('Erro ao enviar notificação:', notificationError);
+                }
+                
+              } catch (bookingError) {
+                console.error('Erro ao criar agendamento automaticamente:', bookingError);
+                // Aqui você pode implementar um sistema de retry ou notificação para admin
+              }
             }
             
             console.log(`✅ Pagamento registrado para usuário ${userId}`);
@@ -251,9 +398,12 @@ paymentRouter.post('/webhook', async (req, res) => {
         
         // Atualiza o status do pagamento no log
         try {
-          await storage.updatePaymentLog(failedPayment.id, {
+          await storage.createPaymentLog({
+            userId: parseInt(failedPayment.metadata.userId),
+            paymentIntentId: failedPayment.id,
+            amount: failedPayment.amount / 100, // Converter de centavos
             status: 'failed',
-            completedAt: new Date()
+            metadata: JSON.stringify(failedPayment.metadata)
           });
           
           // Se for um pagamento de agendamento, atualizar o status
@@ -262,7 +412,6 @@ paymentRouter.post('/webhook', async (req, res) => {
             const appointmentId = parseInt(failedPayment.metadata.appointmentId);
             
             // Marca o pagamento como falho
-            await storage.updateAppointmentPaymentStatus(appointmentId, 'failed');
             console.log(`🔴 Pagamento falhou para agendamento #${appointmentId}`);
           }
         } catch (err) {
@@ -293,6 +442,35 @@ paymentRouter.post('/webhook', async (req, res) => {
   } catch (error: any) {
     console.error('Erro ao processar webhook:', error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * Obtém o QR Code do PIX para um pagamento específico
+ * GET /api/payments/pixQrCode/:paymentId
+ */
+paymentRouter.get('/pixQrCode/:paymentId', async (req, res) => {
+  try {
+    const { paymentId } = req.params;
+    if (!asaasConfig) {
+      return res.status(500).json({ error: 'Asaas não configurado' });
+    }
+    const baseURL = getAsaasBaseUrl(asaasConfig.liveMode);
+    const response = await axios.get(
+      `${baseURL}/payments/${paymentId}/pixQrCode`,
+      {
+        headers: {
+          'access_token': asaasConfig.apiKey,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    res.json({
+      pixQrCode: response.data.payload,
+      pixQrCodeImage: response.data.encodedImage
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'Erro ao buscar QR Code do PIX' });
   }
 });
 
@@ -363,7 +541,7 @@ paymentRouter.post('/create-subscription', async (req, res) => {
     
     if (existingSubscription) {
       // Verificar no Stripe se a assinatura ainda está ativa
-      const stripeSubscription = await stripe.subscriptions.retrieve(
+      const stripeSubscription: any = await stripe.subscriptions.retrieve(
         existingSubscription.stripeSubscriptionId
       );
       
@@ -441,7 +619,7 @@ paymentRouter.get('/subscription', async (req, res) => {
     
     // Busca os detalhes no Stripe
     try {
-      const stripeSubscription = await stripe.subscriptions.retrieve(
+      const stripeSubscription: any = await stripe.subscriptions.retrieve(
         subscription.stripeSubscriptionId
       );
       
@@ -500,7 +678,7 @@ paymentRouter.post('/cancel-subscription', async (req, res) => {
     }
     
     // Cancela a assinatura no Stripe (ao final do período atual)
-    const updatedSubscription = await stripe.subscriptions.update(
+    const updatedSubscription: any = await stripe.subscriptions.update(
       subscription.stripeSubscriptionId,
       { cancel_at_period_end: true }
     );

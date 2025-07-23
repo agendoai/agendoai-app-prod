@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, boolean, jsonb, doublePrecision, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, boolean, jsonb, doublePrecision, decimal, varchar } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -16,6 +16,8 @@ export const users = pgTable("users", {
   isActive: boolean("is_active").default(true),
   isVerified: boolean("is_verified").default(false),
   createdAt: timestamp("created_at").defaultNow(),
+  asaasCustomerId: varchar('asaas_customer_id', { length: 64 }),
+  cpf: varchar('cpf', { length: 18 }).notNull(), // CPF/CNPJ obrigatório
 });
 
 // Endereços dos usuários
@@ -170,6 +172,7 @@ export const appointments = pgTable("appointments", {
 export const providerSettings = pgTable("provider_settings", {
   id: serial("id").primaryKey(),
   providerId: integer("provider_id").notNull().unique(),
+  stripeAccountId: text("stripe_account_id"),
   isOnline: boolean("is_online").default(false),
   businessName: text("business_name"),
   description: text("description"),

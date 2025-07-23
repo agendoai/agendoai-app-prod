@@ -328,18 +328,18 @@ export default function ClientAppointmentsPage() {
                 <Input 
                   type="search" 
                   placeholder="Buscar por prestador ou serviço..." 
-                  className="pl-10" 
+                  className="pl-10 rounded-full bg-gray-50 border border-gray-200 shadow-sm focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 py-2 text-sm"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
               
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Select value={statusFilter || "todos"} onValueChange={(value) => setStatusFilter(value === "todos" ? null : value)}>
-                  <SelectTrigger className="flex-1">
+                  <SelectTrigger className="flex-1 rounded-full bg-gray-50 border border-gray-200 shadow-sm focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 text-sm">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="bg-white">
                     <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="pending">Pendentes</SelectItem>
                     <SelectItem value="confirmed">Confirmados</SelectItem>
@@ -347,15 +347,14 @@ export default function ClientAppointmentsPage() {
                     <SelectItem value="canceled">Cancelados</SelectItem>
                   </SelectContent>
                 </Select>
-                
                 <Popover>
                   <PopoverTrigger asChild>
-                    <Button variant="outline" className="gap-2">
+                    <Button variant="outline" className="gap-2 rounded-full bg-gray-50 border border-gray-200 shadow-sm focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 text-sm">
                       <CalendarRange className="h-4 w-4" />
                       {dateFilter ? format(dateFilter, 'dd/MM') : "Data"}
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
+                  <PopoverContent className="w-auto p-0 bg-white" align="end">
                     <CalendarComponent
                       mode="single"
                       selected={dateFilter}
@@ -376,12 +375,11 @@ export default function ClientAppointmentsPage() {
                     )}
                   </PopoverContent>
                 </Popover>
-                
                 <Button 
                   variant="outline" 
                   onClick={handleRefresh} 
                   disabled={isLoading || isRefetching || isManualRefreshing}
-                  className="gap-2"
+                  className="gap-2 rounded-full bg-gray-50 border border-gray-200 shadow-sm focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 text-sm"
                 >
                   <RefreshCcw className={`h-4 w-4 ${(isRefetching || isManualRefreshing) ? 'animate-spin' : ''}`} />
                 </Button>
@@ -531,6 +529,25 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
     }
   };
 
+  // Função para traduzir status do pagamento
+  const getPaymentStatusText = (status: string | null | undefined) => {
+    if (!status || status === 'pending' || status === 'aguardando_pagamento') return 'Aguardando pagamento';
+    if (status === 'confirmado') return 'Pago';
+    if (status === 'failed') return 'Pagamento falhou';
+    if (status === 'refunded') return 'Pagamento reembolsado';
+    return status;
+  };
+
+  // Função para traduzir status do agendamento
+  const getAppointmentStatusText = (status: string | null | undefined) => {
+    if (!status || status === 'pending') return 'Pendente';
+    if (status === 'confirmed' || status === 'confirmado') return 'Confirmado';
+    if (status === 'executando') return 'Executando';
+    if (status === 'completed' || status === 'concluído') return 'Concluído';
+    if (status === 'canceled' || status === 'cancelado') return 'Cancelado';
+    return status;
+  };
+
   // Formatar preço
   const formatPrice = (price?: number | null) => {
     if (price === null || price === undefined) return "N/A";
@@ -539,16 +556,18 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
   
   return (
     <div 
-      className={`flex items-start bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-xl shadow p-2 hover:shadow-lg transition-all duration-150 cursor-pointer ${
-        appointment.status === 'pending' ? 'min-h-[4.5rem]' : 'min-h-[3.5rem]'
-      }`}
+      className={`flex items-start bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-2xl shadow p-4 mb-4 hover:shadow-lg transition-all duration-150 cursor-pointer ${{
+        'pending': 'min-h-[4.5rem]',
+        'default': 'min-h-[3.5rem]'
+      }[appointment.status]}`}
       onClick={goToAppointmentDetails}
+      style={{ boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)' }}
     >
-      <div className={`flex items-center justify-center w-10 h-10 rounded-full mr-2 mt-1 ${getStatusColor(appointment.status)}`}>
+      <div className={`flex items-center justify-center w-12 h-12 rounded-full mr-3 mt-1 ${getStatusColor(appointment.status)}`}>
         {getStatusIcon(appointment.status)}
       </div>
       <div className="flex-1 min-w-0 flex flex-col">
-        <div className="font-semibold text-[0.9rem] text-neutral-900 truncate leading-tight mb-0.5">
+        <div className="font-semibold text-[1rem] text-neutral-900 truncate leading-tight mb-1">
           {appointment.serviceName || `Serviço #${appointment.serviceId}`}
         </div>
         <div className="text-xs text-cyan-700 font-medium leading-tight mb-0.5">
@@ -567,26 +586,45 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
         <div className="text-xs text-neutral-400 truncate leading-tight mb-0.5">
           {appointment.providerName || `Prestador #${appointment.providerId}`}
         </div>
-        {appointment.status === 'pending' && (
-          <div className="text-xs text-yellow-600 font-medium leading-tight">Aguardando confirmação</div>
-        )}
+        {/* Status do agendamento */}
+        <div className="flex flex-row gap-2 mt-1">
+          <span className="text-xs font-medium text-neutral-700">
+            Status: <span className="font-bold">{getAppointmentStatusText(appointment.status)}</span>
+          </span>
+          <span className="text-xs font-medium text-neutral-700">
+            Pagamento: <span className="font-bold">{getPaymentStatusText(appointment.paymentStatus)}</span>
+          </span>
+        </div>
         {appointment.totalPrice && appointment.totalPrice > 0 && (
-          <div className="text-xs text-neutral-600 font-medium leading-tight">
+          <div className="text-xs text-neutral-600 font-medium leading-tight mt-1">
             {formatPrice(appointment.totalPrice)}
           </div>
         )}
+        {/* Botões de ação */}
+        <div className="flex flex-row gap-2 mt-3 justify-end">
+          <button
+            className="px-4 py-1.5 text-xs rounded-full bg-gray-100 text-cyan-700 font-semibold shadow-sm hover:bg-cyan-100 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-200"
+            onClick={(e) => {
+              e.stopPropagation();
+              goToAppointmentDetails();
+            }}
+          >
+            Ver
+          </button>
+          {(appointment.status === 'pending' || appointment.status === 'confirmed' || appointment.status === 'confirmado') && (
+            <button
+              className="px-4 py-1.5 text-xs rounded-full bg-red-100 text-red-700 font-semibold shadow-sm hover:bg-red-200 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-red-200"
+              onClick={(e) => {
+                e.stopPropagation();
+                // TODO: implementar lógica de cancelamento (abrir modal de confirmação, chamar API, etc)
+                alert('Funcionalidade de cancelamento em breve!');
+              }}
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
       </div>
-      <Button 
-        size="sm" 
-        variant="outline" 
-        className="ml-2 px-3 py-1 text-xs mt-1" 
-        onClick={(e) => {
-          e.stopPropagation();
-          goToAppointmentDetails();
-        }}
-      >
-        Ver
-      </Button>
     </div>
   );
 }
