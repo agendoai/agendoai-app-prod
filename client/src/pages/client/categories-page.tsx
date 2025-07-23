@@ -5,7 +5,7 @@ import { Category, Service, Niche } from "@shared/schema";
 import { ScissorsIcon } from "@/components/ui/scissors-icon";
 import AppHeader from "@/components/layout/app-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronRight, ArrowLeft } from "lucide-react";
+import { ChevronRight, ArrowLeft, Briefcase } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
 
@@ -113,12 +113,16 @@ export default function CategoriesPage() {
                     <div className="flex items-center">
                       <div
                         className="w-12 h-12 rounded-lg mr-3 flex items-center justify-center"
-                        style={{ backgroundColor: `${category.color || "#2A9D8F"}30` }}
+                        style={{ backgroundColor: '#58c9d1' }}
                       >
-                        <ScissorsIcon
-                          className="h-6 w-6"
-                          style={{ color: category.color || "#2A9D8F" }}
-                        />
+                        {category.icon ? (
+                          <span className="h-6 w-6 text-white flex items-center justify-center">
+                            {/* Renderize o ícone customizado aqui, se houver */}
+                            <i className={category.icon} />
+                          </span>
+                        ) : (
+                          <Briefcase className="h-6 w-6 text-white" />
+                        )}
                       </div>
                       <span className="font-medium">{category.name}</span>
                     </div>
