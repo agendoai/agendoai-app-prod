@@ -6,6 +6,7 @@ import path from "path";
 import cors from "cors";
 import { DatabaseStorage, storage } from './storage';
 import * as storageEnhancements from './services/storage-enhancements';
+import { initializeAsaas } from './asaas-service';
 
 // Estender a classe DatabaseStorage com os novos métodos em batch
 if (storage instanceof DatabaseStorage) {
@@ -19,14 +20,24 @@ if (storage instanceof DatabaseStorage) {
 
 const app = express();
 
+// Inicializar Asaas no início do servidor
+(async () => {
+  try {
+    await initializeAsaas();
+    console.log('Asaas inicializado com sucesso');
+  } catch (error) {
+    console.error('Erro ao inicializar Asaas:', error);
+  }
+})();
+
 
 // Configurar CORS para permitir requisições do frontend em desenvolvimento
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
     ? process.env.FRONTEND_URL || 'http://localhost:3000'
-    : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001'], // Added 3001 for dev
+    : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'https://6b39e5855edf.ngrok-free.app' ], // Added 3001 for dev
   credentials: true, // Permite cookies (importante para sessão)
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 

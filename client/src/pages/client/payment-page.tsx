@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'wouter';
+import { useLocation, useSearchParams } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CreditCard, QrCode, ArrowLeft, CheckCircle } from 'lucide-react';
+import { Loader2, CreditCard, QrCode, ArrowLeft, CheckCircle, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
@@ -42,6 +42,10 @@ export default function PaymentPage() {
   // Adicionar estados para QR Code, link de pagamento e status
   const [pixQrCode, setPixQrCode] = useState<string | null>(null);
   const [paymentLink, setPaymentLink] = useState<string | null>(null);
+  const [pixQrCodeImage, setPixQrCodeImage] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  const [searchParams] = useSearchParams();
 
   useEffect(() => {
     // Verificar se o usuário está autenticado
@@ -52,32 +56,80 @@ export default function PaymentPage() {
 
     // Recuperar dados do agendamento do sessionStorage
     const storedData = sessionStorage.getItem('pendingBookingData');
-    if (!storedData) {
+    if (storedData) {
+      try {
+        const data: BookingData = JSON.parse(storedData);
+        setBookingData(data);
+        fetchProviderAndServiceData(data.providerId, data.serviceId);
+        return;
+      } catch (error) {}
+    }
+
+    // Se não houver dados no sessionStorage, tentar pegar da URL
+    const amount = parseFloat(searchParams.get('amount') || '0');
+    const paymentMethod = searchParams.get('paymentMethod') || 'pix';
+    if (amount > 0) {
+      const tempBooking = {
+        providerId: 0,
+        serviceId: 0,
+        date: '',
+        startTime: '',
+        endTime: '',
+        totalPrice: amount,
+        paymentMethod,
+      };
+      setBookingData(tempBooking);
+      setIsLoading(false);
+
+      // Criar pagamento PIX automaticamente se for PIX
+      if (paymentMethod === 'pix' && user?.asaasCustomerId) {
+        (async () => {
+          setIsProcessing(true);
+          try {
+            const payload = {
+              amount: amount,
+              description: `Pagamento PIX - Valor direto`,
+              customerId: user.asaasCustomerId,
+              metadata: {
+                paymentMethod: 'pix',
+              }
+            };
+            const paymentResponse = await fetch('/api/payments/create-payment-intent', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+            const result = await paymentResponse.json();
+            if (result.paymentId) {
+              const qrRes = await fetch(`/api/payments/pixQrCode/${result.paymentId}`);
+              if (qrRes.ok) {
+                const qrData = await qrRes.json();
+                setPixQrCode(qrData.pixQrCode);
+                setPixQrCodeImage(qrData.pixQrCodeImage);
+                setShowPixQR(true);
+              }
+            }
+          } catch (err) {
+            toast({
+              title: 'Erro ao gerar pagamento PIX',
+              description: 'Tente novamente ou entre em contato com o suporte.',
+              variant: 'destructive',
+            });
+          } finally {
+            setIsProcessing(false);
+          }
+        })();
+      }
+      return;
+    } else {
       toast({
         title: "Dados não encontrados",
         description: "Por favor, inicie o agendamento novamente.",
         variant: "destructive",
       });
       setLocation('/');
-      return;
     }
-
-    try {
-      const data: BookingData = JSON.parse(storedData);
-      setBookingData(data);
-      
-      // Buscar dados do prestador e serviço
-      fetchProviderAndServiceData(data.providerId, data.serviceId);
-    } catch (error) {
-      console.error('Erro ao processar dados do agendamento:', error);
-      toast({
-        title: "Erro ao carregar dados",
-        description: "Por favor, tente novamente.",
-        variant: "destructive",
-      });
-      setLocation('/');
-    }
-  }, [user, setLocation, toast]);
+  }, [user, setLocation, toast, searchParams]);
 
   const fetchProviderAndServiceData = async (providerId: number, serviceId: number) => {
     try {
@@ -118,7 +170,8 @@ export default function PaymentPage() {
           date: bookingData.date,
           startTime: bookingData.startTime,
           paymentMethod: bookingData.paymentMethod,
-          appointmentType: bookingData.multipleServices ? 'consecutive' : 'single'
+          appointmentType: bookingData.multipleServices ? 'consecutive' : 'single',
+          duration: serviceData?.duration || 30 // <-- duração do serviço
         }
       };
       console.log('user:', user);
@@ -135,9 +188,19 @@ export default function PaymentPage() {
         throw new Error(result.error || 'Erro ao criar pagamento');
       }
 
-      // Exemplo: se vier QR Code do PIX
-      if (bookingData.paymentMethod === 'pix' && result.pixQrCode) {
-        setPixQrCode(result.pixQrCode);
+      // Buscar o QR Code do PIX após criar o pagamento
+      if (bookingData.paymentMethod === 'pix' && result.paymentId) {
+        try {
+          const qrRes = await fetch(`/api/payments/pixQrCode/${result.paymentId}`);
+          if (qrRes.ok) {
+            const qrData = await qrRes.json();
+            setPixQrCode(qrData.pixQrCode);
+            setPixQrCodeImage(qrData.pixQrCodeImage);
+            setShowPixQR(true);
+          }
+        } catch (err) {
+          console.error('Erro ao buscar QR Code do PIX:', err);
+        }
         setPaymentStatus('pending');
       } else if ((bookingData.paymentMethod === 'credit_card' || bookingData.paymentMethod === 'debit_card') && result.paymentLink) {
         setPaymentLink(result.paymentLink);
@@ -172,7 +235,8 @@ export default function PaymentPage() {
           serviceId: String(bookingData.serviceId),
           date: bookingData.date,
           startTime: bookingData.startTime,
-          paymentMethod: 'pix'
+          paymentMethod: 'pix',
+          duration: serviceData?.duration || 30 // <-- duração do serviço
         }
       };
       console.log('user:', user);
@@ -359,6 +423,14 @@ export default function PaymentPage() {
     }
   };
 
+  const handleCopyPixCode = () => {
+    if (pixQrCode) {
+      navigator.clipboard.writeText(pixQrCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -396,36 +468,71 @@ export default function PaymentPage() {
         </Button>
 
         {showPixQR ? (
-          <Card>
+          <Card className="shadow-xl border-2 border-teal-100">
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
+              <CardTitle className="flex items-center gap-2 text-teal-700">
                 <QrCode className="h-5 w-5" />
                 Pagamento PIX
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="text-center">
-                <div className="bg-gray-100 p-4 rounded-lg mb-4">
-                  <QrCode className="h-32 w-32 mx-auto text-gray-400" />
-                  <p className="text-sm text-gray-600 mt-2">
-                    QR Code do PIX será exibido aqui
-                  </p>
+                <div className="bg-white p-6 rounded-xl shadow-lg mb-4 flex flex-col items-center">
+                  {pixQrCodeImage ? (
+                    <img
+                      src={pixQrCodeImage}
+                      alt="QR Code PIX"
+                      className="mx-auto mb-2 rounded-lg border border-gray-200 shadow"
+                      style={{ width: 256, height: 256 }}
+                    />
+                  ) : (
+                    <>
+                      <QrCode className="h-32 w-32 mx-auto text-gray-400" />
+                      <p className="text-sm text-gray-600 mt-2">
+                        QR Code do PIX será exibido aqui
+                      </p>
+                    </>
+                  )}
+                  {pixQrCode && (
+                    <div className="mt-4 w-full flex flex-col items-center">
+                      <p className="text-xs text-gray-500 mb-1">Ou copie o código PIX:</p>
+                      <div className="flex w-full items-center gap-2">
+                        <textarea
+                          value={pixQrCode}
+                          readOnly
+                          className="w-full text-xs bg-gray-100 p-2 rounded border border-gray-200 focus:outline-none focus:ring-2 focus:ring-teal-400 transition"
+                          rows={2}
+                          onClick={e => (e.target as HTMLTextAreaElement).select()}
+                          style={{ resize: 'none' }}
+                        />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant={copied ? "success" : "outline"}
+                          onClick={handleCopyPixCode}
+                          className="ml-1"
+                          aria-label="Copiar código PIX"
+                        >
+                          {copied ? <CheckCircle className="h-5 w-5 text-green-600" /> : <Copy className="h-5 w-5" />}
+                        </Button>
+                      </div>
+                      {copied && <span className="text-xs text-green-600 mt-1">Copiado!</span>}
+                    </div>
+                  )}
                 </div>
-                
                 <div className="space-y-2">
-                  <p className="text-sm text-gray-600">
-                    Escaneie o QR Code com seu app bancário
+                  <p className="text-sm text-gray-700 font-medium">
+                    Escaneie o QR Code com seu app bancário ou copie o código acima para pagar.
                   </p>
-                  <p className="text-sm text-gray-600">
-                    Valor: <span className="font-semibold">R$ {bookingData.totalPrice.toFixed(2).replace(".", ",")}</span>
+                  <p className="text-base text-gray-700">
+                    Valor: <span className="font-semibold text-teal-700">R$ {bookingData.totalPrice.toFixed(2).replace(".", ",")}</span>
                   </p>
                 </div>
-
-                <div className="mt-4">
+                <div className="mt-6">
                   <Button 
                     onClick={() => checkPaymentStatus()}
                     disabled={isProcessing}
-                    className="w-full"
+                    className="w-full h-12 text-lg bg-teal-600 hover:bg-teal-700 text-white shadow"
                   >
                     {isProcessing ? (
                       <>
@@ -441,69 +548,70 @@ export default function PaymentPage() {
             </CardContent>
           </Card>
         ) : (
-          <Card>
+          <Card className="shadow-xl border-2 border-teal-100 bg-white">
             <CardHeader>
-              <CardTitle>Confirmar Pagamento</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-teal-700">
+                <QrCode className="h-5 w-5" />
+                Confirmar Pagamento
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Resumo do agendamento */}
               <div className="space-y-3">
-                <h3 className="font-semibold text-lg">Resumo do Agendamento</h3>
-                
-                {serviceData && (
-                  <div className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <p className="font-medium">{serviceData.name}</p>
-                        <p className="text-sm text-gray-600">
-                          {format(new Date(bookingData.date), "EEEE, dd 'de' MMMM", { locale: ptBR })}
-                        </p>
-                        <p className="text-sm text-gray-600">
-                          {bookingData.startTime} - {bookingData.endTime}
-                        </p>
+                <h3 className="font-semibold text-lg text-gray-800 flex items-center gap-2">
+                  <CreditCard className="h-5 w-5 text-teal-500" />
+                  Resumo do Agendamento
+                </h3>
+                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100 flex flex-col gap-2">
+                  {serviceData ? (
+                    <>
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <p className="font-medium text-gray-900">{serviceData.name}</p>
+                          <p className="text-sm text-gray-600">
+                            {format(new Date(bookingData.date), "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {bookingData.startTime} - {bookingData.endTime}
+                          </p>
+                        </div>
+                        <Badge variant="secondary">
+                          {bookingData.paymentMethod === 'pix' ? 'PIX' : 'Cartão'}
+                        </Badge>
                       </div>
-                      <Badge variant="secondary">
-                        {bookingData.paymentMethod === 'pix' ? 'PIX' : 'Cartão'}
-                      </Badge>
+                    </>
+                  ) : (
+                    <div className="flex flex-col gap-1">
+                      <span className="text-gray-700 font-medium">Pagamento PIX direto</span>
+                      <span className="text-xs text-gray-500">Preencha o valor e clique em pagar</span>
                     </div>
-                  </div>
-                )}
-
+                  )}
+                </div>
                 {/* Valor total */}
                 <div className="border-t pt-3">
                   <div className="flex justify-between items-center">
-                    <span className="font-semibold">Total a pagar:</span>
-                    <span className="text-xl font-bold text-teal-600">
+                    <span className="font-semibold text-gray-700">Total a pagar:</span>
+                    <span className="text-2xl font-bold text-teal-700 drop-shadow">
                       R$ {bookingData.totalPrice.toFixed(2).replace(".", ",")}
                     </span>
                   </div>
                 </div>
               </div>
-
               {/* Botão de pagamento */}
               <Button 
                 onClick={handlePayment}
                 disabled={isProcessing}
-                className="w-full h-12 text-lg"
+                className="w-full h-14 text-lg bg-gradient-to-r from-teal-500 to-teal-700 hover:from-teal-600 hover:to-teal-800 text-white shadow-lg rounded-xl flex items-center justify-center gap-2 transition-all duration-150"
               >
                 {isProcessing ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
                     Processando...
                   </>
                 ) : (
                   <>
-                    {bookingData.paymentMethod === 'pix' ? (
-                      <>
-                        <QrCode className="h-5 w-5 mr-2" />
-                        Pagar com PIX
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard className="h-5 w-5 mr-2" />
-                        Pagar com Cartão
-                      </>
-                    )}
+                    <QrCode className="h-6 w-6 mr-2" />
+                    <span className="font-semibold">Pagar com PIX</span>
                   </>
                 )}
               </Button>

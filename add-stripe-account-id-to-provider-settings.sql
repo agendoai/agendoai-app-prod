@@ -1,0 +1,1 @@
+ALTER TABLE provider_settings ADD COLUMN stripe_account_id TEXT; 

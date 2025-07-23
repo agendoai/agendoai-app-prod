@@ -4,14 +4,16 @@ import { Express, Request, Response, Router } from "express"
 import crypto from "crypto"
 import fs from "fs"
 import path from "path"
+import { getPaymentSettings } from "./storage"
 import { createServer, type Server } from "http"
 import Stripe from "stripe"
+import asaasWebhookRoutes from './routes/asaas-webhook-routes';
 import { storage } from "./storage"
 import { setupAuth, hashPassword } from "./auth"
 import sumupPaymentRoutes from "./routes/sumup-payment-routes"
 import { checkAvailabilityRouter } from "./routes/check-availability-routes"
 import { paymentRouter } from "./routes/payment-routes"
-import { adminRouter } from "./routes/index"
+import { adminRouter, asaasMarketplaceRouter } from "./routes/index"
 import adminFinancialRoutes from "./routes/admin-financial-routes"
 import { db } from "./db"
 import { users, supportTickets, supportMessages } from "@shared/schema.ts"
@@ -96,6 +98,8 @@ import {
 	initializeStripe,
 } from "./stripe-service"
 import providerAvailabilityRouter from './routes/provider-availability-routes';
+import { createOrGetStripeConnectAccount, getStripeConnectAccountStatus } from './stripe-service';
+import { testAsaasConnection } from './asaas-service';
 
 // Funções auxiliares de conversão de tempo
 function timeToMinutes(time: string): number {
@@ -195,7 +199,7 @@ export function registerRoutes(app: Express): Server {
 
 	// Registrar rotas de notificações push
 	app.use("/api/push", pushRouter)
-
+    app.use('/api/webhook', asaasWebhookRoutes)
 	// Registrar rotas de otimização de agenda com IA
 	app.use("/api/provider-agenda", providerAIRouter)
 
@@ -372,6 +376,9 @@ export function registerRoutes(app: Express): Server {
 
 	// Rotas para processamento de pagamentos com Stripe
 	app.use("/api/payments", paymentRouter)
+
+	// Rotas para marketplace com Asaas (split, custódia, onboarding)
+	app.use("/api/asaas-marketplace", asaasMarketplaceRouter)
 
 	// Registrar rotas de slots de agendamento
 	app.use("/api/booking-slots", bookingSlotsRouter)
@@ -1827,7 +1834,7 @@ export function registerRoutes(app: Express): Server {
 				)
 
 				// Buscar configurações de pagamento
-				const paymentSettings = await storage.getPaymentSettings()
+				const paymentSettings = await getPaymentSettings()
 
 				// Calcular preço do serviço + taxa de serviço fixa
 				// Usar o preço personalizado do prestador se disponível, senão usar o preço padrão do serviço
@@ -2018,8 +2025,8 @@ export function registerRoutes(app: Express): Server {
 										slot.endTime ||
 										minutesToTime(
 											timeToMinutes(slot.startTime) +
-												(providerService?.executionTime ||
-													service.duration)
+											(providerService?.executionTime ||
+												service.duration)
 										),
 							  })),
 				})
@@ -6274,7 +6281,7 @@ export function registerRoutes(app: Express): Server {
 		isAdmin, // Alterado: apenas administradores podem visualizar configurações de pagamento
 		async (req, res) => {
 			try {
-				const paymentSettings = await storage.getPaymentSettings()
+				const paymentSettings = await getPaymentSettings()
 				res.json(paymentSettings || {})
 			} catch (error) {
 				console.error(
@@ -6359,7 +6366,7 @@ export function registerRoutes(app: Express): Server {
 				const settingsData = req.body
 
 				// Verificar se já existe
-				const existingSettings = await storage.getPaymentSettings()
+				const existingSettings = await getPaymentSettings()
 				if (existingSettings) {
 					return res.status(400).json({
 						error: "Configurações de pagamento já existem. Use PUT para atualizar.",
@@ -6406,7 +6413,7 @@ export function registerRoutes(app: Express): Server {
 				}
 
 				// Usando o método de teste do stripe-service.ts
-				const { testStripeConnection } = require("./stripe-service")
+				
 				const result = await testStripeConnection(
 					stripeSecretKey,
 					!!stripeLiveMode
@@ -6450,7 +6457,6 @@ export function registerRoutes(app: Express): Server {
 				}
 
 				// Usando o método de teste do asaas-service.ts
-				const { testAsaasConnection } = require("./asaas-service")
 				const result = await testAsaasConnection(
 					asaasApiKey,
 					!!asaasLiveMode
@@ -7539,7 +7545,7 @@ export function registerRoutes(app: Express): Server {
 	app.get("/api/payment-methods/available", async (req, res) => {
 		try {
 			// Buscar configurações de pagamento do sistema
-			const paymentSettings = await storage.getPaymentSettings()
+			const paymentSettings = await getPaymentSettings()
 
 			// Definir tipo para método de pagamento
 			type PaymentMethod = {
@@ -8753,6 +8759,78 @@ export function registerRoutes(app: Express): Server {
 			})
 		}
 	})
+
+	// Rotas Stripe Connect Express para prestadores
+	app.post('/api/provider/stripe-connect-onboarding', isAuthenticated, isProvider, async (req, res) => {
+	  try {
+	    const providerId = req.user.id;
+	    const email = req.user.email;
+	    const name = req.user.name || 'Prestador';
+	    const { accountId, onboardingUrl } = await createOrGetStripeConnectAccount(providerId, email, name);
+	    res.json({ accountId, onboardingUrl });
+	  } catch (error) {
+	    console.error('Erro ao criar onboarding Stripe Connect:', error);
+	    res.status(500).json({ error: 'Erro ao criar onboarding Stripe Connect', message: error.message });
+	  }
+	});
+
+	app.get('/api/provider/stripe-connect-status', isAuthenticated, isProvider, async (req, res) => {
+	  try {
+	    // Buscar o accountId salvo nas configurações do prestador
+	    const providerSettings = await storage.getProviderSettings(req.user.id);
+	    if (!providerSettings?.stripeAccountId) {
+	      return res.status(404).json({ error: 'Prestador não possui conta Stripe Connect vinculada' });
+	    }
+	    const account = await getStripeConnectAccountStatus(providerSettings.stripeAccountId);
+	    res.json({
+	      id: account.id,
+	      email: account.email,
+	      type: account.type,
+	      country: account.country,
+	      capabilities: account.capabilities,
+	      payouts_enabled: account.payouts_enabled,
+	      charges_enabled: account.charges_enabled,
+	      details_submitted: account.details_submitted,
+	      requirements: account.requirements,
+	      status: account.disabled_reason ? 'disabled' : (account.details_submitted ? 'active' : 'pending'),
+	      disabled_reason: account.disabled_reason || null
+	    });
+	  } catch (error) {
+	    console.error('Erro ao consultar status Stripe Connect:', error);
+	    res.status(500).json({ error: 'Erro ao consultar status Stripe Connect', message: error.message });
+	  }
+	});
+
+	app.post('/api/provider/stripe-connect-payout', isAuthenticated, isProvider, async (req, res) => {
+	  try {
+	    const { amount } = req.body;
+	    if (!amount || isNaN(amount) || amount <= 0) {
+	      return res.status(400).json({ error: 'Valor de saque inválido' });
+	    }
+	    // Buscar o accountId salvo nas configurações do prestador
+	    const providerSettings = await storage.getProviderSettings(req.user.id);
+	    if (!providerSettings?.stripeAccountId) {
+	      return res.status(404).json({ error: 'Prestador não possui conta Stripe Connect vinculada' });
+	    }
+	    // Buscar saldo disponível na Stripe
+	    const account = await getStripeConnectAccountStatus(providerSettings.stripeAccountId);
+	    const balance = await stripe.balance.retrieve({ stripeAccount: providerSettings.stripeAccountId });
+	    const available = balance.available.find(b => b.currency === 'brl');
+	    if (!available || available.amount < Math.round(amount * 100)) {
+	      return res.status(400).json({ error: 'Saldo insuficiente para saque' });
+	    }
+	    // Criar payout
+	    const payout = await stripe.payouts.create({
+	      amount: Math.round(amount * 100),
+	      currency: 'brl',
+	      statement_descriptor: 'Saque AgendoAi'
+	    }, { stripeAccount: providerSettings.stripeAccountId });
+	    res.json({ success: true, payout });
+	  } catch (error) {
+	    console.error('Erro ao solicitar payout Stripe Connect:', error);
+	    res.status(500).json({ error: 'Erro ao solicitar payout Stripe Connect', message: error.message });
+	  }
+	});
 
 	return httpServer
 }

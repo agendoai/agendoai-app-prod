@@ -32,7 +32,6 @@ export async function comparePasswords(
   storedHash: string
 ): Promise<boolean> {
   if (!storedHash.includes(".")) {
-    console.warn("Invalid hash format - missing salt separator");
     return false;
   }
 
@@ -47,7 +46,6 @@ export async function comparePasswords(
 
     return timingSafeEqual(hashedBuf, suppliedBuf);
   } catch (error) {
-    console.error("Error comparing passwords:", error);
     return false;
   }
 }
@@ -79,26 +77,20 @@ export function setupAuth(app: Express): void {
       { usernameField: "email" },
       async (email, password, done) => {
         try {
-          console.log(`Tentativa de login para ${email}`);
           const user = await storage.getUserByEmail(email);
-          console.log(`Usuário encontrado: ${!!user}`);
           
           if (!user) {
-            console.log(`Usuário não encontrado para ${email}`);
             return done(null, false);
           }
           
           const passwordMatches = await comparePasswords(password, user.password);
-          console.log(`Senha correta: ${passwordMatches}`);
           
           if (!passwordMatches) {
             return done(null, false);
           } else {
-            console.log(`Login bem-sucedido para ${email}`);
             return done(null, user);
           }
         } catch (err) {
-          console.error("Erro durante autenticação:", err);
           return done(err);
         }
       }
@@ -151,9 +143,7 @@ export function setupAuth(app: Express): void {
           });
         }
         
-        console.log(`Progresso de onboarding inicializado para o usuário ${user.id}`);
       } catch (error) {
-        console.error("Erro ao inicializar progresso de onboarding:", error);
         // Não bloquear o registro se o onboarding falhar
       }
 
@@ -162,7 +152,6 @@ export function setupAuth(app: Express): void {
         res.status(201).json(user);
       });
     } catch (err) {
-      console.error("Erro ao registrar usuário:", err);
       res.status(500).json({ 
         message: "Ocorreu um erro ao criar sua conta. Por favor, tente novamente."
       });
@@ -170,23 +159,18 @@ export function setupAuth(app: Express): void {
   });
 
   app.post("/api/login", (req, res, next) => {
-    console.log("Recebendo solicitação de login:", req.body);
     passport.authenticate("local", (err: Error | null, user: any, info: any) => {
       if (err) {
-        console.error("Erro de autenticação:", err);
         return next(err);
       }
       if (!user) {
-        console.log("Autenticação falhou - usuário não encontrado ou senha incorreta");
         return res.status(401).json({ message: "Email ou senha incorretos" });
       }
       
       req.login(user, (err) => {
         if (err) {
-          console.error("Erro ao iniciar sessão:", err);
           return next(err);
         }
-        console.log("Login bem-sucedido:", user.email);
         return res.status(200).json(user);
       });
     })(req, res, next);

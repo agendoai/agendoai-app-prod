@@ -1,6 +1,6 @@
 import Stripe from 'stripe';
 import { db } from './db';
-import { appointments, paymentSettings, userPaymentMethods, UserPaymentMethod, InsertUserPaymentMethod } from '@shared/schema';
+import { appointments, paymentSettings, userPaymentMethods, UserPaymentMethod, InsertUserPaymentMethod, providerSettings } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 
 let stripeClient: Stripe | null = null;
@@ -471,4 +471,79 @@ export function formatCardDetails(paymentMethod: Stripe.PaymentMethod): {
     expYear: card.exp_year,
     isDefault: (paymentMethod.metadata as any)?.isDefault || false,
   };
+}
+
+/**
+ * Cria (ou recupera) uma conta Stripe Connect Express para o prestador e gera o link de onboarding
+ */
+export async function createOrGetStripeConnectAccount(providerId: number, email: string, name: string): Promise<{ accountId: string, onboardingUrl: string }> {
+  if (!stripeClient) {
+    await initializeStripe();
+    if (!stripeClient) {
+      throw new Error('Stripe não está configurado');
+    }
+  }
+
+  // Buscar se já existe accountId salvo para o prestador
+  let providerSettingsRow = await db.query.providerSettings.findFirst({
+    where: (row) => row.providerId === providerId
+  });
+
+  // Se não existir, criar registro padrão de providerSettings
+  if (!providerSettingsRow) {
+    await db.insert(providerSettings)
+      .values({ providerId })
+      .onConflictDoNothing();
+    providerSettingsRow = await db.query.providerSettings.findFirst({
+      where: (row) => row.providerId === providerId
+    });
+  }
+
+  let accountId = providerSettingsRow?.stripeAccountId || null;
+
+  if (!accountId) {
+    // Criar nova conta Stripe Connect Express
+    const account = await stripeClient.accounts.create({
+      type: 'express',
+      country: 'BR',
+      email,
+      business_type: 'individual',
+      capabilities: {
+        transfers: { requested: true },
+        card_payments: { requested: true }
+      },
+      metadata: {
+        providerId: providerId.toString(),
+        name
+      }
+    });
+    accountId = account.id;
+    // Salvar no banco
+    await db.update(providerSettings)
+      .set({ stripeAccountId: accountId })
+      .where(eq(providerSettings.providerId, providerId));
+  }
+
+  // Gerar link de onboarding
+  const onboarding = await stripeClient.accountLinks.create({
+    account: accountId,
+    refresh_url: process.env.STRIPE_ONBOARDING_REFRESH_URL || 'https://app.agendoai.com/onboarding/stripe/refresh',
+    return_url: process.env.STRIPE_ONBOARDING_RETURN_URL || 'https://app.agendoai.com/onboarding/stripe/return',
+    type: 'account_onboarding',
+  });
+
+  return { accountId, onboardingUrl: onboarding.url };
+}
+
+/**
+ * Consulta o status da conta Stripe Connect do prestador
+ */
+export async function getStripeConnectAccountStatus(accountId: string): Promise<Stripe.Account> {
+  if (!stripeClient) {
+    await initializeStripe();
+    if (!stripeClient) {
+      throw new Error('Stripe não está configurado');
+    }
+  }
+  return await stripeClient.accounts.retrieve(accountId);
 }

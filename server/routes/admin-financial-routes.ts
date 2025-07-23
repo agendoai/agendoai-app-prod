@@ -216,4 +216,61 @@ router.post("/financial-settings", async (req: Request, res: Response) => {
   }
 });
 
+// Rota para criar pagamento com split para subcontas
+// router.post('/api/admin/asaas/payments/split', async (req, res) => {
+//   try {
+//     const { createAsaasPaymentWithSubAccountSplit } = await import('../asaas-service');
+//     const result = await createAsaasPaymentWithSubAccountSplit(req.body);
+//     
+//     if (result.success) {
+//       res.status(201).json(result);
+//     } else {
+//       res.status(400).json(result);
+//     }
+//   } catch (error) {
+//     console.error('Erro ao criar pagamento com split:', error);
+//     res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+//   }
+// });
+// Rota para processar pagamento de agendamento
+// router.post('/api/admin/asaas/process-booking-payment', async (req, res) => {
+//   try {
+//     const { 
+//       createAsaasCustomer, 
+//       createAsaasPaymentWithSubAccountSplit 
+//     } = await import('../asaas-service');
+//     
+//     const {
+//       customerData,
+//       paymentData
+//     } = req.body;
+//
+//     // 1. Criar cliente no Asaas
+//     const customerResult = await createAsaasCustomer(customerData);
+//     if (!customerResult.success) {
+//       return res.status(400).json(customerResult);
+//     }
+//
+//     // 2. Criar pagamento com split
+//     const paymentResult = await createAsaasPaymentWithSubAccountSplit({
+//       ...paymentData,
+//       customerId: customerResult.customerId!
+//     });
+//
+//     if (paymentResult.success) {
+//       res.status(201).json({
+//         success: true,
+//         customerId: customerResult.customerId,
+//         paymentId: paymentResult.paymentId,
+//         message: 'Pagamento processado com sucesso'
+//       });
+//     } else {
+//       res.status(400).json(paymentResult);
+//     }
+//   } catch (error) {
+//     console.error('Erro ao processar pagamento:', error);
+//     res.status(500).json({ success: false, error: 'Erro interno do servidor' });
+//   }
+// });
+
 export default router;

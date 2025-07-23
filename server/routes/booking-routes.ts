@@ -44,7 +44,8 @@ router.get('/', async (req, res) => {
       status: appointment.status,
       clientName: appointment.clientName || 'Cliente',
       serviceName: appointment.serviceName || 'Serviço',
-      totalPrice: appointment.totalPrice
+      totalPrice: appointment.totalPrice,
+      paymentId: appointment.paymentId // <-- incluir o campo paymentId
     }));
     
     res.json({
@@ -70,7 +71,10 @@ router.post('/', async (req, res) => {
       serviceId,
       date,
       startTime,
-      bufferTime
+      bufferTime,
+      paymentMethod,
+      totalPrice,
+      paymentId // ID do pagamento confirmado (para pagamentos online)
     } = req.body;
     
     // Validação básica
@@ -89,6 +93,43 @@ router.post('/', async (req, res) => {
     
     const clientId = req.user.id;
     
+    // Para pagamentos online (PIX/Cartão), verificar se o pagamento foi confirmado
+    if (paymentMethod === 'pix' || paymentMethod === 'credit_card') {
+      if (!paymentId) {
+        return res.status(400).json({
+          error: 'ID do pagamento obrigatório para pagamentos online'
+        });
+      }
+      
+      try {
+        // Verificar status do pagamento no Stripe
+        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+        const paymentIntent = await stripe.paymentIntents.retrieve(paymentId);
+        
+        if (paymentIntent.status !== 'succeeded') {
+          return res.status(400).json({
+            error: 'Pagamento não foi confirmado. Status: ' + paymentIntent.status
+          });
+        }
+        
+        // Verificar se o valor pago corresponde ao valor do agendamento
+        const paidAmount = paymentIntent.amount / 100; // Stripe trabalha em centavos
+        if (Math.abs(paidAmount - totalPrice) > 0.01) { // Tolerância de 1 centavo
+          return res.status(400).json({
+            error: 'Valor pago não corresponde ao valor do agendamento'
+          });
+        }
+        
+        console.log(`✅ Pagamento confirmado: ${paymentId} - Valor: R$ ${paidAmount}`);
+        
+      } catch (stripeError) {
+        console.error('Erro ao verificar pagamento:', stripeError);
+        return res.status(400).json({
+          error: 'Erro ao verificar status do pagamento'
+        });
+      }
+    }
+    
     // Criar o agendamento
     const appointmentId = await bookingSystem.bookAppointment({
       providerId: Number(providerId),
@@ -96,7 +137,10 @@ router.post('/', async (req, res) => {
       clientId,
       date,
       startTime,
-      bufferTime: bufferTime ? Number(bufferTime) : undefined
+      bufferTime: bufferTime ? Number(bufferTime) : undefined,
+      paymentMethod,
+      totalPrice: totalPrice ? Number(totalPrice) : undefined,
+      paymentId: paymentId || null
     });
     
     res.status(201).json({

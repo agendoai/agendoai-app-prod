@@ -409,6 +409,17 @@ export interface IStorage {
 	getUserSupportMessages(userId: number): Promise<SupportTicket[]>
 	getSupportMessage(messageId: number): Promise<SupportTicket | undefined>
 	resolveSupportMessage(messageId: number, adminId: number, response: string): Promise<SupportMessage>
+
+	// Na interface IStorage, adicionar:
+	getUserPaymentMethods(userId: number): Promise<UserPaymentMethod[]>;
+	updateStripeCustomerId(userId: number, customerId: string): Promise<void>;
+	getUserPaymentMethod(userId: number): Promise<UserPaymentMethod | undefined>;
+	createUserPaymentMethod(data: InsertUserPaymentMethod): Promise<UserPaymentMethod>;
+	updateUserPaymentMethod(userId: number, data: Partial<UserPaymentMethod>): Promise<UserPaymentMethod | undefined>;
+	getUserActiveSubscription(userId: number): Promise<any>;
+	createSubscription(data: any): Promise<void>;
+	updateSubscriptionStatus(stripeSubscriptionId: string, status: string): Promise<void>;
+	createPaymentLog(data: any): Promise<void>;
 }
 
 // Memory storage implementation for testing
@@ -1633,6 +1644,288 @@ export class MemStorage implements IStorage {
 		return {} as Promotion
 	}
 	async deletePromotion(id: number): Promise<void> {}
+
+	// Alias para getUserById para manter compatibilidade
+	async getUser(id: number): Promise<User | undefined> {
+		return this.getUserById(id)
+	}
+
+	// Métodos auxiliares para generateTimeSlots
+	private timeToMinutes(time: string): number {
+		const [hours, minutes] = time.split(':').map(Number)
+		return hours * 60 + minutes
+	}
+
+	private minutesToTime(minutes: number): string {
+		const hours = Math.floor(minutes / 60)
+		const mins = minutes % 60
+		return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`
+	}
+
+	private generateFreeBlocks(slotStartMinutes: number, slotEndMinutes: number, occupiedPeriods: any[]): { start: number, end: number }[] {
+		const freeBlocks: { start: number, end: number }[] = []
+		let currentTime = slotStartMinutes
+
+		for (const period of occupiedPeriods) {
+			if (currentTime < period.start) {
+				freeBlocks.push({
+					start: currentTime,
+					end: period.start
+				})
+			}
+			currentTime = Math.max(currentTime, period.end)
+		}
+
+		if (currentTime < slotEndMinutes) {
+			freeBlocks.push({
+				start: currentTime,
+				end: slotEndMinutes
+			})
+		}
+
+		return freeBlocks
+	}
+
+	private generatePreferredStartTimes(block: { start: number, end: number }, serviceDuration: number): number[] {
+		const startTimes: number[] = []
+		const interval = 30 // Intervalo padrão de 30 minutos
+		let currentTime = block.start
+
+		while (currentTime + serviceDuration <= block.end) {
+			startTimes.push(currentTime)
+			currentTime += interval
+		}
+
+		return startTimes
+	}
+
+	async generateTimeSlots(providerId: number, date: string, serviceId?: number): Promise<{ startTime: string, endTime: string, isAvailable: boolean, availabilityId?: number, serviceDuration?: number }[]> {
+		try {
+			console.log(`[generateTimeSlots] Início para prestador ${providerId} na data ${date}${serviceId ? ` e serviço ${serviceId}` : ''}`)
+			
+			// 1. Buscar disponibilidades do prestador para a data específica
+			let availabilitySlots = await this.getAvailabilityByDate(providerId, date)
+			console.log(`[generateTimeSlots] Disponibilidades encontradas: ${availabilitySlots ? 1 : 0}`)
+			
+			// Se não há disponibilidade, criar slots padrão
+			if (!availabilitySlots) {
+				console.log(`[generateTimeSlots] Nenhuma disponibilidade encontrada. Criando disponibilidade padrão.`)
+				
+				// Determinar o dia da semana para a data solicitada
+				const dateObj = new Date(date)
+				const dayOfWeek = dateObj.getDay() // 0 = domingo, 1 = segunda, ...
+				
+				// Não criar disponibilidade para domingo (0)
+				if (dayOfWeek === 0) {
+					console.log(`[generateTimeSlots] Domingo não tem disponibilidade padrão.`)
+					return []
+				}
+				
+				// Verificar se é um dia de semana ou sábado
+				const isWeekend = dayOfWeek === 6 // Sábado
+				
+				// Definir horários padrão
+				const startTime = "08:00"
+				const endTime = isWeekend ? "12:00" : "18:00"
+				
+				try {
+					// Criar nova disponibilidade padrão no banco de dados
+					const newAvailability = await this.createAvailability({
+						providerId,
+						dayOfWeek,
+						date: null, // Disponibilidade recorrente para este dia da semana
+						startTime,
+						endTime,
+						isAvailable: true,
+						intervalMinutes: 30 // Intervalo padrão entre agendamentos
+					})
+					
+					console.log(`[generateTimeSlots] Criada disponibilidade padrão para dia ${dayOfWeek}: ${startTime}-${endTime}`)
+					
+					// Usar a nova disponibilidade
+					availabilitySlots = newAvailability
+				} catch (error) {
+					console.error(`[generateTimeSlots] Erro ao criar disponibilidade padrão:`, error)
+					return []
+				}
+			}
+			
+			// 2. Buscar agendamentos existentes para esta data (incluindo status pending e confirmed)
+			const existingAppointments = await db
+				.select()
+				.from(appointments)
+				.where(
+					and(
+						eq(appointments.providerId, providerId),
+						eq(appointments.date, date),
+						or(
+							eq(appointments.status, "confirmed"), 
+							eq(appointments.status, "pending")
+						)
+					)
+				)
+			
+			// Ordenar os agendamentos pelo horário de início
+			existingAppointments.sort((a, b) => 
+				this.timeToMinutes(a.startTime) - this.timeToMinutes(b.startTime)
+			)
+			
+			console.log(`[generateTimeSlots] Agendamentos existentes: ${existingAppointments.length}`)
+
+			// 3. Buscar blocos de tempo bloqueados para esta data (ex: horário de almoço, pausas)
+			const blockedSlots = await this.getBlockedTimeSlotsByDate(providerId, date)
+			console.log(`[generateTimeSlots] Blocos de tempo bloqueados: ${blockedSlots.length}`)
+			
+			// 4. Se um serviço específico foi solicitado, obter sua duração real
+			let serviceDuration = 0
+			if (serviceId) {
+				// Primeiro verificamos se existe uma personalização de tempo para este serviço/prestador
+				const providerService = await this.getProviderServiceByProviderAndService(providerId, serviceId)
+				
+				if (providerService && providerService.executionTime) {
+					serviceDuration = providerService.executionTime
+					console.log(`[generateTimeSlots] Usando tempo de execução personalizado: ${serviceDuration} minutos`)
+				} else {
+					// Se não houver personalização, usamos a duração padrão do serviço
+					const service = await this.getService(serviceId)
+					if (service) {
+						serviceDuration = service.duration || 60 // Fallback para 60 minutos se não houver duração definida
+						console.log(`[generateTimeSlots] Usando tempo de execução padrão: ${serviceDuration} minutos`)
+					}
+				}
+			} else {
+				// Se nenhum serviço for especificado, usar a duração padrão do provedor
+				const settings = await this.getProviderSettings(providerId)
+				serviceDuration = settings?.defaultServiceDuration || 60 // Fallback para 60 minutos
+				console.log(`[generateTimeSlots] Usando duração padrão do prestador: ${serviceDuration} minutos`)
+			}
+			
+			// 5. Criar array para armazenar todos os slots de tempo gerados
+			const timeSlots: { startTime: string, endTime: string, isAvailable: boolean, availabilityId?: number, serviceDuration?: number, reason?: string }[] = []
+			
+			// 6. Criar um mapa com todos os períodos ocupados, incluindo agendamentos e blocos bloqueados
+			const occupiedPeriods: { start: number, end: number, reason?: string, isBlock?: boolean, startTime?: string, endTime?: string, availabilityId?: number }[] = [
+				// Agendamentos existentes
+				...existingAppointments.map(appointment => ({
+					start: this.timeToMinutes(appointment.startTime),
+					end: this.timeToMinutes(appointment.endTime),
+					isBlock: false,
+					startTime: appointment.startTime,
+					endTime: appointment.endTime
+				})),
+				// Blocos de tempo bloqueados (ex: horário de almoço)
+				...blockedSlots.map(block => ({
+					start: this.timeToMinutes(block.startTime),
+					end: this.timeToMinutes(block.endTime),
+					reason: block.reason || "Horário bloqueado",
+					isBlock: true,
+					startTime: block.startTime,
+					endTime: block.endTime,
+					availabilityId: block.availabilityId
+				}))
+			].sort((a, b) => a.start - b.start)
+
+			// 7. Primeiro, adicionamos os slots bloqueados à lista
+			for (const period of occupiedPeriods) {
+				if (period.isBlock && period.startTime && period.endTime && period.availabilityId) {
+					timeSlots.push({
+						startTime: period.startTime,
+						endTime: period.endTime,
+						isAvailable: false, // Este slot está bloqueado
+						availabilityId: period.availabilityId,
+						serviceDuration: serviceDuration,
+						reason: period.reason
+					})
+				}
+			}
+			
+			// 8. Para cada slot de disponibilidade, gerar os horários livres
+			const slotsArray = availabilitySlots ? [availabilitySlots] : []
+			for (const slot of slotsArray) {
+				console.log(`[generateTimeSlots] Processando slot de disponibilidade: ${slot.dayOfWeek} - ${slot.startTime} a ${slot.endTime}`)
+				
+				// Converter horários para minutos para facilitar cálculos
+				const slotStartMinutes = this.timeToMinutes(slot.startTime)
+				const slotEndMinutes = this.timeToMinutes(slot.endTime)
+				
+				// 9. Identificar blocos de tempo livres
+				const freeBlocks = this.generateFreeBlocks(slotStartMinutes, slotEndMinutes, occupiedPeriods)
+				console.log(`[generateTimeSlots] Identificados ${freeBlocks.length} blocos livres`)
+				
+				// 10. Para cada bloco livre, gerar slots de tempo que comportem a duração do serviço
+				for (const block of freeBlocks) {
+					// Verificar se o bloco tem tamanho suficiente para o serviço
+					if (block.end - block.start < serviceDuration) {
+						continue // Bloco muito pequeno para este serviço
+					}
+					
+					// 11. Gerar horários preferenciais dentro de cada bloco livre
+					const availableStartTimes = this.generatePreferredStartTimes(block, serviceDuration)
+					
+					// 12. Adicionar cada horário disponível à lista de slots
+					for (const startTime of availableStartTimes) {
+						const endTime = startTime + serviceDuration
+						
+						timeSlots.push({
+							startTime: this.minutesToTime(startTime),
+							endTime: this.minutesToTime(endTime),
+							isAvailable: true,
+							availabilityId: slot.id,
+							serviceDuration: serviceDuration
+						})
+					}
+				}
+			}
+			
+			// 12. Remover possíveis duplicatas e ordenar os slots
+			const uniqueTimeSlots = timeSlots.filter((slot, index, self) =>
+				index === self.findIndex((s) => s.startTime === slot.startTime)
+			).sort((a, b) => 
+				this.timeToMinutes(a.startTime) - this.timeToMinutes(b.startTime)
+			)
+			
+			console.log(`[generateTimeSlots] Gerados ${uniqueTimeSlots.length} slots de tempo para a data ${date}`)
+			return uniqueTimeSlots
+		} catch (error) {
+			console.error(`[generateTimeSlots] Erro ao gerar slots de tempo para a data ${date}:`, error)
+			return []
+		}
+	}
+
+	async createPaymentSettings(settings: InsertPaymentSettings) {
+		const [inserted] = await db.insert(paymentSettings).values(settings).returning();
+		return inserted;
+	}
+
+	async updatePaymentSettings(id: number, data: Partial<InsertPaymentSettings>) {
+		const [updated] = await db.update(paymentSettings)
+			.set(data)
+			.where(eq(paymentSettings.id, id))
+			.returning();
+		return updated;
+	}
+
+	// Na classe DatabaseStorage (após outros métodos relacionados a pagamento)
+	async getUserPaymentMethods(userId: number): Promise<UserPaymentMethod[]> {
+		try {
+			return await db.select().from(userPaymentMethods).where(eq(userPaymentMethods.userId, userId));
+		} catch (error) {
+			console.error('Erro ao buscar métodos de pagamento do usuário:', error);
+			return [];
+		}
+	}
+
+	async updateStripeCustomerId(userId: number, customerId: string): Promise<void> {
+		// Mock: não faz nada
+	}
+
+	async getUserPaymentMethod(userId: number): Promise<UserPaymentMethod | undefined> { return undefined; }
+	async createUserPaymentMethod(data: InsertUserPaymentMethod): Promise<UserPaymentMethod> { return { ...data, id: 1 }; }
+	async updateUserPaymentMethod(userId: number, data: Partial<UserPaymentMethod>): Promise<UserPaymentMethod | undefined> { return { ...data, id: 1, userId }; }
+	async getUserActiveSubscription(userId: number): Promise<any>;
+	async createSubscription(data: any): Promise<void>;
+	async updateSubscriptionStatus(stripeSubscriptionId: string, status: string): Promise<void>;
+	async createPaymentLog(data: any): Promise<void>;
 }
 
 // Database storage implementation
@@ -2274,6 +2567,7 @@ export class DatabaseStorage implements IStorage {
 				notes: appointments.notes,
 				totalPrice: appointments.totalPrice,
 				createdAt: appointments.createdAt,
+				paymentStatus: appointments.paymentStatus, // <-- Adicionado
 				// Informações do prestador
 				providerName: users.name,
 				providerPhone: users.phone,
@@ -3447,7 +3741,117 @@ async getBlockedTimeSlotsByDate(
 			return []
 		}
 	}
+
+	async createPaymentSettings(settings: InsertPaymentSettings) {
+		const [inserted] = await db.insert(paymentSettings).values(settings).returning();
+		return inserted;
+	}
+
+	async updatePaymentSettings(id: number, data: Partial<InsertPaymentSettings>) {
+		const [updated] = await db.update(paymentSettings)
+			.set(data)
+			.where(eq(paymentSettings.id, id))
+			.returning();
+		return updated;
+	}
+
+	// Na classe DatabaseStorage (após outros métodos relacionados a pagamento)
+	async getUserPaymentMethods(userId: number): Promise<UserPaymentMethod[]> {
+		try {
+			return await db.select().from(userPaymentMethods).where(eq(userPaymentMethods.userId, userId));
+		} catch (error) {
+			console.error('Erro ao buscar métodos de pagamento do usuário:', error);
+			return [];
+		}
+	}
+
+	async updateStripeCustomerId(userId: number, customerId: string): Promise<void> {
+		try {
+			await db.update(userPaymentMethods)
+				.set({ stripeCustomerId: customerId })
+				.where(eq(userPaymentMethods.userId, userId));
+		} catch (error) {
+			console.error('Erro ao atualizar stripeCustomerId:', error);
+		}
+	}
+
+	async getUserPaymentMethod(userId: number): Promise<UserPaymentMethod | undefined> {
+		try {
+			const [paymentMethod] = await db.select().from(userPaymentMethods).where(eq(userPaymentMethods.userId, userId));
+			return paymentMethod;
+		} catch (error) {
+			console.error('Erro ao buscar método de pagamento do usuário:', error);
+			return undefined;
+		}
+	}
+
+	async createUserPaymentMethod(data: InsertUserPaymentMethod): Promise<UserPaymentMethod> {
+		try {
+			const [paymentMethod] = await db.insert(userPaymentMethods).values(data).returning();
+			return paymentMethod;
+		} catch (error) {
+			console.error('Erro ao criar método de pagamento:', error);
+			throw error;
+		}
+	}
+
+	async updateUserPaymentMethod(userId: number, data: Partial<UserPaymentMethod>): Promise<UserPaymentMethod | undefined> {
+		try {
+			const [updated] = await db.update(userPaymentMethods).set(data).where(eq(userPaymentMethods.userId, userId)).returning();
+			return updated;
+		} catch (error) {
+			console.error('Erro ao atualizar método de pagamento:', error);
+			return undefined;
+		}
+	}
+
+	async getUserActiveSubscription(userId: number): Promise<any> {
+		// Exemplo: buscar na tabela subscriptions (ajuste conforme seu schema real)
+		try {
+			const [sub] = await db.select().from('subscriptions').where(eq('user_id', userId)).where(eq('status', 'active'));
+			return sub;
+		} catch (error) {
+			console.error('Erro ao buscar assinatura ativa:', error);
+			return undefined;
+		}
+	}
+
+	async createSubscription(data: any): Promise<void> {
+		try {
+			await db.insert('subscriptions').values(data);
+		} catch (error) {
+			console.error('Erro ao criar assinatura:', error);
+		}
+	}
+
+	async updateSubscriptionStatus(stripeSubscriptionId: string, status: string): Promise<void> {
+		try {
+			await db.update('subscriptions').set({ status }).where(eq('stripe_subscription_id', stripeSubscriptionId));
+		} catch (error) {
+			console.error('Erro ao atualizar status da assinatura:', error);
+		}
+	}
+
+	async createPaymentLog(data: any): Promise<void> {
+		try {
+			await db.insert('payment_logs').values(data);
+		} catch (error) {
+			console.error('Erro ao criar log de pagamento:', error);
+		}
+	}
 }
 
 // Export singleton storage
 export const storage = new DatabaseStorage()
+
+// Função para buscar configurações de pagamento (Stripe)
+export async function getPaymentSettings() {
+  const [settings] = await db.select().from(paymentSettings).limit(1);
+  return settings || null;
+}
+
+export async function createPaymentSettings(settings: InsertPaymentSettings) {
+  // Insere as configurações na tabela paymentSettings e retorna o registro criado
+  const [inserted] = await db.insert(paymentSettings).values(settings).returning();
+  return inserted;
+}

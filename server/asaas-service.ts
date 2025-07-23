@@ -50,7 +50,7 @@ export function isAsaasEnabled(): boolean {
 /**
  * Obtém o baseURL da API do Asaas de acordo com o modo (sandbox ou produção)
  */
-function getAsaasBaseUrl(liveMode: boolean): string {
+export function getAsaasBaseUrl(liveMode: boolean): string {
   return liveMode
     ? 'https://api.asaas.com/v3'
     : 'https://sandbox.asaas.com/api/v3';
@@ -121,3 +121,189 @@ export async function updateAsaasConfig(config: {
   asaasConfig = config;
   console.log(`Asaas reconfigurado em modo ${config.liveMode ? 'produção' : 'sandbox'}`);
 }
+
+/**
+ * Cria um pagamento com split para subcontas no Asaas
+ * @param paymentData Dados do pagamento (customerId, billingType, value, description, dueDate, split[])
+ */
+// export async function createAsaasPaymentWithSubAccountSplit(paymentData: {
+//   customerId: string;
+//   billingType: 'PIX' | 'BOLETO' | 'CREDIT_CARD' | 'DEBIT_CARD';
+//   value: number;
+//   description?: string;
+//   dueDate?: string;
+//   split: Array<{
+//     walletId: string;
+//     fixedValue: number;
+//     status: 'PENDING' | 'RELEASED';
+//   }>;
+// }): Promise<{ success: boolean; paymentId?: string; error?: string; warning?: string }> {
+//   try {
+//     if (!asaasConfig) {
+//       return { success: false, error: 'Asaas não configurado' };
+//     }
+//     const baseURL = getAsaasBaseUrl(asaasConfig.liveMode);
+//     const payload = {
+//       customer: paymentData.customerId,
+//       billingType: paymentData.billingType,
+//       value: paymentData.value,
+//       description: paymentData.description,
+//       dueDate: paymentData.dueDate,
+//       split: paymentData.split.map(s => ({
+//         walletId: s.walletId,
+//         fixedValue: s.fixedValue,
+//         status: s.status
+//       }))
+//     };
+//     const response = await axios.post(`${baseURL}/payments`, payload, {
+//       headers: {
+//         'access_token': asaasConfig.apiKey,
+//         'Content-Type': 'application/json'
+//       }
+//     });
+//     return {
+//       success: true,
+//       paymentId: response.data.id
+//     };
+//   }
+//     // Mostra o erro detalhado do Asaas
+//     console.error('Erro ao criar pagamento com split no Asaas:', error.response?.data || error);
+//     
+//     // Se for erro de split na própria carteira, tentar sem split
+//     if (error.response?.data?.errors?.[0]?.description?.includes('sua própria carteira')) {
+//       console.log('🔄 Tentando criar pagamento sem split devido ao erro de carteira própria');
+//       
+//       // Criar pagamento sem split
+//       const simplePayload = {
+//         customer: paymentData.customerId,
+//         billingType: paymentData.billingType,
+//         value: paymentData.value,
+//         description: paymentData.description,
+//         dueDate: paymentData.dueDate
+//       };
+//       
+//       try {
+//         const simpleResponse = await axios.post(`${getAsaasBaseUrl(asaasConfig!.liveMode)}/payments`, simplePayload, {
+//           headers: {
+//             'access_token': asaasConfig!.apiKey,
+//             'Content-Type': 'application/json'
+//           }
+//         });
+//         
+//         return {
+//           success: true,
+//           paymentId: simpleResponse.data.id,
+//           warning: 'Pagamento criado sem split (carteiras pertencem à mesma conta)'
+//         };
+//       } catch (simpleError: any) {
+//         return {
+//           success: false,
+//           error: simpleError.response?.data?.errors?.[0]?.description || simpleError.message || 'Erro ao criar pagamento simples'
+//         };
+//       }
+//     }
+//     
+//     return {
+//       success: false,
+//       error: error.response?.data?.errors?.[0]?.description || error.response?.data?.message || error.message || 'Erro ao criar pagamento com split'
+//     };
+//   }
+// }
+
+/**
+ * Cria um pagamento simples no Asaas (sem split)
+ * @param paymentData Dados do pagamento (customerId, billingType, value, description, dueDate)
+ */
+export async function createAsaasPayment(paymentData: {
+  customerId: string;
+  billingType: 'PIX' | 'BOLETO' | 'CREDIT_CARD' | 'DEBIT_CARD';
+  value: number;
+  description?: string;
+  dueDate?: string;
+}): Promise<{ success: boolean; paymentId?: string; error?: string; pixQrCode?: string; pixQrCodeImage?: string; invoiceUrl?: string }> {
+  try {
+    if (!asaasConfig) {
+      return { success: false, error: 'Asaas não configurado' };
+    }
+    const baseURL = getAsaasBaseUrl(asaasConfig.liveMode);
+    const payload = {
+      customer: paymentData.customerId,
+      billingType: paymentData.billingType,
+      value: paymentData.value,
+      description: paymentData.description,
+      dueDate: paymentData.dueDate
+    };
+    const response = await axios.post(`${baseURL}/payments`, payload, {
+      headers: {
+        'access_token': asaasConfig.apiKey,
+        'Content-Type': 'application/json'
+      }
+    });
+    console.log('Resposta do Asaas:', response.data);
+
+    let pixQrCode = undefined;
+    let pixQrCodeImage = undefined;
+    if (paymentData.billingType === 'PIX') {
+      // Buscar o QR Code do PIX após criar o pagamento
+      try {
+        const qrCodeResponse = await axios.get(
+          `${baseURL}/payments/${response.data.id}/pixQrCode`,
+          {
+            headers: {
+              'access_token': asaasConfig.apiKey,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        pixQrCode = qrCodeResponse.data.payload;
+        pixQrCodeImage = qrCodeResponse.data.encodedImage;
+      } catch (qrErr) {
+        console.error('Erro ao buscar QR Code do PIX:', qrErr.response?.data || qrErr);
+      }
+    }
+
+    return {
+      success: true,
+      paymentId: response.data.id,
+      pixQrCode,
+      pixQrCodeImage,
+      invoiceUrl: response.data.invoiceUrl
+    };
+  } catch (error: any) {
+    console.error('Erro ao criar pagamento no Asaas:', error.response?.data || error);
+    return {
+      success: false,
+      error: error.response?.data?.errors?.[0]?.description || error.response?.data?.message || error.message || 'Erro ao criar pagamento'
+    };
+  }
+}
+
+/**
+ * Cria um cliente no Asaas (pessoa física)
+ * @param data Dados do cliente (name, email, cpfCnpj, mobilePhone)
+ */
+export async function createAsaasCustomer(data: {
+  name: string;
+  email: string;
+  cpfCnpj: string;
+  mobilePhone: string;
+}): Promise<{ success: boolean; customerId?: string; error?: string }> {
+  if (!asaasConfig) {
+    return { success: false, error: 'Asaas não configurado' };
+  }
+  // ROTA FIXA PRODUÇÃO
+  const baseURL = 'https://api.asaas.com/v3';
+  try {
+    const response = await axios.post(`${baseURL}/customers`, data, {
+      headers: {
+        'access_token': asaasConfig.apiKey,
+        'Content-Type': 'application/json'
+      }
+    });
+    return { success: true, customerId: response.data.id };
+  } catch (error: any) {
+    return { success: false, error: error.response?.data?.message || error.message };
+  }
+}
+
+export { asaasConfig };
