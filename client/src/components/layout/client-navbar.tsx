@@ -209,11 +209,12 @@ export function ClientNavbar() {
                 key={route.href}
                 asChild
                 variant={isActive(route) ? "default" : "ghost"}
-                className="justify-start"
+                className={`justify-start transition-all duration-150 ${isActive(route) ? 'bg-[#58c9d1] text-white shadow-md' : 'text-[#58c9d1] hover:bg-[#58c9d1]/10 hover:text-[#58c9d1]'} border-0`}
+                style={{ boxShadow: isActive(route) ? '0 2px 8px 0 #58c9d133' : undefined }}
                 onClick={() => setOpen(false)}
               >
-                <Link href={route.href}>
-                  <route.icon className="mr-2 h-5 w-5" />
+                <Link href={route.href} className="flex items-center">
+                  <route.icon className={`mr-2 h-5 w-5 ${isActive(route) ? 'text-white' : 'text-[#58c9d1]'}`} />
                   {route.label}
                 </Link>
               </Button>
@@ -221,10 +222,10 @@ export function ClientNavbar() {
 
             <Button
               variant="outline"
-              className="justify-start mt-4"
+              className="justify-start mt-4 text-[#58c9d1] border-[#58c9d1] hover:bg-[#58c9d1]/10 hover:text-[#58c9d1]"
               onClick={handleLogout}
             >
-              <LogOut className="mr-2 h-5 w-5" />
+              <LogOut className="mr-2 h-5 w-5 text-[#58c9d1]" />
               Sair
             </Button>
           </div>

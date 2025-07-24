@@ -3839,6 +3839,15 @@ async getBlockedTimeSlotsByDate(
 			console.error('Erro ao criar log de pagamento:', error);
 		}
 	}
+
+	// Após o construtor da classe DatabaseStorage
+
+	async updateAppointmentStatus(appointmentId: number, status: string): Promise<boolean> {
+		const updated = await db.update(appointments)
+			.set({ status })
+			.where(eq(appointments.id, appointmentId));
+		return updated.rowCount > 0;
+	}
 }
 
 // Export singleton storage

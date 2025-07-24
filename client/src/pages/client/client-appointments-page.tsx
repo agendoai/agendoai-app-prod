@@ -47,6 +47,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Separator } from "@/components/ui/separator";
+import Navbar from '@/components/layout/navbar';
 
 // Função auxiliar para agrupar agendamentos por status
 const groupAppointmentsByStatus = (appointments: Appointment[]) => {
@@ -443,6 +444,17 @@ export default function ClientAppointmentsPage() {
                       </div>
                     )}
                   </div>
+                  {/* Seção de agendamentos cancelados */}
+                  {appointments.filter(a => a.status === 'canceled').length > 0 && (
+                    <div className="mt-6">
+                      <h2 className="font-bold text-red-700 text-base tracking-wide">Cancelados</h2>
+                      <div className="space-y-2">
+                        {appointments.filter(a => a.status === 'canceled').map((appointment) => (
+                          <AppointmentCard key={appointment.id} appointment={appointment} hidePaymentStatus />
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </TabsContent>
                 
                 <TabsContent value="list" className="mt-0">
@@ -465,43 +477,13 @@ export default function ClientAppointmentsPage() {
       </div>
       
       {/* Navegação inferior */}
-      <nav className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white shadow-xl flex justify-around items-center py-2 rounded-t-2xl z-50 border-t border-gray-100">
-        <button 
-          className="flex flex-col items-center text-cyan-600 hover:text-cyan-700 transition-all duration-200" 
-          onClick={() => setLocation('/client/dashboard')}
-        >
-          <Home className="h-8 w-8 mb-0.5 text-cyan-400" />
-          <span className="text-[0.7rem]">Início</span>
-        </button>
-        <button 
-          className="flex flex-col items-center text-cyan-600 font-bold transition-all duration-200 drop-shadow-lg" 
-          aria-current="page"
-          style={{ filter: 'brightness(1.2)' }}
-        >
-          <Calendar className="h-8 w-8 mb-0.5 text-cyan-400" />
-          <span className="text-[0.7rem]">Agendamentos</span>
-        </button>
-        <button 
-          className="flex flex-col items-center text-cyan-600 hover:text-emerald-400 transition-all duration-200" 
-          onClick={() => setLocation('/client/new-booking')}
-        >
-          <PlusCircle className="h-8 w-8 mb-0.5 text-emerald-400" />
-          <span className="text-[0.7rem]">Agendar</span>
-        </button>
-        <button 
-          className="flex flex-col items-center text-cyan-600 hover:text-pink-400 transition-all duration-200" 
-          onClick={() => setLocation('/client/profile')}
-        >
-          <User className="h-8 w-8 mb-0.5 text-pink-400" />
-          <span className="text-[0.7rem]">Perfil</span>
-        </button>
-      </nav>
+      <Navbar />
     </div>
   );
 }
 
 // Componente de card de agendamento seguindo o padrão do dashboard
-function AppointmentCard({ appointment }: { appointment: Appointment }) {
+function AppointmentCard({ appointment, hidePaymentStatus }: { appointment: Appointment, hidePaymentStatus?: boolean }) {
   const [, navigate] = useLocation();
   
   const goToAppointmentDetails = () => {
@@ -603,9 +585,11 @@ function AppointmentCard({ appointment }: { appointment: Appointment }) {
           <span className="text-xs font-medium text-neutral-700 flex items-center gap-1">
             <StatusBadge status={appointment.status} />
           </span>
-          <span className="text-xs font-medium text-neutral-700 flex items-center gap-1">
-            <PaymentStatusBadge status={appointment.paymentStatus} />
-          </span>
+          {!hidePaymentStatus && (
+            <span className="text-xs font-medium text-neutral-700 flex items-center gap-1">
+              <PaymentStatusBadge status={appointment.paymentStatus} />
+            </span>
+          )}
         </div>
         {appointment.totalPrice && appointment.totalPrice > 0 && (
           <div className="text-xs text-neutral-600 font-medium leading-tight mt-1">

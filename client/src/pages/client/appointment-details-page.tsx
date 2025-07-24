@@ -76,7 +76,8 @@ const reviewSchema = z.object({
 type ReviewFormValues = z.infer<typeof reviewSchema>;
 
 export default function AppointmentDetailsPage() {
-  const { id } = useParams();
+  const params = useParams();
+  const id = params.id || params.appointmentId;
   const { user } = useAuth();
   const [, navigate] = useLocation();
   const { toast } = useToast();
@@ -92,7 +93,7 @@ export default function AppointmentDetailsPage() {
   console.log('Acessando detalhes do agendamento ID:', id, 'parsed:', appointmentId);
 
   const { data: appointment, isLoading, error } = useQuery<AppointmentDetails>({
-    queryKey: ['/api/appointments', appointmentId],
+    queryKey: ['/api/booking', appointmentId],
     queryFn: async () => {
       try {
         const user = await queryClient.fetchQuery({
@@ -106,7 +107,7 @@ export default function AppointmentDetailsPage() {
           throw new Error('Usuário não autenticado');
         }
         
-        const response = await apiRequest('GET', `/api/appointments/${appointmentId}`);
+        const response = await apiRequest('GET', `/api/booking/${appointmentId}`);
         
         if (!response.ok) {
           console.error('Erro na resposta do servidor:', response.status, response.statusText);
@@ -254,52 +255,51 @@ export default function AppointmentDetailsPage() {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
-          <Card>
+          <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white to-green-50 p-1">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle className="text-2xl">{appointment.serviceName}</CardTitle>
-                  <CardDescription className="mt-1">{appointment.providerName}</CardDescription>
+                  <CardTitle className="text-2xl text-primary flex items-center gap-2">
+                    <Calendar className="h-7 w-7 text-primary" /> {appointment.serviceName}
+                  </CardTitle>
+                  <CardDescription className="mt-1 text-lg text-neutral-700 font-semibold flex items-center gap-2">
+                    <User className="h-5 w-5 text-primary" /> {appointment.providerName}
+                  </CardDescription>
                 </div>
-                <Badge className={`${bg} ${text}`}>{formatStatus(appointment.status)}</Badge>
+                <Badge className={`text-base px-4 py-2 rounded-full ${bg} ${text} shadow-md`}>{formatStatus(appointment.status)}</Badge>
               </div>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="space-y-6 pt-2">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-start gap-2">
-                  <Calendar className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <div className="flex items-center gap-3 bg-green-50 rounded-xl p-3 shadow-sm">
+                  <Calendar className="h-5 w-5 text-primary flex-shrink-0" />
                   <div>
-                    <h3 className="font-medium">Data</h3>
-                    <p className="text-sm text-muted-foreground">{formattedDate}</p>
+                    <h3 className="font-medium text-primary">Data</h3>
+                    <p className="text-base font-semibold text-neutral-800">{formattedDate}</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-2">
-                  <Clock className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <div className="flex items-center gap-3 bg-green-50 rounded-xl p-3 shadow-sm">
+                  <Clock className="h-5 w-5 text-primary flex-shrink-0" />
                   <div>
-                    <h3 className="font-medium">Horário</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {appointment.startTime} - {appointment.endTime}
-                    </p>
+                    <h3 className="font-medium text-primary">Horário</h3>
+                    <p className="text-base font-semibold text-neutral-800">{appointment.startTime} - {appointment.endTime}</p>
                   </div>
                 </div>
-                <div className="flex items-start gap-2">
-                  <CreditCard className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                <div className="flex items-center gap-3 bg-green-50 rounded-xl p-3 shadow-sm col-span-1 md:col-span-2">
+                  <CreditCard className="h-5 w-5 text-primary flex-shrink-0" />
                   <div>
-                    <h3 className="font-medium">Valor</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {formatCurrency(appointment.totalPrice || 0)}
-                    </p>
+                    <h3 className="font-medium text-primary">Valor</h3>
+                    <p className="text-2xl font-bold text-green-600">R$ {(appointment.totalPrice ? appointment.totalPrice / 100 : 0).toFixed(2).replace('.', ',')}</p>
                   </div>
                 </div>
               </div>
-
               {appointment.notes && (
-                <div className="pt-4 border-t">
+                <div className="pt-4 border-t mt-4">
                   <div className="flex items-start gap-2">
-                    <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+                    <FileText className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
-                      <h3 className="font-medium">Observações</h3>
-                      <p className="text-sm text-muted-foreground">{appointment.notes}</p>
+                      <h3 className="font-medium text-primary">Observações</h3>
+                      <p className="text-base text-neutral-700">{appointment.notes}</p>
                     </div>
                   </div>
                 </div>
@@ -307,7 +307,11 @@ export default function AppointmentDetailsPage() {
             </CardContent>
             <CardFooter className="flex flex-wrap gap-2 justify-end border-t pt-6">
               {canCancel && (
-                <Button variant="outline" onClick={() => setIsCancelModalOpen(true)}>
+                <Button 
+                  variant="destructive" 
+                  className="bg-red-500 hover:bg-red-600 text-white font-bold px-6 py-2 rounded-full shadow transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-red-300"
+                  onClick={() => setIsCancelModalOpen(true)}
+                >
                   Cancelar Agendamento
                 </Button>
               )}
@@ -331,34 +335,32 @@ export default function AppointmentDetailsPage() {
         </div>
 
         <div>
-          <Card>
-            <CardHeader>
-              <CardTitle>Prestador de Serviço</CardTitle>
+          <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white to-cyan-50 p-1">
+            <CardHeader className="pb-2 border-b-0">
+              <CardTitle className="text-lg text-primary flex items-center gap-2">
+                <User className="h-6 w-6 text-primary" /> Prestador de Serviço
+              </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-start gap-2">
-                <User className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+            <CardContent className="space-y-4 pt-2">
+              <div className="flex items-center gap-3 bg-cyan-50 rounded-xl p-3 shadow-sm">
+                <User className="h-5 w-5 text-primary flex-shrink-0" />
                 <div>
-                  <h3 className="font-medium">Nome</h3>
-                  <p className="text-sm text-muted-foreground">{appointment.providerName}</p>
+                  <h3 className="font-medium text-primary">Nome</h3>
+                  <p className="text-base font-semibold text-neutral-800">{appointment.providerName}</p>
                 </div>
               </div>
-              <div className="flex items-start gap-2">
-                <Phone className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+              <div className="flex items-center gap-3 bg-cyan-50 rounded-xl p-3 shadow-sm">
+                <Phone className="h-5 w-5 text-primary flex-shrink-0" />
                 <div>
-                  <h3 className="font-medium">Telefone</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {"Informação não disponível"}
-                  </p>
+                  <h3 className="font-medium text-primary">Telefone</h3>
+                  <p className="text-base text-neutral-700">Informação não disponível</p>
                 </div>
               </div>
-              <div className="flex items-start gap-2">
-                <Building className="h-5 w-5 text-muted-foreground flex-shrink-0 mt-0.5" />
+              <div className="flex items-center gap-3 bg-cyan-50 rounded-xl p-3 shadow-sm">
+                <Building className="h-5 w-5 text-primary flex-shrink-0" />
                 <div>
-                  <h3 className="font-medium">Endereço</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {"Informação não disponível"}
-                  </p>
+                  <h3 className="font-medium text-primary">Endereço</h3>
+                  <p className="text-base text-neutral-700">Informação não disponível</p>
                 </div>
               </div>
             </CardContent>

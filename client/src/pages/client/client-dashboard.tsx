@@ -1,5 +1,5 @@
 import { memo, useCallback, useEffect, useState, Suspense } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Category } from "../../../../shared/schema";
 import { ScissorsIcon } from "@/components/ui/scissors-icon";
@@ -35,6 +35,8 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import Navbar from '@/components/layout/navbar';
+import { apiCall } from '@/lib/api';
 
 interface Appointment {
   id: number;
@@ -46,6 +48,7 @@ interface Appointment {
   status: string;
   paymentStatus?: string;
   totalPrice?: number;
+  paymentMethod?: string;
 }
 
 interface Service {
@@ -439,6 +442,20 @@ export default function ClientDashboard() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("all");
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const queryClient = useQueryClient();
+  const cancelAppointmentMutation = useMutation({
+    mutationFn: async (appointmentId: number) => {
+      const response = await apiCall(`/api/booking/${appointmentId}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'canceled' }),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      return await response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/client/appointments"] });
+    },
+  });
   
   const { 
     data: personalizedData,
@@ -701,19 +718,7 @@ export default function ClientDashboard() {
           <h1 className="text-xl sm:text-2xl font-extrabold text-cyan-700 text-center mb-2 mt-1 tracking-tight drop-shadow-sm">
             {user?.name ? `Bem-vindo, ${user.name.split(' ')[0]}!` : 'Bem-vindo!'}
           </h1>
-          <div className="absolute top-2 right-2">
-            <div className="group relative">
-              <button className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 shadow px-2 py-1 rounded-full border border-gray-200 text-neutral-900 font-semibold focus:outline-none transition-all duration-200 text-sm">
-                <User className="h-5 w-5 text-cyan-500" />
-                <span className="hidden sm:inline">Menu</span>
-              </button>
-              <div className="hidden group-hover:flex group-focus:flex flex-col absolute right-0 mt-2 w-44 bg-white rounded-2xl shadow-lg border border-gray-100 z-50">
-                <button className="px-3 py-2 text-left hover:bg-cyan-50 text-sm" onClick={() => setLocation('/client/profile')}>Acessar Perfil</button>
-                <button className="px-3 py-2 text-left hover:bg-cyan-50 text-sm" onClick={() => setLocation('/client/support')}>Ajuda / Suporte</button>
-                <button className="px-3 py-2 text-left text-red-600 hover:bg-red-50 text-sm" onClick={() => { if(window.confirm('Deseja realmente sair?')) { localStorage.clear(); setLocation('/'); } }}>Sair</button>
-              </div>
-            </div>
-          </div>
+          {/* Botão de menu removido */}
         </header>
 
         {/* Botão de agendar fixo no topo */}
@@ -779,7 +784,7 @@ export default function ClientDashboard() {
                         <div className="text-xs text-neutral-400 truncate leading-tight mb-0.5">{appointment.providerName}</div>
                         <div className="flex flex-col gap-1 mt-1">
                           <StatusBadge status={appointment.status} />
-                          <PaymentStatusBadge status={appointment.paymentStatus} />
+                          {appointment.status !== 'canceled' && <PaymentStatusBadge status={appointment.paymentStatus} />}
                         </div>
                         {typeof appointment.totalPrice === 'number' && appointment.totalPrice > 0 && (
                           <div className="text-xs text-neutral-600 font-medium leading-tight mt-1">
@@ -788,8 +793,7 @@ export default function ClientDashboard() {
                         )}
                         {/* Botões de ação */}
                         <div className="flex flex-row gap-2 mt-3 justify-end">
-                          {/* Botão de pagar à esquerda, destacado, sem animação */}
-                          {['pending', 'aguardando_pagamento'].includes(appointment.paymentStatus) && (
+                          {['pending', 'aguardando_pagamento'].includes(appointment.paymentStatus) && ['pix', 'credit_card', 'boleto'].includes(appointment.paymentMethod) ? (
                             <button
                               className="px-4 py-1.5 text-xs rounded-full bg-[#58c9d1] text-white font-semibold shadow-sm hover:bg-[#3eb9aa] hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#58c9d1]/40 order-first mr-auto"
                               onClick={(e) => {
@@ -799,7 +803,11 @@ export default function ClientDashboard() {
                             >
                               Pagar
                             </button>
-                          )}
+                          ) : appointment.paymentMethod === 'money' ? (
+                            <span className="px-4 py-1.5 text-xs rounded-full bg-gray-100 text-gray-600 font-semibold shadow-sm border border-gray-200">Pagamento no local</span>
+                          ) : appointment.paymentStatus === 'paid' ? (
+                            <span className="px-4 py-1.5 text-xs rounded-full bg-green-100 text-green-700 font-semibold shadow-sm border border-green-200">Pago</span>
+                          ) : null}
                           <button
                             className="px-4 py-1.5 text-xs rounded-full bg-gray-100 text-cyan-700 font-semibold shadow-sm hover:bg-cyan-100 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-200"
                             onClick={(e) => {
@@ -812,12 +820,13 @@ export default function ClientDashboard() {
                           {(appointment.status === 'pending' || appointment.status === 'confirmed' || appointment.status === 'confirmado') && (
                             <button
                               className="px-4 py-1.5 text-xs rounded-full bg-red-100 text-red-700 font-semibold shadow-sm hover:bg-red-200 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-red-200"
-                              onClick={(e) => {
+                              onClick={e => {
                                 e.stopPropagation();
-                                alert('Funcionalidade de cancelamento em breve!');
+                                cancelAppointmentMutation.mutate(appointment.id);
                               }}
+                              disabled={cancelAppointmentMutation.isPending}
                             >
-                              Cancelar
+                              {cancelAppointmentMutation.isPending ? 'Cancelando...' : 'Cancelar'}
                             </button>
                           )}
                         </div>
@@ -838,6 +847,51 @@ export default function ClientDashboard() {
               )}
             </div>
           </div>
+
+          {/* Seção de agendamentos cancelados */}
+          {appointments.filter(a => a.status === 'canceled').length > 0 && (
+            <div className="mb-1 mt-6">
+              <h2 className="font-bold text-red-700 text-base tracking-wide">Agendamentos Cancelados</h2>
+              <div className="space-y-2">
+                {appointments
+                  .filter(a => a.status === 'canceled')
+                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                  .map((appointment) => (
+                    <div key={`appointment-canceled-${appointment.id}`} className="flex items-start bg-gradient-to-br from-white to-red-50 border border-red-200 rounded-xl shadow p-2 min-h-[4.5rem]">
+                      <div className="flex items-center justify-center w-10 h-10 rounded-full mr-2 mt-1 bg-red-100">
+                        <Clock className="text-red-500" size={22} />
+                      </div>
+                      <div className="flex-1 min-w-0 flex flex-col">
+                        <div className="font-semibold text-[0.9rem] text-neutral-900 truncate leading-tight mb-0.5">{appointment.serviceName}</div>
+                        <div className="text-xs text-cyan-700 font-medium leading-tight mb-0.5">
+                          {appointment.startTime} - {appointment.endTime}
+                        </div>
+                        <div className="text-xs text-neutral-400 truncate leading-tight mb-0.5">{appointment.providerName}</div>
+                        <div className="flex flex-col gap-1 mt-1">
+                          <StatusBadge status={appointment.status} />
+                        </div>
+                        {typeof appointment.totalPrice === 'number' && appointment.totalPrice > 0 && (
+                          <div className="text-xs text-neutral-600 font-medium leading-tight mt-1">
+                            R$ {(appointment.totalPrice / 100).toFixed(2).replace('.', ',')}
+                          </div>
+                        )}
+                        <div className="flex flex-row gap-2 mt-3 justify-end">
+                          <button
+                            className="px-4 py-1.5 text-xs rounded-full bg-gray-100 text-cyan-700 font-semibold shadow-sm hover:bg-cyan-100 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-200"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLocation(`/client/appointments/${appointment.id}`);
+                            }}
+                          >
+                            Ver
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
 
           <div className="mb-1">
             <h2 className="text-[1.1rem] font-bold mb-2 text-neutral-900 border-l-4 border-cyan-400 pl-2 tracking-wide">Serviços em Destaque</h2>
@@ -913,37 +967,7 @@ export default function ClientDashboard() {
           </div>
         </div>
       </div>
-      <nav className="fixed bottom-0 left-1/2 transform -translate-x-1/2 w-full max-w-md bg-white shadow-xl flex justify-around items-center py-2 rounded-t-2xl z-50 border-t border-gray-100">
-        <button 
-          className="flex flex-col items-center text-[#58c9d1] font-bold transition-all duration-200 drop-shadow-lg hover:text-[#3eb9aa]"
-          aria-current="page"
-          onClick={() => setLocation('/client/dashboard')}
-        >
-          <Home className="h-8 w-8 mb-0.5 text-[#58c9d1]" />
-          <span className="text-[0.7rem]">Início</span>
-        </button>
-        <button 
-          className="flex flex-col items-center text-[#58c9d1] font-bold transition-all duration-200 drop-shadow-lg hover:text-[#3eb9aa]"
-          onClick={navigateToBookingWizard}
-        >
-          <PlusCircle className="h-8 w-8 mb-0.5 text-[#58c9d1]" />
-          <span className="text-[0.7rem]">Agendar</span>
-        </button>
-        <button 
-          className="flex flex-col items-center text-[#58c9d1] font-bold transition-all duration-200 drop-shadow-lg hover:text-[#3eb9aa]"
-          onClick={() => setLocation('/client/providers')}
-        >
-          <Search className="h-8 w-8 mb-0.5 text-[#58c9d1]" />
-          <span className="text-[0.7rem]">Buscar</span>
-        </button>
-        <button 
-          className="flex flex-col items-center text-[#58c9d1] font-bold transition-all duration-200 drop-shadow-lg hover:text-[#3eb9aa]"
-          onClick={() => setLocation('/client/profile')}
-        >
-          <User className="h-8 w-8 mb-0.5 text-[#58c9d1]" />
-          <span className="text-[0.7rem]">Perfil</span>
-        </button>
-      </nav>
+      <Navbar />
     </div>
   );
 }
