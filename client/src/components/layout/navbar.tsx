@@ -123,13 +123,14 @@ export default function Navbar({
         {navItems.map((item, index) => {
           // Destacar o botão de novo agendamento
           const isMainAction = item.href === '/client/new-booking-wizard';
+          const isActive = isItemActive(item);
           if (isMainAction) {
             return (
               <div key={index} className="relative z-20 -mt-6 flex-1 flex justify-center">
                 <button
                   onClick={() => handleNavClick(item.href)}
-                  className="bg-primary shadow-2xl shadow-primary/40 hover:bg-primary/90 transition-colors rounded-full w-20 h-20 flex flex-col items-center justify-center border-4 border-white outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 animate-pulse"
-                  style={{ boxShadow: '0 8px 32px 0 rgba(0,0,0,0.18)' }}
+                  className="bg-[#58c9d1] shadow-2xl hover:bg-[#58c9d1]/90 transition-colors rounded-full w-20 h-20 flex flex-col items-center justify-center border-4 border-white outline-none focus:ring-2 focus:ring-[#58c9d1] focus:ring-offset-2 animate-pulse"
+                  style={{ boxShadow: '0 8px 32px 0 #58c9d133' }}
                 >
                   <PlusCircle size={36} className="text-white mb-1 animate-pulse" />
                   <span className="text-sm font-bold text-white">Agendar</span>
@@ -143,10 +144,15 @@ export default function Navbar({
               icon={item.icon}
               label={item.label}
               href={item.href}
-              active={isItemActive(item)}
+              active={isActive}
               onClick={() => handleNavClick(item.href)}
               layoutId={`${layoutId}-${index}`}
               showActiveIndicator={showActiveIndicator}
+              className={
+                isActive
+                  ? 'bg-[#58c9d1] text-white shadow-md'
+                  : 'text-[#58c9d1] hover:bg-[#58c9d1]/10 hover:text-[#58c9d1]'
+              }
             />
           );
         })}
@@ -166,6 +172,7 @@ interface NavItemProps {
   onClick: () => void;
   layoutId: string;
   showActiveIndicator: boolean;
+  className?: string;
 }
 
 function NavItem({ 
@@ -175,12 +182,13 @@ function NavItem({
   active, 
   onClick, 
   layoutId,
-  showActiveIndicator
+  showActiveIndicator,
+  className
 }: NavItemProps) {
   return (
     <div
       onClick={onClick}
-      className="flex flex-col items-center justify-center h-full w-16 sm:w-20 cursor-pointer relative"
+      className={`flex flex-col items-center justify-center h-full w-16 sm:w-20 cursor-pointer relative ${className}`}
     >
       {/* Indicador de item ativo */}
       {active && showActiveIndicator && (
@@ -194,14 +202,14 @@ function NavItem({
       )}
       
       <motion.div 
-        className={`flex items-center justify-center ${active ? 'text-primary' : 'text-gray-500'}`}
+        className={`flex items-center justify-center ${active ? 'text-white' : 'text-[#58c9d1]'}`}
         whileTap={{ scale: 1.2 }}
       >
         {icon}
       </motion.div>
       
       <motion.span 
-        className={`text-xs mt-1 ${active ? 'font-medium text-primary' : 'font-normal text-gray-500'}`}
+        className={`text-xs mt-1 ${active ? 'font-medium text-white' : 'font-normal text-[#58c9d1]'}`}
         animate={{ scale: active ? 1.05 : 1 }}
         transition={{ duration: 0.2 }}
       >

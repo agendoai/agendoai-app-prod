@@ -231,6 +231,11 @@ function RouterWithTransitions() {
           userType="client"
         />
         <ProtectedRoute
+          path="/client/appointments/:appointmentId/pay"
+          component={() => <LazyWrapper component={PaymentPage} />}
+          userType="client"
+        />
+        <ProtectedRoute
           path="/client/reviews"
           component={() => <LazyWrapper component={ClientReviewsPage} />}
           userType="client"

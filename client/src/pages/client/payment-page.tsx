@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation, useSearchParams } from 'wouter';
+import { useLocation, useSearchParams, useParams } from 'wouter';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, CreditCard, QrCode, ArrowLeft, CheckCircle, Copy } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { apiJson } from '@/lib/api';
 
 interface BookingData {
   providerId: number;
@@ -26,6 +27,7 @@ interface BookingData {
 }
 
 export default function PaymentPage() {
+  const { appointmentId } = useParams();
   const [, setLocation] = useLocation();
   const { user } = useAuth();
   const { toast } = useToast();
@@ -48,6 +50,58 @@ export default function PaymentPage() {
   const [searchParams] = useSearchParams();
 
   useEffect(() => {
+    if (appointmentId) {
+      // Novo fluxo: buscar agendamento e status do pagamento existente
+      (async () => {
+        setIsLoading(true);
+        try {
+          // Buscar detalhes do agendamento
+          const appointment = await apiJson(`/api/booking/${appointmentId}`);
+          if (!appointment || !appointment.paymentId) {
+            toast({
+              title: 'Agendamento não possui pagamento vinculado',
+              description: 'Entre em contato com o suporte.',
+              variant: 'destructive',
+            });
+            setIsLoading(false);
+            return;
+          }
+          setBookingData({
+            providerId: appointment.providerId,
+            serviceId: appointment.serviceId,
+            date: appointment.date,
+            startTime: appointment.startTime,
+            endTime: appointment.endTime,
+            totalPrice: appointment.totalPrice,
+            paymentMethod: appointment.paymentMethod || 'pix',
+          });
+          // Buscar status do pagamento no Asaas
+          const paymentStatusRes = await apiJson(`/api/asaas-marketplace/payments/${appointment.paymentId}/status`);
+          if (paymentStatusRes.status === 'PENDING' || paymentStatusRes.status === 'pending') {
+            // Exibir QR Code/link
+            setPixQrCode(paymentStatusRes.pixQrCode || paymentStatusRes.qrCode || null);
+            setPixQrCodeImage(paymentStatusRes.pixQrCodeImage || paymentStatusRes.qrCodeImage || null);
+            setShowPixQR(true);
+            setPaymentStatus('pending');
+          } else if (paymentStatusRes.status === 'RECEIVED' || paymentStatusRes.status === 'paid') {
+            setPaymentStatus('success');
+            setShowPixQR(false);
+          } else {
+            setPaymentStatus('pending');
+            setShowPixQR(false);
+          }
+        } catch (err) {
+          toast({
+            title: 'Erro ao buscar pagamento',
+            description: err.message || 'Tente novamente ou entre em contato com o suporte.',
+            variant: 'destructive',
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      })();
+      return;
+    }
     // Verificar se o usuário está autenticado
     if (!user) {
       setLocation('/auth?redirect=payment');
@@ -129,7 +183,27 @@ export default function PaymentPage() {
       });
       setLocation('/');
     }
-  }, [user, setLocation, toast, searchParams]);
+  }, [user, setLocation, toast, searchParams, appointmentId]);
+
+  // Polling automático para atualizar status do pagamento
+  useEffect(() => {
+    if (appointmentId && paymentStatus === 'pending') {
+      const interval = setInterval(async () => {
+        try {
+          const appointment = await apiJson(`/api/booking/${appointmentId}`);
+          if (appointment && appointment.paymentId) {
+            const paymentStatusRes = await apiJson(`/api/asaas-marketplace/payments/${appointment.paymentId}/status`);
+            if (paymentStatusRes.status === 'RECEIVED' || paymentStatusRes.status === 'paid') {
+              setPaymentStatus('success');
+              setShowPixQR(false);
+              clearInterval(interval);
+            }
+          }
+        } catch {}
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [appointmentId, paymentStatus]);
 
   const fetchProviderAndServiceData = async (providerId: number, serviceId: number) => {
     try {
@@ -467,6 +541,19 @@ export default function PaymentPage() {
           Voltar
         </Button>
 
+        {showPixQR && paymentStatus === 'pending' && (
+          <div className="mb-4">
+            <Badge variant="warning" className="mb-2">Aguardando pagamento</Badge>
+            <div className="text-xs text-gray-600 mb-2">Se você já pagou, aguarde a confirmação. Não tente pagar novamente.</div>
+            <div className="text-xs text-gray-500 mb-2">A confirmação pode levar alguns minutos. Você pode fechar esta tela e acompanhar o status no dashboard.</div>
+          </div>
+        )}
+        {paymentStatus === 'success' && (
+          <div className="mb-4">
+            <Badge variant="success" className="mb-2">Pagamento confirmado!</Badge>
+            <div className="text-xs text-green-700 mb-2">Seu pagamento foi confirmado. Você pode voltar ao dashboard.</div>
+          </div>
+        )}
         {showPixQR ? (
           <Card className="shadow-xl border-2 border-teal-100">
             <CardHeader>
@@ -480,7 +567,11 @@ export default function PaymentPage() {
                 <div className="bg-white p-6 rounded-xl shadow-lg mb-4 flex flex-col items-center">
                   {pixQrCodeImage ? (
                     <img
-                      src={pixQrCodeImage}
+                    src={
+                      pixQrCodeImage && !pixQrCodeImage.startsWith('data:image')
+                        ? `data:image/png;base64,${pixQrCodeImage}`
+                        : pixQrCodeImage
+                    }
                       alt="QR Code PIX"
                       className="mx-auto mb-2 rounded-lg border border-gray-200 shadow"
                       style={{ width: 256, height: 256 }}
@@ -618,6 +709,7 @@ export default function PaymentPage() {
             </CardContent>
           </Card>
         )}
+        <Button variant="outline" onClick={() => setLocation('/client/dashboard')} className="mt-4 w-full">Voltar ao Dashboard</Button>
       </div>
     </div>
   );

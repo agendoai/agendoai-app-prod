@@ -354,4 +354,78 @@ router.post('/generic-provider', async (req, res) => {
   }
 });
 
+/**
+ * Rota para buscar um agendamento por ID
+ * GET /api/booking/:id
+ */
+router.get('/:id', async (req, res) => {
+  try {
+    const appointmentId = parseInt(req.params.id);
+    if (isNaN(appointmentId)) {
+      return res.status(400).json({ error: 'ID de agendamento inválido' });
+    }
+
+    // Buscar agendamento
+    const appointment = await storage.getAppointmentById(appointmentId);
+    if (!appointment) {
+      return res.status(404).json({ error: 'Agendamento não encontrado' });
+    }
+
+    // Permitir acesso apenas ao cliente, prestador, admin ou suporte
+    const user = req.user;
+    if (
+      appointment.clientId !== user?.id &&
+      appointment.providerId !== user?.id &&
+      user?.userType !== 'admin' &&
+      user?.userType !== 'support'
+    ) {
+      return res.status(403).json({ error: 'Você não tem permissão para ver este agendamento' });
+    }
+
+    // Buscar informações adicionais (serviço e prestador)
+    let service = null;
+    let provider = null;
+    try {
+      service = appointment.serviceId ? await storage.getService(appointment.serviceId) : null;
+      provider = appointment.providerId ? await storage.getUser(appointment.providerId) : null;
+    } catch (e) {}
+
+    res.json({
+      ...appointment,
+      serviceName: service?.name,
+      serviceDescription: service?.description,
+      providerName: provider?.name,
+      providerPhone: provider?.phone,
+      providerImage: provider?.profileImage,
+    });
+  } catch (error) {
+    console.error('Erro ao buscar agendamento por ID:', error);
+    res.status(500).json({ error: 'Erro ao buscar agendamento por ID' });
+  }
+});
+
+/**
+ * Rota para atualizar o status do agendamento (ex: cancelar)
+ * PATCH /api/booking/:appointmentId/status
+ */
+router.patch('/:appointmentId/status', async (req, res) => {
+  try {
+    const { appointmentId } = req.params;
+    const { status } = req.body;
+    if (!status) {
+      return res.status(400).json({ error: 'Status é obrigatório' });
+    }
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ error: 'É necessário estar autenticado' });
+    }
+    const updated = await storage.updateAppointmentStatus(Number(appointmentId), status);
+    if (!updated) {
+      return res.status(404).json({ error: 'Agendamento não encontrado' });
+    }
+    res.json({ success: true, status });
+  } catch (error) {
+    res.status(500).json({ error: error.message || 'Erro ao atualizar status' });
+  }
+});
+
 export default router;
