@@ -25,6 +25,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
 import { TimeSlotSelector } from "@/components/booking/time-slot-selector";
@@ -68,6 +69,7 @@ export function NewBookingWizard({
 }: NewBookingWizardProps) {
   console.log('NewBookingWizard RENDERIZADO');
   const { toast } = useToast();
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
 
   // Estado inicial sempre começa pela seleção de nicho para melhor experiência do usuário
@@ -496,8 +498,7 @@ export function NewBookingWizard({
 
     // Calcular o valor total com taxas
     const adminFee = providerFee?.fixedFee || 0;
-    const bookingFee = 1.75;
-    const totalWithFee = totalPrice + adminFee + bookingFee;
+    const totalWithFee = totalPrice + adminFee;
 
     // Para pagamentos online (PIX/Cartão), redirecionar para página de pagamento
     if (selectedPaymentMethod === 'pix' || selectedPaymentMethod === 'credit_card' || selectedPaymentMethod === 'debit_card') {
@@ -534,6 +535,10 @@ export function NewBookingWizard({
 
     // Para pagamentos locais (dinheiro), criar agendamento direto
     try {
+      // Obter dados do usuário e serviços
+      const selectedServicesData = services?.filter((s) => selectedServiceIds.includes(s.id)) || [];
+      const providerSelected = providers?.find((p) => p.id === selectedProvider);
+      
       let response;
       if (selectedServiceIds.length === 1) {
         // Agendamento simples
@@ -547,6 +552,9 @@ export function NewBookingWizard({
             startTime: selectedTimeSlot.startTime,
             paymentMethod: selectedPaymentMethod,
             totalPrice: totalWithFee,
+            paymentStatus: 'pending',
+            serviceName: selectedServicesData[0]?.name || 'Serviço',
+            clientName: user?.name || 'Cliente',
           })
         });
       } else {
@@ -560,6 +568,9 @@ export function NewBookingWizard({
             startTime: selectedTimeSlot.startTime,
             paymentMethod: selectedPaymentMethod,
             totalPrice: totalWithFee,
+            paymentStatus: 'pending',
+            serviceName: selectedServicesData.map(s => s.name).join(', '),
+            clientName: user?.name || 'Cliente',
             services: selectedServiceIds.map(id => {
               const service = (providerServices[selectedProvider] || []).find(s => s.id === id);
               return {
@@ -649,47 +660,51 @@ export function NewBookingWizard({
         <h3 className="text-xl font-bold text-gray-800 mb-2">Escolha sua área</h3>
         <p className="text-gray-600">Selecione a categoria que melhor atende sua necessidade</p>
       </div>
-      
-      <div className="grid grid-cols-1 gap-4">
-        {niches?.map((niche) => (
-          <button
-            key={niche.id}
-            className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
-              selectedNicheId === niche.id
-                ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
-                : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
-            }`}
-            onClick={() => handleNicheSelect(niche.id)}
-          >
-            <div className="flex items-center space-x-4">
-              <div className={`text-2xl transition-transform group-hover:scale-110 ${
-                selectedNicheId === niche.id ? 'text-white' : 'text-teal-500'
-              }`}>
-                {getNicheIcon(niche.name)}
-              </div>
-              <div className="text-left">
-                <span className={`font-semibold text-lg ${
-                  selectedNicheId === niche.id ? 'text-white' : 'text-gray-800'
+      {isLoadingNiches ? (
+        <div className="flex justify-center py-8"><LoadingSpinner /></div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {niches?.map((niche) => (
+            <button
+              key={niche.id}
+              className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
+                selectedNicheId === niche.id
+                  ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
+                  : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
+              }`}
+              onClick={() => handleNicheSelect(niche.id)}
+              disabled={isLoadingNiches}
+            >
+              <div className="flex items-center space-x-4">
+                <div className={`text-2xl transition-transform group-hover:scale-110 ${
+                  selectedNicheId === niche.id ? 'text-white' : 'text-teal-500'
                 }`}>
-                  {niche.name}
-                </span>
-                <p className={`text-sm mt-1 ${
-                  selectedNicheId === niche.id ? 'text-white/80' : 'text-gray-500'
-                }`}>
-                  Serviços especializados
-                </p>
-              </div>
-            </div>
-            {selectedNicheId === niche.id && (
-              <div className="absolute top-3 right-3">
-                <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
-                  <Check className="w-4 h-4 text-white" />
+                  {getNicheIcon(niche.name)}
+                </div>
+                <div className="text-left">
+                  <span className={`font-semibold text-lg ${
+                    selectedNicheId === niche.id ? 'text-white' : 'text-gray-800'
+                  }`}>
+                    {niche.name}
+                  </span>
+                  <p className={`text-sm mt-1 ${
+                    selectedNicheId === niche.id ? 'text-white/80' : 'text-gray-500'
+                  }`}>
+                    Serviços especializados
+                  </p>
                 </div>
               </div>
-            )}
-          </button>
-        ))}
-      </div>
+              {selectedNicheId === niche.id && (
+                <div className="absolute top-3 right-3">
+                  <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                    <Check className="w-4 h-4 text-white" />
+                  </div>
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
   const renderCategoryStep = () => (
@@ -701,47 +716,51 @@ export function NewBookingWizard({
         <h3 className="text-xl font-bold text-gray-800 mb-2">Selecione a categoria</h3>
         <p className="text-gray-600">Escolha o tipo de serviço que você precisa</p>
       </div>
-      
-      <div className="grid grid-cols-1 gap-4">
-        {categories?.map((cat) => (
-          <button
-            key={cat.id}
-            className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
-              selectedCategoryId === cat.id
-                ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
-                : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
-            }`}
-            onClick={() => handleCategorySelect(cat.id)}
-          >
-            <div className="flex items-center space-x-4">
-              <div className={`text-2xl transition-transform group-hover:scale-110 ${
-                selectedCategoryId === cat.id ? 'text-white' : 'text-teal-500'
-              }`}>
-                {getCategoryIcon(cat.name)}
-              </div>
-              <div className="text-left">
-                <span className={`font-semibold text-lg ${
-                  selectedCategoryId === cat.id ? 'text-white' : 'text-gray-800'
+      {isLoadingCategories ? (
+        <div className="flex justify-center py-8"><LoadingSpinner /></div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {categories?.map((cat) => (
+            <button
+              key={cat.id}
+              className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
+                selectedCategoryId === cat.id
+                  ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
+                  : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
+              }`}
+              onClick={() => handleCategorySelect(cat.id)}
+              disabled={isLoadingCategories}
+            >
+              <div className="flex items-center space-x-4">
+                <div className={`text-2xl transition-transform group-hover:scale-110 ${
+                  selectedCategoryId === cat.id ? 'text-white' : 'text-teal-500'
                 }`}>
-                  {cat.name}
-                </span>
-                <p className={`text-sm mt-1 ${
-                  selectedCategoryId === cat.id ? 'text-white/80' : 'text-gray-500'
-                }`}>
-                  Serviços disponíveis
-                </p>
-              </div>
-            </div>
-            {selectedCategoryId === cat.id && (
-              <div className="absolute top-3 right-3">
-                <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
-                  <Check className="w-4 h-4 text-white" />
+                  {getCategoryIcon(cat.name)}
+                </div>
+                <div className="text-left">
+                  <span className={`font-semibold text-lg ${
+                    selectedCategoryId === cat.id ? 'text-white' : 'text-gray-800'
+                  }`}>
+                    {cat.name}
+                  </span>
+                  <p className={`text-sm mt-1 ${
+                    selectedCategoryId === cat.id ? 'text-white/80' : 'text-gray-500'
+                  }`}>
+                    Serviços disponíveis
+                  </p>
                 </div>
               </div>
-            )}
-          </button>
-        ))}
-      </div>
+              {selectedCategoryId === cat.id && (
+                <div className="absolute top-3 right-3">
+                  <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
+                    <Check className="w-4 h-4 text-white" />
+                  </div>
+                </div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
   const renderServiceStep = () => (
@@ -753,78 +772,64 @@ export function NewBookingWizard({
         <h3 className="text-xl font-bold text-gray-800 mb-2">Escolha seus serviços</h3>
         <p className="text-gray-600">Selecione um ou mais serviços que você precisa</p>
       </div>
-      
-      <div className="grid grid-cols-1 gap-4">
-        {services?.map((service) => (
-          <div
-            key={service.id}
-            className={`group relative overflow-hidden rounded-xl transition-all duration-300 transform hover:scale-[1.01] ${
-              selectedServiceIds.includes(service.id)
-                ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
-                : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
-            }`}
-            onClick={() => {
-              handleServiceSelect(service.id);
-            }}
-            style={{ cursor: 'pointer' }}
-          >
-            <div className="p-3 sm:p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2 sm:space-x-4">
-                  <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-105 ${
-                    selectedServiceIds.includes(service.id) 
-                      ? 'bg-white/20' 
-                      : 'bg-teal-100'
-                  }`}>
-                    <span className="text-lg sm:text-xl">{getServiceIcon(service.name, true)}</span>
+      {isLoadingServices ? (
+        <div className="flex justify-center py-8"><LoadingSpinner /></div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4">
+          {services?.map((service) => (
+            <div
+              key={service.id}
+              className={`group relative overflow-hidden rounded-xl transition-all duration-300 transform hover:scale-[1.01] ${
+                selectedServiceIds.includes(service.id)
+                  ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
+                  : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
+              }`}
+              onClick={() => {
+                if (!isLoadingServices) handleServiceSelect(service.id);
+              }}
+              style={{ cursor: isLoadingServices ? 'not-allowed' : 'pointer' }}
+            >
+              <div className="p-3 sm:p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2 sm:space-x-4">
+                    <div className={`w-8 h-8 sm:w-12 sm:h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-105 ${
+                      selectedServiceIds.includes(service.id) 
+                        ? 'bg-white/20' 
+                        : 'bg-teal-100'
+                    }`}>
+                      <span className="text-lg sm:text-xl">{getServiceIcon(service.name, true)}</span>
+                    </div>
+                    <div className="text-left">
+                      <h3 className={`font-semibold text-base sm:text-lg ${
+                        selectedServiceIds.includes(service.id) ? 'text-white' : 'text-gray-800'
+                      }`}>
+                        {service.name}
+                      </h3>
+                      <p className={`text-xs sm:text-sm mt-1 ${
+                        selectedServiceIds.includes(service.id) ? 'text-white/80' : 'text-gray-600'
+                      }`}>
+                        {service.description.length > 40 
+                          ? `${service.description.substring(0, 40)}...` 
+                          : service.description
+                        }
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-left">
-                    <h3 className={`font-semibold text-base sm:text-lg ${
-                      selectedServiceIds.includes(service.id) ? 'text-white' : 'text-gray-800'
-                    }`}>
-                      {service.name}
-                    </h3>
-                    <p className={`text-xs sm:text-sm mt-1 ${
-                      selectedServiceIds.includes(service.id) ? 'text-white/80' : 'text-gray-600'
-                    }`}>
-                      {service.description.length > 40 
-                        ? `${service.description.substring(0, 40)}...` 
-                        : service.description
-                      }
-                    </p>
+                  <div className="text-right">
                   </div>
                 </div>
-                <div className="text-right">
+              </div>
+              {selectedServiceIds.includes(service.id) && (
+                <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
+                  <div className="w-5 h-5 sm:w-6 sm:h-6 bg-white/20 rounded-full flex items-center justify-center">
+                    <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
+                  </div>
                 </div>
-              </div>
-              {/* Botão Ver Detalhes */}
-              <div className="mt-2 flex justify-between items-center">
-                <button
-                  className={`text-xs sm:text-sm font-medium transition-colors ${
-                    selectedServiceIds.includes(service.id) 
-                      ? 'text-white/80 hover:text-white' 
-                      : 'text-teal-600 hover:text-teal-700'
-                  }`}
-                  onClick={e => {
-                    e.stopPropagation();
-                    setSelectedServiceDetails(service);
-                    setShowServiceModal(true);
-                  }}
-                >
-                  Ver detalhes
-                </button>
-              </div>
+              )}
             </div>
-            {selectedServiceIds.includes(service.id) && (
-              <div className="absolute top-2 right-2 sm:top-3 sm:right-3">
-                <div className="w-5 h-5 sm:w-6 sm:h-6 bg-white/20 rounded-full flex items-center justify-center">
-                  <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
       
       {/* Botão de continuar dentro da etapa */}
       {/* Removido para fluxo automático */}
@@ -847,7 +852,12 @@ export function NewBookingWizard({
             mode="single"
             selected={selectedDate}
             onSelect={handleDateSelect}
-            disabled={(date) => date < new Date()}
+            disabled={(date) => {
+              // Permitir agendamento para hoje e dias futuros
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              return date < today;
+            }}
             className="rounded-xl"
           />
         </div>
@@ -859,6 +869,7 @@ export function NewBookingWizard({
           <Button 
             className="w-full h-14 rounded-xl text-lg font-bold shadow-lg bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white transition-all transform hover:scale-[1.02]" 
             onClick={handleNext}
+            disabled={isLoadingProviders}
           >
             Ver Prestadores <ChevronRight className="ml-2 h-5 w-5" />
           </Button>
@@ -889,6 +900,7 @@ export function NewBookingWizard({
         <div className="grid grid-cols-1 gap-4">
           {providers.map((provider, index) => {
             const totals = calculateTotals(provider.id);
+            const isProviderLoading = loadingProviderServices[provider.id];
             
             return (
               <button
@@ -897,8 +909,13 @@ export function NewBookingWizard({
                   selectedProvider === provider.id
                     ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
                     : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
-                }`}
-                onClick={() => handleProviderSelect(provider.id, totals.duration, totals.price)}
+                } ${isProviderLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                onClick={() => {
+                  if (!isProviderLoading && !isLoadingProviders) {
+                    handleProviderSelect(provider.id, totals.duration, totals.price);
+                  }
+                }}
+                disabled={isProviderLoading || isLoadingProviders}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
@@ -918,7 +935,7 @@ export function NewBookingWizard({
                       <p className={`text-sm mt-1 ${
                         selectedProvider === provider.id ? 'text-white/80' : 'text-gray-600'
                       }`}>
-                        Prestador disponível
+                        {isProviderLoading ? 'Carregando serviços...' : 'Prestador disponível'}
                       </p>
                     </div>
                   </div>
@@ -961,6 +978,7 @@ export function NewBookingWizard({
           <Button 
             className="w-full h-14 rounded-xl text-lg font-bold shadow-lg bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white transition-all transform hover:scale-[1.02]" 
             onClick={handleNext}
+            disabled={loadingProviderServices[selectedProvider] || isLoadingProviders}
           >
             Escolher Horário <ChevronRight className="ml-2 h-5 w-5" />
           </Button>
@@ -1067,6 +1085,7 @@ export function NewBookingWizard({
             <Button 
               className="w-full h-14 rounded-xl text-lg font-bold shadow-lg bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white transition-all transform hover:scale-[1.02]" 
               onClick={handleNext}
+              disabled={loadingSlots}
             >
               Ir para Pagamento <ChevronRight className="ml-2 h-5 w-5" />
             </Button>
@@ -1083,8 +1102,7 @@ export function NewBookingWizard({
 
     // No passo de pagamento, ao calcular o valor final:
     const adminFee = providerFee?.fixedFee || 0;
-    const bookingFee = 1.75; // Taxa fixa de agendamento
-    const totalWithFee = totalPrice + adminFee + bookingFee;
+    const totalWithFee = totalPrice + adminFee;
 
     return (
       <div className="space-y-8">
@@ -1128,10 +1146,6 @@ export function NewBookingWizard({
                   <div className="flex justify-between text-sm font-semibold">
                     <span>Subtotal:</span>
                     <span className="text-teal-600">R$ {totalPrice.toFixed(2).replace(".", ",")}</span>
-                  </div>
-                  <div className="flex justify-between text-sm font-semibold">
-                    <span>Taxa de agendamento:</span>
-                    <span className="text-teal-600">R$ 1,75</span>
                   </div>
                   {adminFee > 0 && (
                     <div className="flex justify-between text-sm font-semibold">
@@ -1182,6 +1196,7 @@ export function NewBookingWizard({
               <button
                 className="group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg"
                 onClick={() => handlePaymentTypeSelect("local")}
+                disabled={isLoadingProviderFee}
               >
                 <div className="flex items-center space-x-4">
                   <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110">
@@ -1197,17 +1212,18 @@ export function NewBookingWizard({
               </button>
 
               <button
-                className="group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg"
-                onClick={() => handlePaymentTypeSelect("online")}
+                className="group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform opacity-60 cursor-not-allowed bg-white border border-gray-200"
+                disabled
+                title="Em breve disponível"
               >
                 <div className="flex items-center space-x-4">
-                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110">
+                  <div className="w-16 h-16 bg-gradient-to-br from-gray-400 to-gray-500 rounded-2xl flex items-center justify-center">
                     <span className="text-2xl">💳</span>
                   </div>
                   <div className="text-left">
-                    <h3 className="font-bold text-lg text-gray-800">Pagamento Online</h3>
-                    <p className="text-gray-600 mt-1">
-                      Pague agora usando cartão de crédito ou PIX
+                    <h3 className="font-bold text-lg text-gray-500">Pagamento Online</h3>
+                    <p className="text-gray-400 mt-1">
+                      Em breve disponível
                     </p>
                   </div>
                 </div>
@@ -1227,6 +1243,7 @@ export function NewBookingWizard({
                 size="sm"
                 onClick={() => setPaymentType(null)}
                 className="text-sm hover:bg-gray-100"
+                disabled={isLoadingProviderFee}
               >
                 Voltar
               </Button>
@@ -1241,6 +1258,7 @@ export function NewBookingWizard({
                       : 'bg-white border border-gray-200 hover:border-green-300 hover:shadow-lg'
                   }`}
                   onClick={() => handlePaymentMethodSelect("money")}
+                  disabled={isLoadingProviderFee}
                 >
                   <div className="flex items-center space-x-4">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${
@@ -1278,6 +1296,7 @@ export function NewBookingWizard({
                         : 'bg-white border border-gray-200 hover:border-blue-300 hover:shadow-lg'
                     }`}
                     onClick={() => handlePaymentMethodSelect("credit_card")}
+                    disabled={isLoadingProviderFee}
                   >
                     <div className="flex items-center space-x-4">
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${
@@ -1314,6 +1333,7 @@ export function NewBookingWizard({
                         : 'bg-white border border-gray-200 hover:border-green-300 hover:shadow-lg'
                     }`}
                     onClick={() => handlePaymentMethodSelect("debit_card")}
+                    disabled={isLoadingProviderFee}
                   >
                     <div className="flex items-center space-x-4">
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${
@@ -1350,6 +1370,7 @@ export function NewBookingWizard({
                         : 'bg-white border border-gray-200 hover:border-yellow-400 hover:shadow-lg'
                     }`}
                     onClick={() => handlePaymentMethodSelect("pix")}
+                    disabled={isLoadingProviderFee}
                   >
                     <div className="flex items-center space-x-4">
                       <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 ${
@@ -1390,6 +1411,7 @@ export function NewBookingWizard({
             <Button 
               className="w-full h-14 rounded-xl text-lg font-bold shadow-lg bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white transition-all transform hover:scale-[1.02]" 
               onClick={handleFinishBooking}
+              disabled={isLoadingProviderFee}
             >
               Finalizar Agendamento <ChevronRight className="ml-2 h-5 w-5" />
             </Button>

@@ -19,12 +19,10 @@ import { PaymentCardForm } from "@/components/checkout/payment-card-form";
 import { apiRequest } from "@/lib/queryClient";
 
 // Verificar se temos a chave pública do Stripe
-if (!import.meta.env.VITE_STRIPE_PUBLIC_KEY) {
-  throw new Error("Missing Stripe public key. Please set VITE_STRIPE_PUBLIC_KEY in your environment variables.");
-}
+const stripePublicKey = import.meta.env.VITE_STRIPE_PUBLIC_KEY;
 
-// Inicializar o Stripe
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLIC_KEY);
+// Inicializar o Stripe apenas se a chave estiver disponível
+const stripePromise = stripePublicKey ? loadStripe(stripePublicKey) : null;
 
 // Interface para cartão de pagamento
 interface PaymentCard {
@@ -167,14 +165,16 @@ export default function PaymentMethodsPage() {
   return (
     <div className="min-h-screen bg-white">
       {/* Header */}
-      <div className="bg-primary text-white p-4 flex items-center">
-        <button onClick={goBack} className="mr-2">
-          <ChevronLeft className="h-6 w-6" />
-        </button>
-        <h1 className="text-xl font-semibold">Métodos de Pagamento</h1>
-      </div>
+      <header className="bg-[#58c9d1] text-white py-6 flex items-center justify-center shadow-md">
+        <div className="flex items-center w-full max-w-md mx-auto px-4">
+          <button onClick={goBack} className="mr-3">
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <h1 className="text-xl font-semibold text-center flex-1">Métodos de Pagamento</h1>
+        </div>
+      </header>
       
-      <div className="p-4">
+      <main className="flex-1 p-4">
         <p className="text-neutral-600 mb-6">
           Gerencie seus cartões e métodos de pagamento para facilitar suas reservas.
         </p>
@@ -270,15 +270,25 @@ export default function PaymentMethodsPage() {
         </div>
         
         {/* Botão para adicionar cartão */}
-        <Button 
-          variant="outline" 
-          className="w-full"
-          onClick={() => setAddCardOpen(true)}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Adicionar novo cartão
-        </Button>
-      </div>
+        {stripePublicKey ? (
+          <Button 
+            variant="outline" 
+            className="w-full"
+            onClick={() => setAddCardOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar novo cartão
+          </Button>
+        ) : (
+          <div className="text-center p-4 border border-dashed border-neutral-300 rounded-lg">
+            <AlertTriangle className="h-8 w-8 mx-auto text-neutral-400 mb-2" />
+            <p className="text-neutral-600 mb-2">Em breve disponível</p>
+            <p className="text-sm text-neutral-500">
+              A funcionalidade de pagamento com cartão estará disponível em breve.
+            </p>
+          </div>
+        )}
+      </main>
       
       {/* Modal para adicionar cartão */}
       <Dialog open={addCardOpen} onOpenChange={setAddCardOpen}>
@@ -290,7 +300,18 @@ export default function PaymentMethodsPage() {
             </DialogDescription>
           </DialogHeader>
           
-          {clientSecret ? (
+          {!stripePublicKey ? (
+            <div className="text-center p-4">
+              <AlertTriangle className="h-8 w-8 mx-auto text-neutral-400 mb-2" />
+              <p className="text-neutral-600 mb-2">Em breve disponível</p>
+              <p className="text-sm text-neutral-500 mb-4">
+                A funcionalidade de pagamento com cartão estará disponível em breve.
+              </p>
+              <Button onClick={() => setAddCardOpen(false)}>
+                Fechar
+              </Button>
+            </div>
+          ) : clientSecret ? (
             <Elements stripe={stripePromise} options={{ clientSecret }}>
               <PaymentCardForm 
                 onSuccess={handleAddCard}

@@ -54,9 +54,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   } = useQuery<User | undefined, Error>({
     queryKey: ["/api/user"],
     enabled: true, // Forçar execução da query
-    staleTime: 0, // Sempre buscar dados frescos
-    refetchOnWindowFocus: true, // Refazer query quando a janela ganhar foco
-    refetchOnMount: true, // Refazer query quando o componente montar
+    staleTime: 10 * 60 * 1000, // 10 minutos - dados ficam "frescos" por 10 minutos
+    cacheTime: 15 * 60 * 1000, // 15 minutos - cache mantido por 15 minutos
+    refetchOnWindowFocus: false, // Não refazer query quando a janela ganhar foco
+    refetchOnMount: true, // Refazer query quando o componente montar (importante para /auth)
+    retry: false, // Não tentar novamente em caso de erro
     queryFn: async ({ queryKey }) => {
       console.log("useAuth - Executando queryFn para /api/user");
       try {
@@ -101,6 +103,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
   });
+
+  // Efeito para redirecionar usuário logado que está na página de auth
+  React.useEffect(() => {
+    console.log("AuthProvider - Verificando redirecionamento:", {
+      user: user ? { id: user.id, userType: user.userType } : null,
+      currentPath: window.location.pathname,
+      isLoading
+    });
+    
+    if (user && !isLoading && window.location.pathname === '/auth') {
+      console.log("AuthProvider - Usuário logado detectado na página de auth, redirecionando...");
+      
+      // Adicionar um pequeno delay para garantir que o redirecionamento funcione
+      setTimeout(() => {
+        if (user.userType === "client") {
+          setLocation("/client/dashboard");
+        } else if (user.userType === "provider") {
+          setLocation("/provider/dashboard");
+        } else if (user.userType === "admin") {
+          setLocation("/admin/dashboard");
+        }
+      }, 100);
+    }
+  }, [user, isLoading, setLocation]);
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
@@ -211,10 +237,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onSuccess: () => {
       console.log("Logout bem-sucedido. Redirecionando para página de autenticação.");
-      // Limpa o cache de usuário
+      
+      // Limpar cache imediatamente
       queryClient.setQueryData(["/api/user"], null);
-      // Invalidar qualquer outra consulta relacionada ao usuário
       queryClient.invalidateQueries({queryKey: ["/api/user"]});
+      queryClient.clear(); // Limpar todo o cache
       
       // Redirecionar para página de login
       setLocation("/auth");
@@ -226,16 +253,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onError: (error: Error) => {
       console.error("Erro ao processar logout:", error);
+      
+      // Limpar cache e redirecionar mesmo com erro
+      queryClient.setQueryData(["/api/user"], null);
+      queryClient.invalidateQueries({queryKey: ["/api/user"]});
+      queryClient.clear();
+      setLocation("/auth");
+      
       toast({
         title: "Falha ao sair",
         description: error.message || "Não foi possível realizar o logout. Tente novamente.",
         variant: "destructive",
       });
-      
-      // Se houver erro, ainda vamos limpar o estado local e redirecionar
-      // para garantir que o usuário possa sair mesmo se o servidor falhar
-      queryClient.setQueryData(["/api/user"], null);
-      setLocation("/auth");
     },
   });
 

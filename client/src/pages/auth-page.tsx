@@ -7,6 +7,7 @@ import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -35,45 +36,30 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [, setLocation] = useLocation();
   
-  // Verificar se o usuário já está logado e redirecionar
+  // Verificação de autenticação usando o hook useAuth
+  const { user, isLoading } = useAuth();
+  
+  // Efeito para redirecionar usuário logado
   React.useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await fetch("/api/user", {
-          credentials: "include",
-          headers: {
-            "Accept": "application/json",
-            "X-Requested-With": "XMLHttpRequest"
-          }
-        });
-        
-        if (response.ok) {
-          const user = await response.json();
-          console.log("AuthPage - Usuário já logado, redirecionando:", user);
-          
-          if (user.userType === "client") {
-            setLocation("/client/dashboard");
-          } else if (user.userType === "provider") {
-            setLocation("/provider/dashboard");
-          } else if (user.userType === "admin") {
-            setLocation("/admin/dashboard");
-          }
-        }
-      } catch (error) {
-        console.log("AuthPage - Usuário não logado ou erro na verificação");
-      }
-    };
-    
-    checkAuth();
-  }, [setLocation]);
-
-  // Login
+    if (user && !isLoading) {
+      console.log("AuthPage - Usuário logado detectado, redirecionando:", user);
+      
+      const redirectPath = user.userType === "client" ? "/client/dashboard" :
+                          user.userType === "provider" ? "/provider/dashboard" :
+                          user.userType === "admin" ? "/admin/dashboard" : "/";
+      
+      console.log("AuthPage - Redirecionando para:", redirectPath);
+      setLocation(redirectPath);
+    }
+  }, [user, isLoading, setLocation]);
+  
+  // Login - sempre declarar antes de qualquer condição
   const loginForm = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
   });
 
-  // Registro
+  // Registro - sempre declarar antes de qualquer condição
   const registerForm = useForm({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -86,6 +72,30 @@ export default function AuthPage() {
       userType: "client",
     },
   });
+  
+  // Mostrar loading enquanto verifica autenticação
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#009ffd] to-[#a1ffce] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white text-lg">Verificando autenticação...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Se já estiver logado, mostrar loading enquanto redireciona
+  if (user) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#009ffd] to-[#a1ffce] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+          <p className="text-white text-lg">Redirecionando...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Login handler
   async function onLoginSubmit(data: any) {
@@ -98,26 +108,26 @@ export default function AuthPage() {
         credentials: "include",
       });
       if (!res.ok) throw new Error(await res.text());
-      const user = await res.json();
+      const userData = await res.json();
       console.log("Frontend - dados do usuário recebidos:", {
-        id: user.id,
-        email: user.email,
-        userType: user.userType,
-        name: user.name
+        id: userData.id,
+        email: userData.email,
+        userType: userData.userType,
+        name: userData.name
       });
       
-      toast({ title: "Login realizado!", description: `Bem-vindo(a), ${user.name || user.email}` });
+      toast({ title: "Login realizado!", description: `Bem-vindo(a), ${userData.name || userData.email}` });
       
       // Redirecionamento imediato e confiável
-      console.log("Frontend - redirecionando para:", user.userType);
+      console.log("Frontend - redirecionando para:", userData.userType);
       
-      if (user.userType === "client") {
+      if (userData.userType === "client") {
         console.log("Frontend - REDIRECIONANDO PARA CLIENT DASHBOARD");
         setLocation("/client/dashboard");
-      } else if (user.userType === "provider") {
+      } else if (userData.userType === "provider") {
         console.log("Frontend - REDIRECIONANDO PARA PROVIDER DASHBOARD");
         setLocation("/provider/dashboard");
-      } else if (user.userType === "admin") {
+      } else if (userData.userType === "admin") {
         console.log("Frontend - REDIRECIONANDO PARA ADMIN DASHBOARD");
         setLocation("/admin/dashboard");
       } else {
@@ -143,12 +153,12 @@ export default function AuthPage() {
         credentials: "include",
       });
       if (!res.ok) throw new Error(await res.text());
-      const user = await res.json();
+      const userData = await res.json();
       toast({ title: "Conta criada!", description: "Bem-vindo(a) ao AgendoAI!" });
       setTimeout(() => {
-        if (user.userType === "client") setLocation("/client/dashboard");
-        else if (user.userType === "provider") setLocation("/provider/dashboard");
-        else if (user.userType === "admin") setLocation("/admin/dashboard");
+        if (userData.userType === "client") setLocation("/client/dashboard");
+        else if (userData.userType === "provider") setLocation("/provider/dashboard");
+        else if (userData.userType === "admin") setLocation("/admin/dashboard");
         else setLocation("/");
       }, 1000);
     } catch (e: any) {

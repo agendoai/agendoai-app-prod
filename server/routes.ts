@@ -620,6 +620,7 @@ export function registerRoutes(app: Express): Server {
 	// Registrar rotas especializadas de prestadores (PRIMEIRO - antes das genéricas)
 	app.use("/api/providers/service-search", providerServiceSearchRouter) // Nova rota otimizada
 	app.use("/api/providers-optimized", optimizedProviderSearchRouter)
+	app.use("/api/providers/optimized", optimizedProviderSearchRouter) // Adicionar rota correta
 	
 	// Registrar rotas genéricas de prestadores (depois das específicas)
 	app.use("/api/providers", providersRoutes)

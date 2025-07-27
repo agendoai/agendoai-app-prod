@@ -18,6 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import ClientLayout from "@/components/layout/client-layout";
 
 // Tipo de endereço
 interface Address {
@@ -305,16 +306,18 @@ export default function AddressesPage() {
   };
   
   return (
-    <div className="min-h-screen bg-white">
+    <ClientLayout>
       {/* Header */}
-      <div className="bg-primary text-white p-4 flex items-center">
-        <button onClick={goBack} className="mr-2">
-          <ChevronLeft className="h-6 w-6" />
-        </button>
-        <h1 className="text-xl font-semibold">Meus Endereços</h1>
-      </div>
+      <header className="bg-[#58c9d1] text-white py-6 flex items-center justify-center shadow-md">
+        <div className="flex items-center w-full max-w-md mx-auto px-4">
+          <button onClick={goBack} className="mr-3">
+            <ChevronLeft className="h-6 w-6" />
+          </button>
+          <h1 className="text-xl font-semibold text-center flex-1">Meus Endereços</h1>
+        </div>
+      </header>
       
-      <div className="p-4">
+      <main className="flex-1 p-4">
         <p className="text-neutral-600 mb-6">
           Gerencie seus endereços para facilitar seus agendamentos.
         </p>
@@ -412,7 +415,7 @@ export default function AddressesPage() {
             </Button>
           </>
         )}
-      </div>
+      </main>
       
       {/* Modal para adicionar/editar endereço */}
       <Dialog open={addressDialogOpen} onOpenChange={setAddressDialogOpen}>
@@ -605,6 +608,6 @@ export default function AddressesPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </ClientLayout>
   );
 }

@@ -420,6 +420,12 @@ export interface IStorage {
 	createSubscription(data: any): Promise<void>;
 	updateSubscriptionStatus(stripeSubscriptionId: string, status: string): Promise<void>;
 	createPaymentLog(data: any): Promise<void>;
+	
+	// User Address methods
+	getUserAddresses(userId: number): Promise<UserAddress[]>;
+	createUserAddress(data: InsertUserAddress): Promise<UserAddress>;
+	updateUserAddress(id: number, data: Partial<InsertUserAddress>): Promise<UserAddress>;
+	deleteUserAddress(id: number): Promise<void>;
 }
 
 // Memory storage implementation for testing
@@ -1922,10 +1928,31 @@ export class MemStorage implements IStorage {
 	async getUserPaymentMethod(userId: number): Promise<UserPaymentMethod | undefined> { return undefined; }
 	async createUserPaymentMethod(data: InsertUserPaymentMethod): Promise<UserPaymentMethod> { return { ...data, id: 1 }; }
 	async updateUserPaymentMethod(userId: number, data: Partial<UserPaymentMethod>): Promise<UserPaymentMethod | undefined> { return { ...data, id: 1, userId }; }
-	async getUserActiveSubscription(userId: number): Promise<any>;
-	async createSubscription(data: any): Promise<void>;
-	async updateSubscriptionStatus(stripeSubscriptionId: string, status: string): Promise<void>;
-	async createPaymentLog(data: any): Promise<void>;
+	async getUserActiveSubscription(userId: number): Promise<any> { return undefined; }
+	async createSubscription(data: any): Promise<void> { }
+	async updateSubscriptionStatus(stripeSubscriptionId: string, status: string): Promise<void> { }
+	async createPaymentLog(data: any): Promise<void> { }
+
+	// User Address methods
+	async getUserAddresses(userId: number): Promise<UserAddress[]> {
+		// Implementação simulada
+		return [];
+	}
+
+	async createUserAddress(data: InsertUserAddress): Promise<UserAddress> {
+		// Implementação simulada
+		return { ...data, id: 1 };
+	}
+
+	async updateUserAddress(id: number, data: Partial<InsertUserAddress>): Promise<UserAddress> {
+		// Implementação simulada
+		return { ...data, id } as UserAddress;
+	}
+
+	async deleteUserAddress(id: number): Promise<void> {
+		// Implementação simulada
+		console.log("Address deleted:", id);
+	}
 }
 
 // Database storage implementation
@@ -3847,6 +3874,46 @@ async getBlockedTimeSlotsByDate(
 			.set({ status })
 			.where(eq(appointments.id, appointmentId));
 		return updated.rowCount > 0;
+	}
+
+	// User Address methods
+	async getUserAddresses(userId: number): Promise<UserAddress[]> {
+		try {
+			const result = await db.select().from(userAddresses).where(eq(userAddresses.userId, userId));
+			return result;
+		} catch (error) {
+			console.error("Erro ao buscar endereços do usuário:", error);
+			return [];
+		}
+	}
+
+	async createUserAddress(data: InsertUserAddress): Promise<UserAddress> {
+		try {
+			const result = await db.insert(userAddresses).values(data).returning();
+			return result[0];
+		} catch (error) {
+			console.error("Erro ao criar endereço do usuário:", error);
+			throw error;
+		}
+	}
+
+	async updateUserAddress(id: number, data: Partial<InsertUserAddress>): Promise<UserAddress> {
+		try {
+			const result = await db.update(userAddresses).set(data).where(eq(userAddresses.id, id)).returning();
+			return result[0];
+		} catch (error) {
+			console.error("Erro ao atualizar endereço do usuário:", error);
+			throw error;
+		}
+	}
+
+	async deleteUserAddress(id: number): Promise<void> {
+		try {
+			await db.delete(userAddresses).where(eq(userAddresses.id, id));
+		} catch (error) {
+			console.error("Erro ao deletar endereço do usuário:", error);
+			throw error;
+		}
 	}
 }
 

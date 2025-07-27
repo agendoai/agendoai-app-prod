@@ -219,10 +219,10 @@ export default function PersonalInfoPage() {
         <div className="flex flex-col items-center mb-8">
           <button
             type="button"
-            className="w-28 h-28 rounded-full overflow-hidden bg-primary/10 relative mb-2 group shadow-lg border-4 border-white focus:outline-none focus:ring-2 focus:ring-primary"
-            onClick={handleImageChange}
+            className="w-28 h-28 rounded-full overflow-hidden bg-primary/10 relative mb-2 group shadow-lg border-4 border-white focus:outline-none focus:ring-2 focus:ring-primary opacity-60 cursor-not-allowed"
+            disabled
             aria-label="Alterar foto de perfil"
-            tabIndex={0}
+            tabIndex={-1}
           >
             {formData.profileImage ? (
               <img 
@@ -245,10 +245,10 @@ export default function PersonalInfoPage() {
           </button>
           <button
             type="button"
-            className="text-sm text-primary underline mt-2"
-            onClick={handleImageChange}
+            className="text-sm text-neutral-500 mt-2 cursor-not-allowed"
+            disabled
           >
-            Adicionar ou alterar foto
+            Em breve disponível
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-2xl shadow-lg p-6 mt-2">

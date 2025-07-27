@@ -278,35 +278,8 @@ export default function BookingConfirmation() {
       }, 1500);
     } else {
       console.log("Usuário autenticado, ID:", user.id, "Tipo:", (user as any).userType || "não especificado");
-      // Fazer uma chamada de verificação para garantir que a sessão está ativa no servidor
-      fetch('/api/user', { 
-        credentials: 'include',
-        headers: { 'Accept': 'application/json' } 
-      })
-      .then(response => {
-        console.log("Verificação de sessão:", response.status);
-        if (response.status === 401) {
-          console.warn("Sessão expirada ou inválida no servidor. Redirecionando para login.");
-          toast({
-            title: "Sessão expirada",
-            description: "Sua sessão expirou. Por favor, faça login novamente.",
-            variant: "destructive",
-          });
-          
-          // Salvar dados antes de redirecionar
-          sessionStorage.setItem('pendingBooking', JSON.stringify({
-            providerId: parsedProviderId,
-            serviceId: parsedServiceId,
-            date,
-            startTime,
-            endTime,
-            availabilityId: parsedAvailabilityId
-          }));
-          
-          setLocation('/auth?redirect=booking');
-        }
-      })
-      .catch(error => console.error("Erro ao verificar sessão:", error));
+      // Removido: Verificação desnecessária de sessão
+      // O useAuth hook já gerencia o estado de autenticação
     }
   }, [user, parsedProviderId, parsedServiceId, date, startTime, endTime, parsedAvailabilityId, setLocation, toast]);
 
