@@ -24,6 +24,12 @@ interface BookingOptions {
   bufferTime?: number;
   isMultipleService?: boolean;
   isProfessionalSpecific?: boolean;
+  paymentMethod?: string;
+  paymentStatus?: string;
+  totalPrice?: number;
+  paymentId?: string;
+  serviceName?: string;
+  clientName?: string;
 }
 
 interface BlockSlotOptions {
@@ -133,6 +139,18 @@ export class IntelligentBookingSystem {
    */
   async bookAppointment(options: BookingOptions): Promise<number> {
     try {
+      console.log(`🚀 Iniciando agendamento:`, {
+        providerId: options.providerId,
+        serviceId: options.serviceId,
+        clientId: options.clientId,
+        date: options.date,
+        startTime: options.startTime,
+        paymentMethod: options.paymentMethod,
+        paymentStatus: options.paymentStatus,
+        serviceName: options.serviceName,
+        clientName: options.clientName
+      });
+      
       const { 
         providerId, 
         serviceId, 
@@ -140,7 +158,13 @@ export class IntelligentBookingSystem {
         date, 
         startTime, 
         bufferTime = DEFAULT_BUFFER_MINUTES,
-        isMultipleService = false
+        isMultipleService = false,
+        paymentMethod,
+        paymentStatus,
+        totalPrice,
+        paymentId,
+        serviceName,
+        clientName
       } = options;
       
       // 1. Obter detalhes do serviço (incluindo duração personalizada)
@@ -153,6 +177,7 @@ export class IntelligentBookingSystem {
       const endTime = minutesToTime(endTimeMinutes);
       
       // 3. Verificar disponibilidade do slot
+      console.log(`🔍 Verificando disponibilidade do slot...`);
       const isAvailable = await this.checkSlotAvailability({
         providerId,
         date,
@@ -160,7 +185,10 @@ export class IntelligentBookingSystem {
         endTime
       });
       
+      console.log(`📊 Resultado da verificação de disponibilidade: ${isAvailable}`);
+      
       if (!isAvailable) {
+        console.log(`❌ Horário não disponível - lançando erro`);
         throw new Error('O horário selecionado não está mais disponível');
       }
       
@@ -174,7 +202,12 @@ export class IntelligentBookingSystem {
         endTime,
         status: 'pending',
         notes: '',
-        totalPrice: serviceInfo.price || 0
+        paymentMethod,
+        paymentStatus,
+        totalPrice: totalPrice || serviceInfo.price || 0,
+        paymentId,
+        serviceName,
+        clientName
       });
       
       // 5. Bloquear o slot de tempo
@@ -314,12 +347,17 @@ export class IntelligentBookingSystem {
     try {
       const { providerId, date, startTime, endTime } = options;
       
+      console.log(`🔍 Verificando disponibilidade: Provider ${providerId}, Data ${date}, Horário ${startTime}-${endTime}`);
+      
       // Verificar se o slot está dentro do horário de trabalho do prestador
       const isWithinWorkHours = await this.checkWithinWorkHours(
         providerId, date, startTime, endTime
       );
       
+      console.log(`📅 Dentro do horário de trabalho: ${isWithinWorkHours}`);
+      
       if (!isWithinWorkHours) {
+        console.log(`❌ Horário fora do período de trabalho`);
         return false;
       }
       
@@ -327,6 +365,8 @@ export class IntelligentBookingSystem {
       const blockedSlots = await storage.getBlockedTimeSlotsByDate(
         providerId, date
       );
+      
+      console.log(`🚫 Bloqueios encontrados: ${blockedSlots.length}`);
       
       // Verificar se há conflitos com agendamentos existentes
       const existingAppointments = await storage.getAppointmentsByProviderId(providerId);
@@ -336,19 +376,30 @@ export class IntelligentBookingSystem {
         appointment => appointment.date === date
       );
       
+      console.log(`📋 Agendamentos na data: ${appointmentsOnDate.length}`);
+      
       // Converter horários para minutos para facilitar comparação
       const startTimeMinutes = timeToMinutes(startTime);
       const endTimeMinutes = timeToMinutes(endTime);
+      
+      console.log(`⏰ Horário solicitado: ${startTimeMinutes}-${endTimeMinutes} minutos`);
       
       // Verificar conflitos com bloqueios
       for (const blockedSlot of blockedSlots) {
         const blockedStartMinutes = timeToMinutes(blockedSlot.startTime);
         const blockedEndMinutes = timeToMinutes(blockedSlot.endTime);
         
+        console.log(`🚫 Bloqueio: ${blockedStartMinutes}-${blockedEndMinutes} minutos`);
+        
         // Verificar se há sobreposição
-        if (
+        const hasOverlap = (
           (startTimeMinutes < blockedEndMinutes && endTimeMinutes > blockedStartMinutes)
-        ) {
+        );
+        
+        console.log(`🔍 Verificação de sobreposição com bloqueio: ${startTimeMinutes} < ${blockedEndMinutes} && ${endTimeMinutes} > ${blockedStartMinutes} = ${hasOverlap}`);
+        
+        if (hasOverlap) {
+          console.log(`❌ Conflito com bloqueio detectado`);
           return false;
         }
       }
@@ -358,14 +409,28 @@ export class IntelligentBookingSystem {
         const appointmentStartMinutes = timeToMinutes(appointment.startTime);
         const appointmentEndMinutes = timeToMinutes(appointment.endTime);
         
+        console.log(`📋 Agendamento: ${appointmentStartMinutes}-${appointmentEndMinutes} minutos (ID: ${appointment.id}, Status: ${appointment.status})`);
+        
+        // Ignorar agendamentos cancelados
+        if (appointment.status === 'canceled') {
+          console.log(`⏭️ Ignorando agendamento cancelado (ID: ${appointment.id})`);
+          continue;
+        }
+        
         // Verificar se há sobreposição
-        if (
+        const hasOverlap = (
           (startTimeMinutes < appointmentEndMinutes && endTimeMinutes > appointmentStartMinutes)
-        ) {
+        );
+        
+        console.log(`🔍 Verificação de sobreposição: ${startTimeMinutes} < ${appointmentEndMinutes} && ${endTimeMinutes} > ${appointmentStartMinutes} = ${hasOverlap}`);
+        
+        if (hasOverlap) {
+          console.log(`❌ Conflito com agendamento existente detectado (ID: ${appointment.id})`);
           return false;
         }
       }
       
+      console.log(`✅ Horário disponível!`);
       return true;
     } catch (error) {
       console.error('Erro ao verificar disponibilidade de slot:', error);
@@ -390,19 +455,27 @@ export class IntelligentBookingSystem {
       // Ajustar para formato do banco (1-7, onde 1 = domingo)
       const adjustedDayOfWeek = dayOfWeek + 1;
       
+      console.log(`📅 Verificando horário de trabalho: Provider ${providerId}, Dia ${adjustedDayOfWeek}, Data ${date}`);
+      
       // Buscar disponibilidade para o dia
       const availability = await storage.getAvailabilityByDay(
         providerId, adjustedDayOfWeek
       );
       
+      console.log(`📋 Disponibilidade encontrada:`, availability);
+      
       // Se não houver disponibilidade configurada para o dia, não está disponível
       if (!availability) {
+        console.log(`❌ Nenhuma disponibilidade configurada para o dia`);
         return false;
       }
       
       // Converter horários para minutos para facilitar comparação
       const startTimeMinutes = timeToMinutes(startTime);
       const endTimeMinutes = timeToMinutes(endTime);
+      
+      console.log(`⏰ Horário solicitado: ${startTimeMinutes}-${endTimeMinutes} minutos`);
+      console.log(`📋 Horário disponível: ${timeToMinutes(availability.startTime)}-${timeToMinutes(availability.endTime)} minutos`);
       
       // Verificar se o horário está dentro da disponibilidade
       const availStartMinutes = timeToMinutes(availability.startTime);
@@ -460,9 +533,25 @@ export class IntelligentBookingSystem {
     date: string;
     startTime: string;
     services: { serviceId: number, duration?: number }[];
+    paymentMethod?: string;
+    paymentStatus?: string;
+    totalPrice?: number;
+    serviceName?: string;
+    clientName?: string;
   }): Promise<number[]> {
     try {
-      const { providerId, clientId, date, startTime, services } = options;
+      const { 
+        providerId, 
+        clientId, 
+        date, 
+        startTime, 
+        services,
+        paymentMethod,
+        paymentStatus,
+        totalPrice,
+        serviceName,
+        clientName
+      } = options;
       
       if (services.length === 0) {
         throw new Error('Nenhum serviço selecionado');
@@ -485,7 +574,12 @@ export class IntelligentBookingSystem {
           startTime: currentStartTime,
           serviceDuration: service.duration,
           isMultipleService: !isLastService, // Apenas o último tem buffer
-          bufferTime: DEFAULT_BUFFER_MINUTES
+          bufferTime: DEFAULT_BUFFER_MINUTES,
+          paymentMethod,
+          paymentStatus,
+          totalPrice,
+          serviceName,
+          clientName
         });
         
         appointmentIds.push(appointmentId);

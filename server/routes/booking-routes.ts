@@ -74,7 +74,10 @@ router.post('/', async (req, res) => {
       bufferTime,
       paymentMethod,
       totalPrice,
-      paymentId // ID do pagamento confirmado (para pagamentos online)
+      paymentId, // ID do pagamento confirmado (para pagamentos online)
+      paymentStatus,
+      serviceName,
+      clientName
     } = req.body;
     
     // Validação básica
@@ -139,8 +142,11 @@ router.post('/', async (req, res) => {
       startTime,
       bufferTime: bufferTime ? Number(bufferTime) : undefined,
       paymentMethod,
+      paymentStatus,
       totalPrice: totalPrice ? Number(totalPrice) : undefined,
-      paymentId: paymentId || null
+      paymentId: paymentId || null,
+      serviceName,
+      clientName
     });
     
     res.status(201).json({
@@ -264,7 +270,17 @@ router.put('/:appointmentId/reschedule', async (req, res) => {
  */
 router.post('/consecutive', async (req, res) => {
   try {
-    const { providerId, date, startTime, services } = req.body;
+    const { 
+      providerId, 
+      date, 
+      startTime, 
+      services,
+      paymentMethod,
+      paymentStatus,
+      totalPrice,
+      serviceName,
+      clientName
+    } = req.body;
     
     // Validação básica
     if (!providerId || !date || !startTime || !services || !services.length) {
@@ -291,7 +307,12 @@ router.post('/consecutive', async (req, res) => {
       services: services.map(s => ({
         serviceId: Number(s.serviceId),
         duration: s.duration ? Number(s.duration) : undefined
-      }))
+      })),
+      paymentMethod,
+      paymentStatus,
+      totalPrice: totalPrice ? Number(totalPrice) : undefined,
+      serviceName,
+      clientName
     });
     
     res.status(201).json({

@@ -260,8 +260,14 @@ export default function ClientAppointmentsPage() {
       }
     }
     
-    if (statusFilter && appointment.status !== statusFilter) {
-      return false;
+    if (statusFilter) {
+      if (statusFilter === "confirmed") {
+        if (appointment.status !== "confirmed" && appointment.status !== "confirmado") {
+          return false;
+        }
+      } else if (appointment.status !== statusFilter) {
+        return false;
+      }
     }
     
     if (searchQuery) {
@@ -281,6 +287,10 @@ export default function ClientAppointmentsPage() {
     const dateB = new Date(`${b.date}T${b.startTime}`);
     return dateB.getTime() - dateA.getTime();
   });
+
+  // NOVO: Filtrados para overview
+  const filteredOverviewAppointments = filteredAppointments.filter(a => a.status === 'pending' || a.status === 'confirmed' || a.status === 'confirmado');
+  const filteredOverviewCanceled = filteredAppointments.filter(a => a.status === 'canceled');
 
   return (
     <div className="min-h-screen w-full bg-white pb-24 flex justify-center items-start">
@@ -434,8 +444,8 @@ export default function ClientAppointmentsPage() {
                 
                 <TabsContent value="overview" className="mt-0">
                   <div className="space-y-2">
-                    {appointments.filter(a => a.status === 'pending' || a.status === 'confirmed' || a.status === 'confirmado').length > 0 ? (
-                      appointments.filter(a => a.status === 'pending' || a.status === 'confirmed' || a.status === 'confirmado').slice(0, 6).map((appointment) => (
+                    {filteredOverviewAppointments.length > 0 ? (
+                      filteredOverviewAppointments.slice(0, 6).map((appointment) => (
                         <AppointmentCard key={appointment.id} appointment={appointment} />
                       ))
                     ) : (
@@ -445,11 +455,11 @@ export default function ClientAppointmentsPage() {
                     )}
                   </div>
                   {/* Seção de agendamentos cancelados */}
-                  {appointments.filter(a => a.status === 'canceled').length > 0 && (
+                  {filteredOverviewCanceled.length > 0 && (
                     <div className="mt-6">
                       <h2 className="font-bold text-red-700 text-base tracking-wide">Cancelados</h2>
                       <div className="space-y-2">
-                        {appointments.filter(a => a.status === 'canceled').map((appointment) => (
+                        {filteredOverviewCanceled.map((appointment) => (
                           <AppointmentCard key={appointment.id} appointment={appointment} hidePaymentStatus />
                         ))}
                       </div>

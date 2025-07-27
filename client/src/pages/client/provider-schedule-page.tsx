@@ -15,6 +15,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AITimeRecommendations } from "@/components/ai-time-recommendations";
+import { useAuth } from "@/hooks/use-auth";
 
 interface TimeSlot {
   startTime: string;
@@ -63,6 +64,7 @@ interface Service {
 
 export default function ProviderSchedulePage() {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const { providerId, serviceId } = useParams<{ providerId: string; serviceId: string }>();
   const parsedProviderId = parseInt(providerId);
   const parsedServiceId = parseInt(serviceId);
@@ -259,34 +261,28 @@ export default function ProviderSchedulePage() {
       // Navegar para a tela de confirmação com os dados selecionados
       const formattedDate = format(selectedDate, "yyyy-MM-dd");
 
-      // Verificar se o usuário está autenticado antes de continuar
-      fetch('/api/user')
-        .then((res) => {
-          if (res.status === 401) {
-            // Se não estiver autenticado, redirecionar para a página de login
-            // Armazenar dados do agendamento em sessionStorage para usar após login
-            const bookingData = {
-              providerId,
-              serviceId,
-              date: formattedDate,
-              startTime: selectedSlot.startTime,
-              endTime: selectedSlot.endTime,
-              availabilityId: selectedSlot.availabilityId // Incluir ID da disponibilidade
-            };
-            sessionStorage.setItem('pendingBooking', JSON.stringify(bookingData));
-            setLocation('/auth?redirect=booking');
-          } else {
-            // Se estiver autenticado, continuar para a confirmação de agendamento unificada
-            // Incluir availabilityId na URL se existir
-            const availabilityIdParam = selectedSlot.availabilityId ? `/${selectedSlot.availabilityId}` : '';
-            // Usar apenas o componente booking-confirmation para manter o fluxo consistente
-            setLocation(`/client/booking-confirmation/${providerId}/${serviceId}/${formattedDate}/${selectedSlot.startTime}/${selectedSlot.endTime}${availabilityIdParam}`);
-          }
-        })
-        .catch(() => {
-          // Em caso de erro, assume que o usuário não está autenticado
-          setLocation('/auth?redirect=booking');
-        });
+      // Verificar se o usuário está autenticado usando o hook useAuth
+      if (!user) {
+        // Se não estiver autenticado, redirecionar para a página de login
+        // Armazenar dados do agendamento em sessionStorage para usar após login
+        const bookingData = {
+          providerId,
+          serviceId,
+          date: formattedDate,
+          startTime: selectedSlot.startTime,
+          endTime: selectedSlot.endTime,
+          availabilityId: selectedSlot.availabilityId // Incluir ID da disponibilidade
+        };
+        sessionStorage.setItem('pendingBooking', JSON.stringify(bookingData));
+        setLocation('/auth?redirect=booking');
+        return;
+      }
+
+      // Se estiver autenticado, continuar para a confirmação de agendamento unificada
+      // Incluir availabilityId na URL se existir
+      const availabilityIdParam = selectedSlot.availabilityId ? `/${selectedSlot.availabilityId}` : '';
+      // Usar apenas o componente booking-confirmation para manter o fluxo consistente
+      setLocation(`/client/booking-confirmation/${providerId}/${serviceId}/${formattedDate}/${selectedSlot.startTime}/${selectedSlot.endTime}${availabilityIdParam}`);
     }
   };
 

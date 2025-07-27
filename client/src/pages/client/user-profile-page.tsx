@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
@@ -31,9 +31,17 @@ import ClientLayout from "@/components/layout/client-layout";
 
 export default function UserProfilePage() {
   const [, setLocation] = useLocation();
-  const { user, logoutMutation } = useAuth();
+  const { user, logoutMutation, isLoading } = useAuth();
   const { toast } = useToast();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  
+  // Redirecionar se não estiver logado
+  React.useEffect(() => {
+    if (!isLoading && !user) {
+      console.log("UserProfilePage - Usuário não logado, redirecionando para /auth");
+      setLocation("/auth");
+    }
+  }, [user, isLoading, setLocation]);
   
   // Navigation handlers com tratamento de erro
   const navigateBack = () => {
@@ -120,10 +128,23 @@ export default function UserProfilePage() {
   const confirmLogout = () => {
     try {
       setLogoutDialogOpen(false);
-      logoutMutation.mutate(undefined);
-      toast({
-        title: "Logout realizado",
-        description: "Você foi desconectado com sucesso.",
+      
+      // Redirecionar imediatamente para evitar delay
+      setLocation("/auth");
+      
+      // Executar logout em background
+      logoutMutation.mutate(undefined, {
+        onSuccess: () => {
+          console.log("Logout confirmado, redirecionando...");
+        },
+        onError: (error) => {
+          console.error("Erro ao fazer logout:", error);
+          toast({
+            title: "Erro no logout",
+            description: "Ocorreu um erro ao sair da conta.",
+            variant: "destructive",
+          });
+        }
       });
     } catch (error) {
       console.error("Erro ao fazer logout:", error);
@@ -171,9 +192,10 @@ export default function UserProfilePage() {
           )}
           <button
             type="button"
-            className="absolute bottom-2 right-2 bg-primary text-white p-2 rounded-full shadow-lg border-2 border-white group-hover:scale-110 transition-transform focus:outline-none focus:ring-2 focus:ring-primary"
+            className="absolute bottom-2 right-2 bg-neutral-400 text-white p-2 rounded-full shadow-lg border-2 border-white opacity-60 cursor-not-allowed"
             aria-label="Alterar foto de perfil"
-            onClick={navigateToProfileSettings}
+            disabled
+            title="Em breve disponível"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2a2.828 2.828 0 11-4-4 2.828 2.828 0 014 4z" /></svg>
           </button>
@@ -292,18 +314,19 @@ export default function UserProfilePage() {
       
       {/* Logout Confirmation Dialog */}
       <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Sair da conta</DialogTitle>
-            <DialogDescription>
+        <DialogContent className="z-[10001] bg-white border-2 border-gray-200 shadow-2xl max-w-sm mx-auto">
+          <DialogHeader className="text-center pb-4">
+            <DialogTitle className="text-gray-800 font-bold text-xl">Sair da conta</DialogTitle>
+            <DialogDescription className="text-gray-600 text-base mt-2">
               Tem certeza que deseja sair da sua conta? Você será redirecionado para a tela de login.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter>
+          <DialogFooter className="gap-3 pt-4">
             <Button 
               variant="outline" 
               onClick={() => setLogoutDialogOpen(false)}
               disabled={logoutMutation.isPending}
+              className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50 h-12"
             >
               Cancelar
             </Button>
@@ -311,6 +334,7 @@ export default function UserProfilePage() {
               variant="destructive" 
               onClick={confirmLogout}
               disabled={logoutMutation.isPending}
+              className="flex-1 bg-red-600 hover:bg-red-700 text-white h-12"
             >
               {logoutMutation.isPending ? (
                 <>
