@@ -43,6 +43,7 @@ import {
   CalendarDays,
   Shield
 } from 'lucide-react';
+import Navbar from "@/components/layout/navbar";
 
 // Type definitions
 interface TimeSlot {
@@ -130,10 +131,10 @@ export default function ProviderSchedulePage() {
   });
   
   const { data: blockedTimesData, isLoading: isLoadingBlockedTimes } = useQuery({
-    queryKey: [`/api/blocked-times/provider/${providerId}`],
+    queryKey: [`/api/availability/blocked-times/provider/${providerId}`],
     queryFn: async () => {
       if (!providerId) return null;
-      const response = await apiRequest('GET', `/api/blocked-times/provider/${providerId}`);
+      const response = await apiRequest('GET', `/api/availability/blocked-times/provider/${providerId}`);
       if (!response.ok) {
         throw new Error('Failed to fetch blocked times');
       }
@@ -198,7 +199,7 @@ export default function ProviderSchedulePage() {
         providerId
       };
       
-      const response = await apiRequest('POST', '/api/blocked-times', payload);
+      const response = await apiRequest('POST', '/api/availability/blocked-times', payload);
       
       if (!response.ok) {
         const error = await response.json();
@@ -208,7 +209,7 @@ export default function ProviderSchedulePage() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/blocked-times/provider/${providerId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/availability/blocked-times/provider/${providerId}`] });
       
       toast({
         title: "Horário bloqueado",
@@ -432,42 +433,25 @@ export default function ProviderSchedulePage() {
   }
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
-      <div className="container mx-auto py-8 px-4 max-w-7xl">
-        <PageTransition>
+    <ProviderLayout title="Gerenciamento de Agenda" showBackButton>
+      <PageTransition>
+        <div className="w-full max-w-full py-6 px-2 sm:px-4 overflow-x-hidden bg-white min-h-screen" style={{ maxWidth: '100vw', width: '100%' }}>
           {/* Header */}
-          <div className="mb-8">
-            <div className="flex items-center gap-4 mb-6">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={() => window.history.back()}
-                className="hover:bg-gray-200 transition-colors"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar
-              </Button>
-              <div className="h-6 w-px bg-gray-300"></div>
-              <h1 className="text-4xl font-bold text-gray-900">Gerenciamento de Agenda</h1>
+          <div className="mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <h1 className="text-xl font-bold text-neutral-900">Gerenciamento de Agenda</h1>
             </div>
-            <p className="text-gray-600 text-lg max-w-2xl">
+            <p className="text-neutral-600 text-sm max-w-full">
               Configure seus horários de trabalho, bloqueie períodos e gerencie sua disponibilidade para receber agendamentos.
             </p>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-wrap gap-4 mb-8">
-            <Button 
-              onClick={() => {}}
-              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Agendar Manualmente
-            </Button>
+          <div className="grid grid-cols-1 gap-2 mb-6">
             <Button 
               variant="outline"
               onClick={() => {}}
-              className="border-gray-300 hover:bg-gray-50 shadow-sm"
+              className="w-full border-neutral-200 hover:bg-neutral-50 shadow-sm hover:shadow-md transition-all duration-300"
             >
               <Settings className="h-4 w-4 mr-2" />
               Configurar Agenda Semanal
@@ -475,7 +459,7 @@ export default function ProviderSchedulePage() {
             <Button 
               variant="outline"
               onClick={() => {}}
-              className="border-gray-300 hover:bg-gray-50 shadow-sm"
+              className="w-full border-neutral-200 hover:bg-neutral-50 shadow-sm hover:shadow-md transition-all duration-300"
             >
               <Shield className="h-4 w-4 mr-2" />
               Bloquear Horário
@@ -483,16 +467,16 @@ export default function ProviderSchedulePage() {
           </div>
           
           {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 gap-4">
             {/* Calendar Card */}
             <div>
-              <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-3">
-                    <CalendarIcon className="h-5 w-5 text-gray-700" />
+              <Card className="border border-neutral-200 shadow-sm bg-white">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg font-bold text-neutral-900 flex items-center gap-2">
+                    <CalendarIcon className="h-4 w-4 text-[#58c9d1]" />
                     Calendário
                   </CardTitle>
-                  <CardDescription className="text-gray-600">
+                  <CardDescription className="text-neutral-600 text-sm">
                     Selecione uma data para gerenciar horários
                   </CardDescription>
                 </CardHeader>
@@ -513,23 +497,23 @@ export default function ProviderSchedulePage() {
                     className="rounded-lg border-gray-200"
                   />
                 </CardContent>
-                <CardFooter className="pt-4 border-t border-gray-200 bg-gray-50/50">
+                <CardFooter className="pt-3 border-t border-neutral-200 bg-neutral-50/50">
                   <div className="w-full space-y-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-blue-500/20 border border-blue-500/30"></div>
-                        <span className="text-xs text-gray-600 font-medium">Ocupado</span>
+                        <div className="w-3 h-3 rounded-full bg-[#58c9d1]/20 border border-[#58c9d1]/30"></div>
+                        <span className="text-xs text-neutral-600 font-medium">Ocupado</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/30"></div>
-                        <span className="text-xs text-gray-600 font-medium">Indisponível</span>
+                        <span className="text-xs text-neutral-600 font-medium">Indisponível</span>
                       </div>
                     </div>
                     <Button 
                       variant="outline" 
                       size="sm" 
                       onClick={() => {}}
-                      className="w-full border-gray-300 hover:bg-gray-50"
+                      className="w-full border-neutral-200 hover:bg-neutral-50 shadow-sm hover:shadow-md"
                     >
                       <Clock className="h-4 w-4 mr-2" />
                       Bloquear Horário
@@ -541,13 +525,13 @@ export default function ProviderSchedulePage() {
             
             {/* Time Slots Card */}
             <div className="lg:col-span-2">
-              <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-3">
-                    <Clock className="h-5 w-5 text-gray-700" />
+              <Card className="border border-neutral-200 shadow-sm bg-white">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg font-bold text-neutral-900 flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-[#58c9d1]" />
                     {format(selectedDate, "EEEE, d 'de' MMMM 'de' yyyy", { locale: ptBR })}
                   </CardTitle>
-                  <CardDescription className="text-gray-600">
+                  <CardDescription className="text-neutral-600 text-sm">
                     Horários disponíveis e agendamentos do dia
                   </CardDescription>
                 </CardHeader>
@@ -660,13 +644,13 @@ export default function ProviderSchedulePage() {
           </div>
 
           {/* Block Time Dialog */}
-          <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-3">
-                <Shield className="h-5 w-5 text-gray-700" />
+          <Card className="border border-neutral-200 shadow-sm bg-white">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-bold text-neutral-900 flex items-center gap-2">
+                <Shield className="h-4 w-4 text-[#58c9d1]" />
                 Bloquear Horário
               </CardTitle>
-              <CardDescription className="text-gray-600">
+              <CardDescription className="text-neutral-600 text-sm">
                 Bloqueie um período na sua agenda para pausas, reuniões ou outros compromissos.
               </CardDescription>
             </CardHeader>
@@ -674,8 +658,8 @@ export default function ProviderSchedulePage() {
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="flex flex-col gap-2">
-                    <Label htmlFor="blockDate">Data</Label>
-                    <div className="p-3 border rounded-md">
+                    <Label htmlFor="blockDate" className="text-neutral-700 text-sm font-medium">Data</Label>
+                    <div className="p-3 border border-neutral-200 rounded-md bg-white shadow-sm">
                       {format(selectedDate, "dd/MM/yyyy")}
                     </div>
                   </div>
@@ -683,20 +667,20 @@ export default function ProviderSchedulePage() {
                 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="blockStartTime">Hora de início</Label>
+                    <Label htmlFor="blockStartTime" className="text-neutral-700 text-sm font-medium">Hora de início</Label>
                     <Select 
                       value={blockStartTime} 
                       onValueChange={setBlockStartTime}
                     >
-                      <SelectTrigger id="blockStartTime">
+                      <SelectTrigger id="blockStartTime" className="bg-white border-neutral-200 shadow-sm hover:shadow-md transition-all">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white border-neutral-200 shadow-lg">
                         {Array.from({ length: 24 }).map((_, hour) => 
                           Array.from({ length: 2 }).map((_, halfHour) => {
                             const time = `${hour.toString().padStart(2, '0')}:${halfHour * 30 === 0 ? '00' : '30'}`;
                             return (
-                              <SelectItem key={time} value={time}>{time}</SelectItem>
+                              <SelectItem key={time} value={time} className="hover:bg-neutral-50">{time}</SelectItem>
                             );
                           })
                         )}
@@ -705,20 +689,20 @@ export default function ProviderSchedulePage() {
                   </div>
                   
                   <div>
-                    <Label htmlFor="blockEndTime">Hora de término</Label>
+                    <Label htmlFor="blockEndTime" className="text-neutral-700 text-sm font-medium">Hora de término</Label>
                     <Select 
                       value={blockEndTime} 
                       onValueChange={setBlockEndTime}
                     >
-                      <SelectTrigger id="blockEndTime">
+                      <SelectTrigger id="blockEndTime" className="bg-white border-neutral-200 shadow-sm hover:shadow-md transition-all">
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-white border-neutral-200 shadow-lg">
                         {Array.from({ length: 24 }).map((_, hour) => 
                           Array.from({ length: 2 }).map((_, halfHour) => {
                             const time = `${hour.toString().padStart(2, '0')}:${halfHour * 30 === 0 ? '00' : '30'}`;
                             return (
-                              <SelectItem key={time} value={time}>{time}</SelectItem>
+                              <SelectItem key={time} value={time} className="hover:bg-neutral-50">{time}</SelectItem>
                             );
                           })
                         )}
@@ -728,26 +712,29 @@ export default function ProviderSchedulePage() {
                 </div>
                 
                 <div>
-                  <Label htmlFor="blockReason">Motivo</Label>
+                  <Label htmlFor="blockReason" className="text-neutral-700 text-sm font-medium">Motivo</Label>
                   <Input 
                     id="blockReason" 
                     value={blockNotes} 
                     onChange={(e) => setBlockNotes(e.target.value)} 
                     placeholder="Almoço, reunião, etc."
+                    className="bg-white border-neutral-200 shadow-sm hover:shadow-md transition-all"
                   />
                 </div>
               </div>
-              <CardFooter className="pt-4 border-t border-gray-200 bg-gray-50/50">
+              <CardFooter className="pt-3 border-t border-neutral-200 bg-neutral-50/50">
                 <div className="w-full space-y-3">
                   <Button 
                     variant="outline" 
                     onClick={() => {}}
+                    className="border-neutral-200 hover:bg-neutral-50 shadow-sm hover:shadow-md"
                   >
                     Cancelar
                   </Button>
                   <Button 
                     onClick={handleBlockTime}
                     disabled={blockTimeMutation.isPending}
+                    className="bg-[#58c9d1] text-white hover:bg-[#58c9d1]/90 shadow-sm hover:shadow-md"
                   >
                     {blockTimeMutation.isPending ? (
                       <RefreshCw className="h-4 w-4 animate-spin mr-2" />
@@ -760,13 +747,13 @@ export default function ProviderSchedulePage() {
           </Card>
           
           {/* Edit Weekly Schedule Dialog */}
-          <Card className="border-0 shadow-xl bg-white/90 backdrop-blur-sm">
-            <CardHeader className="pb-4">
-              <CardTitle className="text-xl font-bold text-gray-900 flex items-center gap-3">
-                <Settings className="h-5 w-5 text-gray-700" />
+          <Card className="border border-neutral-200 shadow-sm bg-white">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-bold text-neutral-900 flex items-center gap-2">
+                <Settings className="h-4 w-4 text-[#58c9d1]" />
                 Configurar Agenda Semanal
               </CardTitle>
-              <CardDescription className="text-gray-600">
+              <CardDescription className="text-neutral-600 text-sm">
                 Defina seus horários de atendimento para cada dia da semana.
               </CardDescription>
             </CardHeader>
@@ -777,10 +764,10 @@ export default function ProviderSchedulePage() {
                     <div
                       key={index}
                       className={cn(
-                        "flex flex-col md:flex-row md:items-center gap-4 p-4 border rounded-2xl shadow-sm transition-all duration-200",
+                        "flex flex-col md:flex-row md:items-center gap-4 p-3 border rounded-lg shadow-sm transition-all duration-200",
                         day.isAvailable
-                          ? "bg-gradient-to-r from-blue-50 to-white border-blue-200"
-                          : "bg-gray-50 border-gray-200 opacity-70"
+                          ? "bg-gradient-to-r from-[#58c9d1]/10 to-white border-[#58c9d1]/20"
+                          : "bg-neutral-50 border-neutral-200 opacity-70"
                       )}
                     >
                       <div className="flex items-center gap-3 min-w-[180px]">
@@ -794,26 +781,26 @@ export default function ProviderSchedulePage() {
                             };
                             setWeeklySchedule(newSchedule);
                           }}
-                          className={day.isAvailable ? "data-[state=checked]:bg-blue-600" : ""}
+                          className={day.isAvailable ? "data-[state=checked]:bg-[#58c9d1]" : ""}
                         />
                         <Label
                           className={cn(
-                            "font-semibold text-lg",
-                            day.isAvailable ? "text-blue-700" : "text-gray-400 line-through"
+                            "font-semibold text-base",
+                            day.isAvailable ? "text-[#58c9d1]" : "text-neutral-400 line-through"
                           )}
                         >
                           {['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'][day.dayOfWeek]}
                         </Label>
                         {day.isAvailable ? (
-                          <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-700 font-medium">Ativo</span>
+                          <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-[#58c9d1]/20 text-[#58c9d1] font-medium">Ativo</span>
                         ) : (
-                          <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-gray-200 text-gray-500 font-medium">Inativo</span>
+                          <span className="ml-2 px-2 py-0.5 rounded-full text-xs bg-neutral-200 text-neutral-500 font-medium">Inativo</span>
                         )}
                       </div>
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3 flex-1">
                         <div>
-                          <Label className="text-gray-700">Hora de início</Label>
+                          <Label className="text-neutral-700 text-sm font-medium">Hora de início</Label>
                           <Select
                             value={day.startTime}
                             onValueChange={(time) => {
@@ -826,15 +813,15 @@ export default function ProviderSchedulePage() {
                             }}
                             disabled={!day.isAvailable}
                           >
-                            <SelectTrigger className="mt-1" disabled={!day.isAvailable}>
+                            <SelectTrigger className="mt-1 bg-white border-neutral-200 shadow-sm hover:shadow-md transition-all" disabled={!day.isAvailable}>
                               <SelectValue placeholder="Selecione" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-white border-neutral-200 shadow-lg">
                               {Array.from({ length: 24 }).map((_, hour) =>
                                 Array.from({ length: 2 }).map((_, halfHour) => {
                                   const time = `${hour.toString().padStart(2, '0')}:${halfHour * 30 === 0 ? '00' : '30'}`;
                                   return (
-                                    <SelectItem key={time} value={time}>{time}</SelectItem>
+                                    <SelectItem key={time} value={time} className="hover:bg-neutral-50">{time}</SelectItem>
                                   );
                                 })
                               )}
@@ -843,7 +830,7 @@ export default function ProviderSchedulePage() {
                         </div>
 
                         <div>
-                          <Label className="text-gray-700">Hora de término</Label>
+                          <Label className="text-neutral-700 text-sm font-medium">Hora de término</Label>
                           <Select
                             value={day.endTime}
                             onValueChange={(time) => {
@@ -856,15 +843,15 @@ export default function ProviderSchedulePage() {
                             }}
                             disabled={!day.isAvailable}
                           >
-                            <SelectTrigger className="mt-1" disabled={!day.isAvailable}>
+                            <SelectTrigger className="mt-1 bg-white border-neutral-200 shadow-sm hover:shadow-md transition-all" disabled={!day.isAvailable}>
                               <SelectValue placeholder="Selecione" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-white border-neutral-200 shadow-lg">
                               {Array.from({ length: 24 }).map((_, hour) =>
                                 Array.from({ length: 2 }).map((_, halfHour) => {
                                   const time = `${hour.toString().padStart(2, '0')}:${halfHour * 30 === 0 ? '00' : '30'}`;
                                   return (
-                                    <SelectItem key={time} value={time}>{time}</SelectItem>
+                                    <SelectItem key={time} value={time} className="hover:bg-neutral-50">{time}</SelectItem>
                                   );
                                 })
                               )}
@@ -873,7 +860,7 @@ export default function ProviderSchedulePage() {
                         </div>
 
                         <div>
-                          <Label className="text-gray-700">Intervalo (minutos)</Label>
+                          <Label className="text-neutral-700 text-sm font-medium">Intervalo (minutos)</Label>
                           <Select
                             value={day.intervalMinutes.toString()}
                             onValueChange={(interval) => {
@@ -886,12 +873,12 @@ export default function ProviderSchedulePage() {
                             }}
                             disabled={!day.isAvailable}
                           >
-                            <SelectTrigger className="mt-1" disabled={!day.isAvailable}>
+                            <SelectTrigger className="mt-1 bg-white border-neutral-200 shadow-sm hover:shadow-md transition-all" disabled={!day.isAvailable}>
                               <SelectValue placeholder="Selecione" />
                             </SelectTrigger>
-                            <SelectContent>
+                            <SelectContent className="bg-white border-neutral-200 shadow-lg">
                               {[15, 30, 45, 60, 90, 120].map((interval) => (
-                                <SelectItem key={interval} value={interval.toString()}>
+                                <SelectItem key={interval} value={interval.toString()} className="hover:bg-neutral-50">
                                   {interval} minutos
                                 </SelectItem>
                               ))}
@@ -903,18 +890,19 @@ export default function ProviderSchedulePage() {
                   ))}
                 </div>
               </div>
-              <CardFooter className="pt-4 border-t border-gray-200 bg-gray-50/50">
+              <CardFooter className="pt-3 border-t border-neutral-200 bg-neutral-50/50">
                 <div className="w-full space-y-3">
                   <Button
                     variant="outline"
                     onClick={() => {}}
+                    className="border-neutral-200 hover:bg-neutral-50 shadow-sm hover:shadow-md"
                   >
                     Cancelar
                   </Button>
                   <Button
                     onClick={handleUpdateWeeklySchedule}
                     disabled={updateWeeklyScheduleMutation.isPending}
-                    className="bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+                    className="bg-[#58c9d1] text-white hover:bg-[#58c9d1]/90 shadow-sm hover:shadow-md"
                   >
                     {updateWeeklyScheduleMutation.isPending ? (
                       <RefreshCw className="h-4 w-4 animate-spin mr-2" />
@@ -925,8 +913,37 @@ export default function ProviderSchedulePage() {
               </CardFooter>
             </CardContent>
           </Card>
-        </PageTransition>
-      </div>
-    </div>
+        </div>
+      </PageTransition>
+      <Navbar 
+        items={[
+          {
+            icon: <CalendarIcon size={26} />,
+            label: 'Início',
+            href: '/provider/dashboard'
+          },
+          {
+            icon: <CalendarDays size={26} />,
+            label: 'Agenda',
+            href: '/provider/schedule'
+          },
+          {
+            icon: <Plus size={32} className="animate-pulse" />,
+            label: 'Novo',
+            href: '/provider/manual-booking'
+          },
+          {
+            icon: <Search size={26} />,
+            label: 'Buscar',
+            href: '/provider/search'
+          },
+          {
+            icon: <Users size={26} />,
+            label: 'Perfil',
+            href: '/provider/profile'
+          }
+        ]}
+      />
+    </ProviderLayout>
   );
 }

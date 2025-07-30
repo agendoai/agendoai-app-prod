@@ -1848,19 +1848,6 @@ export function registerRoutes(app: Express): Server {
 					providerServiceId: providerService?.id
 				})
 
-				// Obter a taxa fixa da plataforma (padrão R$ 1,75 em centavos se não configurada)
-				const serviceFee = paymentSettings?.serviceFee || 175 // Taxa em centavos de real
-				const minServiceFee = paymentSettings?.minServiceFee || 100 // Mínimo de R$ 1,00
-				const maxServiceFee = paymentSettings?.maxServiceFee || 5000 // Máximo de R$ 50,00
-
-				// Aplicar taxa de serviço, respeitando os limites mínimo e máximo
-				let appliedServiceFee = serviceFee
-				if (appliedServiceFee < minServiceFee) {
-					appliedServiceFee = minServiceFee
-				} else if (appliedServiceFee > maxServiceFee) {
-					appliedServiceFee = maxServiceFee
-				}
-
 				// Validar desconto (entre 0 e 100%)
 				if (discount < 0 || discount > 100) {
 					discount = 0 // Resetar para zero se for um valor inválido
@@ -1875,17 +1862,14 @@ export function registerRoutes(app: Express): Server {
 				// Aplicar desconto ao preço do serviço
 				const discountedServicePrice = servicePrice - discountAmount
 
-				// Correção no cálculo do preço total com desconto: o preço do serviço deve ser considerado em centavos
-				const totalPrice =
-					Number(discountedServicePrice) + Number(appliedServiceFee)
+				// Preço total sem taxa adicional - apenas o preço do serviço com desconto
+				const totalPrice = Number(discountedServicePrice)
 
 				console.log(
 					`Cálculo de preço: Serviço (R$ ${(
 						Number(servicePrice) / 100
 					).toFixed(2)}) - Desconto ${discount}% (R$ ${(
 						Number(discountAmount) / 100
-					).toFixed(2)}) + Taxa (R$ ${(
-						Number(appliedServiceFee) / 100
 					).toFixed(2)}) = Total (R$ ${(totalPrice / 100).toFixed(
 						2
 					)})`
@@ -1896,7 +1880,6 @@ export function registerRoutes(app: Express): Server {
 					servicePrice: servicePrice,
 					discount: discount,
 					discountAmount: discountAmount,
-					appliedServiceFee: appliedServiceFee,
 					totalPrice: totalPrice,
 					providerId: providerId,
 					serviceId: serviceId
@@ -2237,17 +2220,39 @@ export function registerRoutes(app: Express): Server {
 					{ status, paymentStatus, paymentMethod, paymentId }
 				)
 
-				// Validar status
-				const validStatuses = [
-					"pending",
-					"confirmed",
-					"canceled",
-					"completed",
-					"no_show",
-					"processing_payment",
-				]
-				if (!validStatuses.includes(status)) {
-					return res.status(400).json({ error: "Status inválido" })
+				// Verificar se pelo menos um campo foi fornecido
+				if (!status && !paymentStatus) {
+					return res.status(400).json({ error: "É necessário fornecer status ou paymentStatus" })
+				}
+
+				// Validar status (apenas se status for fornecido)
+				if (status) {
+					const validStatuses = [
+						"pending",
+						"confirmed",
+						"executing",
+						"canceled",
+						"completed",
+						"no_show",
+						"processing_payment",
+					]
+					if (!validStatuses.includes(status)) {
+						return res.status(400).json({ error: "Status inválido" })
+					}
+				}
+
+				// Validar paymentStatus (apenas se paymentStatus for fornecido)
+				if (paymentStatus) {
+					const validPaymentStatuses = [
+						"paid",
+						"pending",
+						"failed",
+						"refunded",
+						"paid_externally",
+					]
+					if (!validPaymentStatuses.includes(paymentStatus)) {
+						return res.status(400).json({ error: "PaymentStatus inválido" })
+					}
 				}
 
 				// Obter agendamento
@@ -2272,30 +2277,34 @@ export function registerRoutes(app: Express): Server {
 						})
 				}
 
-				// Restrições específicas por tipo de usuário
-				if (userType === "client") {
-					// Cliente só pode cancelar
-					if (status !== "canceled") {
-						return res
-							.status(403)
-							.json({
-								error: "Cliente só pode cancelar agendamentos",
-							})
-					}
-				} else if (userType === "provider") {
-					// Prestador pode cancelar, completar, marcar ausente ou processar pagamento
-					const allowedProviderStatuses = [
-						"canceled",
-						"completed",
-						"no_show",
-						"processing_payment",
-					]
-					if (!allowedProviderStatuses.includes(status)) {
-						return res
-							.status(403)
-							.json({
-								error: "Prestador só pode cancelar, marcar como concluído, ausente ou processar pagamento",
-							})
+				// Restrições específicas por tipo de usuário (apenas se status for fornecido)
+				if (status) {
+					if (userType === "client") {
+						// Cliente só pode cancelar
+						if (status !== "canceled") {
+							return res
+								.status(403)
+								.json({
+									error: "Cliente só pode cancelar agendamentos",
+								})
+						}
+					} else if (userType === "provider") {
+						// Prestador pode cancelar, completar, marcar ausente, executar, confirmar ou processar pagamento
+						const allowedProviderStatuses = [
+							"canceled",
+							"completed",
+							"executing",
+							"confirmed",
+							"no_show",
+							"processing_payment",
+						]
+						if (!allowedProviderStatuses.includes(status)) {
+							return res
+								.status(403)
+								.json({
+									error: "Prestador só pode cancelar, marcar como concluído, executando, confirmado, ausente ou processar pagamento",
+								})
+						}
 					}
 				}
 
@@ -2308,28 +2317,33 @@ export function registerRoutes(app: Express): Server {
 						})
 				}
 
-				// Verificar regras de transição de estado
-				if (appointment.status === "canceled" && status !== "pending") {
-					return res
-						.status(400)
-						.json({
-							error: "Agendamentos cancelados só podem ser reativados para pendente",
-						})
-				}
+				// Verificar regras de transição de estado (apenas se status for fornecido)
+				if (status) {
+					if (appointment.status === "canceled" && status !== "pending") {
+						return res
+							.status(400)
+							.json({
+								error: "Agendamentos cancelados só podem ser reativados para pendente",
+							})
+					}
 
-				if (
-					appointment.status === "completed" &&
-					status !== "pending"
-				) {
-					return res
-						.status(400)
-						.json({
-							error: "Agendamentos concluídos só podem ser reativados para pendente",
-						})
+					if (
+						appointment.status === "completed" &&
+						status !== "pending"
+					) {
+						return res
+							.status(400)
+							.json({
+								error: "Agendamentos concluídos só podem ser reativados para pendente",
+							})
+					}
 				}
 
 				// Preparar dados atualizados
-				const updateData: any = { status }
+				const updateData: any = {}
+				if (status) {
+					updateData.status = status
+				}
 
 				// Adicionar informações de pagamento, se fornecidas
 				if (paymentStatus) {
@@ -2360,6 +2374,7 @@ export function registerRoutes(app: Express): Server {
 					const statusText = {
 						canceled: "cancelado",
 						completed: "concluído",
+						executing: "executando",
 						pending: "pendente",
 						confirmed: "confirmado",
 						no_show: "sem comparecimento",
@@ -2462,6 +2477,65 @@ export function registerRoutes(app: Express): Server {
 
 			// Retornar a lista de clientes
 			res.json(clients)
+		} catch (error) {
+			console.error("Erro ao buscar clientes:", error)
+			res.status(500).json({ error: "Erro ao buscar clientes" })
+		}
+	})
+
+	// Buscar clientes por CPF ou telefone (apenas para prestadores)
+	app.get("/api/clients/search", isAuthenticated, async (req, res) => {
+		try {
+			// Verificar se o usuário existe e tem as propriedades necessárias
+			if (!req.user || !req.user.userType) {
+				return res.status(401).json({ error: "Não autorizado" })
+			}
+
+			// Se não for admin ou prestador, negar acesso
+			if (
+				req.user.userType !== "admin" &&
+				req.user.userType !== "provider"
+			) {
+				return res
+					.status(403)
+					.json({ error: "Acesso não autorizado a esta informação" })
+			}
+
+			const { q } = req.query; // query de busca (CPF ou telefone)
+			
+			if (!q || typeof q !== "string") {
+				return res.status(400).json({ error: "Termo de busca é obrigatório" })
+			}
+
+			const searchTerm = q.trim();
+			
+			// Validar se tem pelo menos 8 dígitos para segurança
+			const digitsOnly = searchTerm.replace(/\D/g, '');
+			if (digitsOnly.length < 8) {
+				return res.status(400).json({ 
+					error: "Digite pelo menos 8 dígitos para buscar",
+					minDigits: 8,
+					currentDigits: digitsOnly.length
+				})
+			}
+
+			// Buscar clientes por CPF ou telefone
+			const clients = await storage.searchClientsByCpfOrPhone(searchTerm);
+
+			// Retornar apenas informações básicas por segurança
+			const safeClients = clients.map(client => ({
+				id: client.id,
+				name: client.name,
+				email: client.email,
+				phone: client.phone,
+				cpf: client.cpf ? `${client.cpf.substring(0, 3)}***${client.cpf.substring(client.cpf.length - 2)}` : null
+			}));
+
+			res.json({
+				clients: safeClients,
+				total: safeClients.length,
+				searchTerm: searchTerm
+			})
 		} catch (error) {
 			console.error("Erro ao buscar clientes:", error)
 			res.status(500).json({ error: "Erro ao buscar clientes" })
@@ -5069,7 +5143,7 @@ export function registerRoutes(app: Express): Server {
 		}
 	)
 
-	// Atualizar um tempo de execução personalizado
+	// Atualizar um serviço personalizado
 	app.put(
 		"/api/provider-services/:id",
 		isAuthenticated,
@@ -5078,7 +5152,9 @@ export function registerRoutes(app: Express): Server {
 			try {
 				const providerServiceId = parseInt(req.params.id)
 				const providerId = req.user!.id
-				const { executionTime, isActive } = req.body
+				const { price, duration, executionTime, breakTime, isActive } = req.body
+
+				console.log("PUT /api/provider-services/:id - Dados recebidos:", req.body)
 
 				// Verificar se o serviço personalizado existe
 				const providerService = await storage.getProviderService(
@@ -5099,21 +5175,31 @@ export function registerRoutes(app: Express): Server {
 						})
 				}
 
-				// Atualizar tempo de execução
+				// Preparar dados para atualização (apenas campos que existem na tabela providerServices)
+				const updateData: any = {}
+				
+				if (price !== undefined) updateData.price = price
+				if (duration !== undefined) updateData.duration = duration
+				if (executionTime !== undefined) updateData.executionTime = executionTime
+				if (breakTime !== undefined) updateData.breakTime = breakTime
+				if (isActive !== undefined) updateData.isActive = isActive
+
+				console.log("Dados para atualização:", updateData)
+
+				// Atualizar serviço
 				const updatedProviderService =
-					await storage.updateProviderService(providerServiceId, {
-						executionTime,
-						isActive,
-					})
+					await storage.updateProviderService(providerServiceId, updateData)
+
+				console.log("Serviço atualizado:", updatedProviderService)
 
 				res.json(updatedProviderService)
 			} catch (error) {
 				console.error(
-					"Erro ao atualizar tempo de execução personalizado:",
+					"Erro ao atualizar serviço personalizado:",
 					error
 				)
 				res.status(500).json({
-					error: "Erro ao atualizar tempo de execução personalizado",
+					error: "Erro ao atualizar serviço personalizado",
 				})
 			}
 		}

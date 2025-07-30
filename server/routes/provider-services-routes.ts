@@ -278,7 +278,7 @@ router.post("/custom", isAuthenticated, isProvider, async (req, res) => {
       description: description || "",
       providerId: Number(providerId),
       categoryId: Number(categoryId),
-      price: Number(price),
+      price: Math.round(Number(price) * 100), // Salva em centavos
       duration: Number(duration),
       isActive: true,
     };
@@ -292,7 +292,7 @@ router.post("/custom", isAuthenticated, isProvider, async (req, res) => {
       providerId: Number(providerId),
       serviceId: newService.id,
       executionTime: Number(executionTime),
-      price: Number(price),
+      price: Math.round(Number(price) * 100), // Salva em centavos
       duration: Number(duration),
       breakTime: breakTime ? Number(breakTime) : 0,
       isActive: true,
@@ -374,7 +374,7 @@ router.post("/", isAuthenticated, isProvider, async (req, res) => {
       providerId: Number(providerId),
       serviceId: Number(serviceId),
       executionTime: Number(executionTime),
-      price: Number(price),
+      price: Math.round(Number(price) * 100), // Salva em centavos
       breakTime: breakTime ? Number(breakTime) : 0,
       duration: duration
         ? Number(duration)
@@ -409,7 +409,7 @@ router.post("/", isAuthenticated, isProvider, async (req, res) => {
         existingProviderService.id,
         {
           executionTime: data.executionTime,
-          price: data.price,
+          price: data.price, // já está em centavos
           duration: data.duration,
           breakTime: data.breakTime,
           isActive: true,
@@ -422,7 +422,7 @@ router.post("/", isAuthenticated, isProvider, async (req, res) => {
         providerId: data.providerId,
         serviceId: data.serviceId,
         executionTime: data.executionTime,
-        price: data.price,
+        price: data.price, // já está em centavos
         duration: data.duration,
         breakTime: data.breakTime,
         isActive: true,

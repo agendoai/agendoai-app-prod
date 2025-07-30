@@ -93,136 +93,9 @@ export default function ProviderLayout({
 
   return (
     <div className="flex min-h-screen bg-background">
-      {/* Menu lateral (visível apenas em telas maiores) */}
-      <div className="hidden md:block">
-        <ProviderSidebar />
-      </div>
       
       <div className="flex flex-col flex-1">
-        {/* Header principal (visível apenas em telas menores) */}
-        <header className="md:hidden bg-gradient-to-r from-blue-600 via-blue-500 to-cyan-400 text-white">
-          <div className="container mx-auto py-4 px-4 flex justify-between items-center">
-            <div className="flex items-center space-x-4">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="text-white hover:bg-primary/90">
-                    <Menu className="h-6 w-6" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left">
-                  <SheetHeader>
-                    <SheetTitle>Menu do Prestador</SheetTitle>
-                    <SheetDescription>
-                      Acesse todas as funcionalidades da plataforma
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="py-4">
-                    <div className="space-y-1">
-                      <a
-                        onClick={() => setLocation("/provider/dashboard")}
-                        className={`flex items-center px-4 py-3 rounded-md text-sm cursor-pointer ${
-                          location.startsWith("/provider/dashboard")
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "text-neutral-700 hover:bg-primary/5"
-                        }`}
-                      >
-                        <span className="mr-3"><Home className="h-5 w-5" /></span>
-                        Início
-                      </a>
-                      <a
-                        onClick={() => setLocation("/provider/schedule")}
-                        className={`flex items-center px-4 py-3 rounded-md text-sm cursor-pointer ${
-                          location.startsWith("/provider/schedule")
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "text-neutral-700 hover:bg-primary/5"
-                        }`}
-                      >
-                        <span className="mr-3"><Calendar className="h-5 w-5" /></span>
-                        Minha Agenda
-                      </a>
-                      <a
-                        onClick={() => setLocation("/provider/profile")}
-                        className={`flex items-center px-4 py-3 rounded-md text-sm cursor-pointer ${
-                          location.startsWith("/provider/profile")
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "text-neutral-700 hover:bg-primary/5"
-                        }`}
-                      >
-                        <span className="mr-3"><User className="h-5 w-5" /></span>
-                        Meu Perfil
-                      </a>
-                      <a
-                        onClick={() => setLocation("/provider/settings")}
-                        className={`flex items-center px-4 py-3 rounded-md text-sm cursor-pointer ${
-                          location.startsWith("/provider/settings")
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "text-neutral-700 hover:bg-primary/5"
-                        }`}
-                      >
-                        <span className="mr-3"><Settings className="h-5 w-5" /></span>
-                        Configurações
-                      </a>
-                      <a
-                        onClick={() => setLocation("/provider/help")}
-                        className={`flex items-center px-4 py-3 rounded-md text-sm cursor-pointer ${
-                          location.startsWith("/provider/help")
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "text-neutral-700 hover:bg-primary/5"
-                        }`}
-                      >
-                        <span className="mr-3"><HelpCircle className="h-5 w-5" /></span>
-                        Ajuda
-                      </a>
-                      <a
-                        onClick={() => setLocation("/provider/support")}
-                        className={`flex items-center px-4 py-3 rounded-md text-sm cursor-pointer ${
-                          location.startsWith("/provider/support")
-                            ? "bg-primary/10 text-primary font-medium"
-                            : "text-neutral-700 hover:bg-primary/5"
-                        }`}
-                      >
-                        <span className="mr-3"><MessageSquare className="h-5 w-5" /></span>
-                        Suporte
-                      </a>
-                    </div>
-                  </div>
-                </SheetContent>
-              </Sheet>
-              <h1 className="text-lg font-bold">{showBackButton ? title : "AgendoAI"}</h1>
-            </div>
-
-            <div className="flex items-center">
-              <Button 
-                variant="ghost"
-                className="relative p-2 text-white hover:bg-primary/90"
-                onClick={() => setLocation("/provider/notifications")}
-              >
-                <Bell className="h-6 w-6" />
-                {unreadCount > 0 && (
-                  <Badge
-                    variant="destructive"
-                    className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 text-[10px]"
-                  >
-                    {unreadCount}
-                  </Badge>
-                )}
-              </Button>
-              <Button
-                variant="ghost"
-                className="ml-2 p-0 hover:bg-primary/90"
-                onClick={() => setLocation("/provider/profile")}
-              >
-                <Avatar className="h-8 w-8 border-2 border-white">
-                  <AvatarImage src={user?.profileImage || ""} />
-                  <AvatarFallback className="bg-primary/20 text-primary">
-                    {getUserInitials()}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </div>
-          </div>
-        </header>
-
+        
         {/* Header secundário com botão de voltar (se necessário) */}
         {showBackButton && (
           <div className="sticky top-0 z-50 border-b bg-background h-14 flex items-center px-4">
@@ -237,20 +110,11 @@ export default function ProviderLayout({
         )}
 
         {/* Conteúdo principal */}
-        <main className={cn("flex-1 pb-16 md:pb-0", showBackButton && "pt-2")}>
-          <div className="container px-4 py-4">
+        <main className={cn("w-full max-w-md mx-auto px-2 py-2 sm:px-4 sm:py-4", showBackButton && "pt-2")}> 
+          <div className="w-full overflow-x-hidden">
             {children}
           </div>
         </main>
-
-        {/* Navegação inferior (ativa apenas em telas menores) */}
-        <div className="md:hidden">
-          <Navbar 
-            items={navItems} 
-            layoutId="providerNav" 
-            onNavigate={(href) => setLocation(href)}
-          />
-        </div>
       </div>
     </div>
   );

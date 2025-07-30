@@ -9,6 +9,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import ClientLayout from "@/components/layout/client-layout";
 
 export default function PersonalInfoPage() {
   const [, setLocation] = useLocation();
@@ -206,7 +207,7 @@ export default function PersonalInfoPage() {
   };
   
   return (
-    <div className="min-h-screen bg-[#f7f7f9] flex flex-col items-center justify-start pb-10">
+    <ClientLayout>
       {/* Header */}
       <div className="w-full max-w-md mx-auto bg-gradient-to-br from-[#3EB9AA] to-[#2A9D8F] text-white px-4 py-6 flex items-center rounded-b-3xl shadow-md">
         <button onClick={goBack} className="mr-3 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors">
@@ -398,6 +399,6 @@ export default function PersonalInfoPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </ClientLayout>
   );
 }

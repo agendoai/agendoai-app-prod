@@ -28,6 +28,7 @@ import {
   AlertCircle,
   CheckCircle,
   ExternalLink,
+  CalendarCheck,
 } from "lucide-react";
 import { AppointmentItem } from "@/components/appointment-item";
 import { NotificationsMenu } from "@/components/ui/notifications-menu";
@@ -48,6 +49,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import WeeklyCalendar, { WeeklyCalendarAppointment } from "@/components/dashboard/weekly-calendar";
 import { toast } from "@/hooks/use-toast";
 import ProviderLayout from "@/components/layout/provider-layout";
+import Navbar from "@/components/layout/navbar";
 
 export default function ProviderDashboard() {
   const [, setLocation] = useLocation();
@@ -198,14 +200,37 @@ export default function ProviderDashboard() {
     });
   };
 
+  // Itens de navegação para prestador
+  const providerNavItems = [
+    {
+      icon: <Home size={26} />, label: "Início", href: "/provider/dashboard"
+    },
+    {
+      icon: <Calendar size={26} />, label: "Agenda", href: "/provider/schedule"
+    },
+    {
+      icon: <ClipboardList size={26} />, label: "Agendamentos", href: "/provider/appointments"
+    },
+    {
+      icon: <Users size={26} />, label: "Clientes", href: "/provider/clients"
+    },
+    {
+      icon: <Scissors size={26} />, label: "Serviços", href: "/provider/services-page"
+    },
+    {
+      icon: <User size={26} />, label: "Perfil", href: "/provider/profile-page"
+    },
+  ];
+
   return (
-    <ProviderLayout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 overflow-x-hidden">
+    <div className="min-h-screen bg-white pb-20 overflow-x-hidden">
+      {/* Conteúdo do dashboard aqui, ajuste os cards para usar border-neutral-200, bg-white, espaçamento consistente, etc. */}
+      <ProviderLayout>
         <PageTransition>
-          <div className="container mx-auto py-6 px-1 sm:px-4 max-w-7xl w-full overflow-x-hidden">
+          <div className="w-full max-w-full py-6 px-2 sm:px-4 overflow-x-hidden bg-white min-h-screen" style={{ maxWidth: '100vw', width: '100%' }}>
             {/* Header */}
-            <header className="flex flex-col items-center justify-center px-2 sm:px-4 pt-6 pb-2 w-full">
-              <img src="/AgendoAilogo.png" alt="AgendoAI Logo" className="h-16 w-auto mb-2" />
+            <header className="flex flex-row items-center justify-around px-6 sm:px-8 pt-4 pb-2 w-full">
+              <img src="/AgendoAilogo.png" alt="AgendoAI Logo" className="h-12 w-auto" />
             </header>
 
             {/* Quick Actions */}
@@ -213,22 +238,22 @@ export default function ProviderDashboard() {
 
             {/* User Info */}
             <motion.div 
-              className="mb-8 flex items-center justify-between" 
+              className="mb-6 flex items-center justify-between" 
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
             >
               <div className="flex items-center">
-                <Avatar className="h-16 w-16 mr-6 shadow-lg">
+                <Avatar className="h-12 w-12 mr-4 shadow-lg">
                   <AvatarImage src={user?.profileImage || ""} />
-                  <AvatarFallback className="bg-gradient-to-br from-gray-900 to-gray-700 text-white text-xl font-bold">
+                  <AvatarFallback className="bg-gradient-to-br from-[#58c9d1] to-[#58c9d1]/80 text-white text-lg font-bold">
                     {user?.name?.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase() || "PR"}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="text-sm text-gray-500 font-medium mb-1">Bem-vindo(a) de volta,</p>
-                  <h1 className="text-3xl font-bold text-gray-900">{user?.name || "Prestador"}</h1>
-                  <p className="text-gray-600 mt-1">Gerencie seus serviços e agendamentos</p>
+                  <p className="text-xs text-neutral-500 font-medium mb-1">Bem-vindo(a) de volta,</p>
+                  <h1 className="text-xl font-bold text-neutral-900">{user?.name || "Prestador"}</h1>
+                  <p className="text-neutral-600 text-sm mt-1">Gerencie seus serviços e agendamentos</p>
                 </div>
               </div>
               
@@ -248,34 +273,34 @@ export default function ProviderDashboard() {
             
             {/* Stripe Connect Status */}
             {!isStripeStatusLoading && stripeStatus && (
-              <div className="mb-6">
+              <div className="mb-6 w-full max-w-full overflow-hidden">
                 {stripeStatus.status === "enabled" ? (
-                  <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg p-4">
-                    <CheckCircle className="text-green-600" />
-                    <div>
-                      <p className="font-semibold text-green-700">Conta Stripe conectada e habilitada para receber pagamentos.</p>
-                      <a href={stripeStatus.dashboardUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:underline mt-1">
-                        <ExternalLink className="h-4 w-4" /> Acessar painel Stripe
+                  <div className="flex items-start gap-3 bg-green-50 border border-green-200 rounded-lg p-3 w-full max-w-full overflow-hidden">
+                    <CheckCircle className="text-green-600 flex-shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-green-700 text-sm break-words">Conta Stripe conectada e habilitada para receber pagamentos.</p>
+                      <a href={stripeStatus.dashboardUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-700 hover:underline mt-1 text-xs">
+                        <ExternalLink className="h-3 w-3" /> Acessar painel Stripe
                       </a>
                     </div>
                   </div>
                 ) : stripeStatus.status === "pending" ? (
-                  <div className="flex items-center gap-3 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                    <AlertCircle className="text-yellow-600" />
-                    <div>
-                      <p className="font-semibold text-yellow-700">Conta Stripe conectada, mas pendente de verificação.</p>
-                      <button onClick={stripeStatus.onboardingUrl ? () => window.open(stripeStatus.onboardingUrl, '_blank') : undefined} className="inline-flex items-center gap-1 text-blue-700 hover:underline mt-1">
-                        <ExternalLink className="h-4 w-4" /> Completar onboarding Stripe
+                  <div className="flex items-start gap-3 bg-yellow-50 border border-yellow-200 rounded-lg p-3 w-full max-w-full overflow-hidden">
+                    <AlertCircle className="text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-yellow-700 text-sm break-words">Conta Stripe conectada, mas pendente de verificação.</p>
+                      <button onClick={stripeStatus.onboardingUrl ? () => window.open(stripeStatus.onboardingUrl, '_blank') : undefined} className="inline-flex items-center gap-1 text-blue-700 hover:underline mt-1 text-xs">
+                        <ExternalLink className="h-3 w-3" /> Completar onboarding Stripe
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-lg p-4">
-                    <AlertCircle className="text-red-600" />
-                    <div>
-                      <p className="font-semibold text-red-700">Conta Stripe não conectada.</p>
-                      <button onClick={stripeStatus.onboardingUrl ? () => window.open(stripeStatus.onboardingUrl, '_blank') : undefined} className="inline-flex items-center gap-1 text-blue-700 hover:underline mt-1">
-                        <ExternalLink className="h-4 w-4" /> Conectar conta Stripe
+                  <div className="flex items-start gap-3 bg-red-50 border border-red-200 rounded-lg p-3 w-full max-w-full overflow-hidden">
+                    <AlertCircle className="text-red-600 flex-shrink-0 mt-0.5" />
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-red-700 text-sm break-words">Conta Stripe não conectada.</p>
+                      <button onClick={stripeStatus.onboardingUrl ? () => window.open(stripeStatus.onboardingUrl, '_blank') : undefined} className="inline-flex items-center gap-1 text-blue-700 hover:underline mt-1 text-xs">
+                        <ExternalLink className="h-3 w-3" /> Conectar conta Stripe
                       </button>
                     </div>
                   </div>
@@ -284,57 +309,49 @@ export default function ProviderDashboard() {
             )}
 
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-2 mb-6 w-full max-w-full min-w-0 overflow-x-auto">
-              <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white border-0 shadow-lg p-0">
-                <CardContent className="p-3 sm:p-6">
-                  <div className="flex items-center justify-between mb-2 sm:mb-4">
-                    <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-white/10 flex items-center justify-center">
-                      <Calendar className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+            <div className="grid grid-cols-2 gap-2 mb-4 w-full max-w-full overflow-hidden">
+                              <Card className="bg-white border border-neutral-200 rounded-lg shadow-sm w-full max-w-full">
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="w-6 h-6 rounded-lg bg-[#58c9d1]/10 flex items-center justify-center">
+                        <Calendar className="h-4 w-4 text-[#58c9d1]" />
+                      </div>
+                      <span className="text-xs font-semibold text-neutral-500">Hoje</span>
                     </div>
+                    <div className="text-lg font-bold text-neutral-900">{todayAppointments.length}</div>
+                  </CardContent>
+                </Card>
+              <Card className="bg-white border border-neutral-200 rounded-lg shadow-sm w-full max-w-full">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="w-6 h-6 rounded-lg bg-[#58c9d1]/10 flex items-center justify-center">
+                      <DollarSign className="h-4 w-4 text-[#58c9d1]" />
+                    </div>
+                    <span className="text-xs font-semibold text-neutral-500">Receita</span>
                   </div>
-                  <div>
-                    <p className="text-white/70 text-xs sm:text-sm font-medium mb-0.5 sm:mb-1">Agendamentos Hoje</p>
-                    <p className="text-white text-xl sm:text-2xl font-bold mb-0.5 sm:mb-1">{stats.todayAppointments}</p>
-                  </div>
+                  <div className="text-lg font-bold text-neutral-900">{formatCurrency((stats.monthlyRevenue || 0) / 100)}</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-green-600 to-green-700 text-white border-0 shadow-lg p-0">
-                <CardContent className="p-3 sm:p-6">
-                  <div className="flex items-center justify-between mb-2 sm:mb-4">
-                    <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-white/10 flex items-center justify-center">
-                      <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              <Card className="bg-white border border-neutral-200 rounded-lg shadow-sm w-full max-w-full">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="w-6 h-6 rounded-lg bg-[#58c9d1]/10 flex items-center justify-center">
+                      <Users className="h-4 w-4 text-[#58c9d1]" />
                     </div>
+                    <span className="text-xs font-semibold text-neutral-500">Clientes</span>
                   </div>
-                  <div>
-                    <p className="text-white/70 text-xs sm:text-sm font-medium mb-0.5 sm:mb-1">Receita Mensal</p>
-                    <p className="text-white text-xl sm:text-2xl font-bold mb-0.5 sm:mb-1">{formatCurrency(stats.monthlyRevenue)}</p>
-                  </div>
+                  <div className="text-lg font-bold text-neutral-900">{stats.manualAppointments}</div>
                 </CardContent>
               </Card>
-              <Card className="bg-gradient-to-br from-purple-600 to-purple-700 text-white border-0 shadow-lg p-0">
-                <CardContent className="p-3 sm:p-6">
-                  <div className="flex items-center justify-between mb-2 sm:mb-4">
-                    <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-white/10 flex items-center justify-center">
-                      <Users className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
+              <Card className="bg-white border border-neutral-200 rounded-lg shadow-sm w-full max-w-full">
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="w-6 h-6 rounded-lg bg-[#58c9d1]/10 flex items-center justify-center">
+                      <TrendingUp className="h-4 w-4 text-[#58c9d1]" />
                     </div>
+                    <span className="text-xs font-semibold text-neutral-500">Conversão</span>
                   </div>
-                  <div>
-                    <p className="text-white/70 text-xs sm:text-sm font-medium mb-0.5 sm:mb-1">Clientes Atendidos</p>
-                    <p className="text-white text-xl sm:text-2xl font-bold mb-0.5 sm:mb-1">{stats.manualAppointments}</p>
-                  </div>
-                </CardContent>
-              </Card>
-              <Card className="bg-gradient-to-br from-orange-600 to-orange-700 text-white border-0 shadow-lg p-0">
-                <CardContent className="p-3 sm:p-6">
-                  <div className="flex items-center justify-between mb-2 sm:mb-4">
-                    <div className="w-8 h-8 sm:w-12 sm:h-12 rounded-xl bg-white/10 flex items-center justify-center">
-                      <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6 text-white" />
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-white/70 text-xs sm:text-sm font-medium mb-0.5 sm:mb-1">Taxa de Conversão</p>
-                    <p className="text-white text-xl sm:text-2xl font-bold mb-0.5 sm:mb-1">85%</p>
-                  </div>
+                  <div className="text-lg font-bold text-neutral-900">85%</div>
                 </CardContent>
               </Card>
             </div>
@@ -356,46 +373,46 @@ export default function ProviderDashboard() {
                 {/* Quick Actions */}
                 <div className="mb-8">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                      <Sparkles className="h-6 w-6 text-gray-700" />
-                      Ações Rápidas
+                    <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3 max-w-full overflow-hidden">
+                      <Sparkles className="h-5 w-5 text-gray-700 flex-shrink-0" />
+                      <span className="truncate">Ações Rápidas</span>
                     </h2>
                   </div>
                   
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 w-full max-w-full min-w-0 overflow-x-auto">
+                  <div className="grid grid-cols-2 gap-2 w-full overflow-x-hidden">
                     <Button 
                       onClick={() => setLocation("/provider/manual-booking")}
-                      className="h-16 sm:h-20 flex flex-col items-center justify-center space-y-1 sm:space-y-2 bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 text-xs sm:text-sm px-2 sm:px-0"
+                      className="h-12 flex flex-col items-center justify-center space-y-1 bg-[#58c9d1] hover:bg-[#58c9d1]/90 text-white border-0 shadow-sm hover:shadow-md transition-all duration-300 text-xs px-2 w-full max-w-full"
                     >
-                      <CalendarPlus className="h-6 w-6" />
-                      <span className="text-xs font-medium">Novo Agendamento</span>
+                      <CalendarPlus className="h-4 w-4" />
+                      <span className="text-xs font-medium">Novo</span>
                     </Button>
                     
                     <Button 
                       onClick={() => setLocation("/provider/schedule")}
                       variant="outline"
-                      className="h-16 sm:h-20 flex flex-col items-center justify-center space-y-1 sm:space-y-2 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-300 text-xs sm:text-sm px-2 sm:px-0"
+                      className="h-12 flex flex-col items-center justify-center space-y-1 border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 shadow-sm hover:shadow-md transition-all duration-300 text-xs px-2"
                     >
-                      <Settings className="h-6 w-6 text-gray-700" />
-                      <span className="text-xs font-medium text-gray-700">Configurar Horários</span>
+                      <Settings className="h-4 w-4 text-neutral-700" />
+                      <span className="text-xs font-medium text-neutral-700">Horários</span>
                     </Button>
                     
                     <Button 
                       onClick={() => setLocation("/provider/services")}
                       variant="outline"
-                      className="h-16 sm:h-20 flex flex-col items-center justify-center space-y-1 sm:space-y-2 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-300 text-xs sm:text-sm px-2 sm:px-0"
+                      className="h-12 flex flex-col items-center justify-center space-y-1 border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 shadow-sm hover:shadow-md transition-all duration-300 text-xs px-2"
                     >
-                      <Scissors className="h-6 w-6 text-gray-700" />
-                      <span className="text-xs font-medium text-gray-700">Meus Serviços</span>
+                      <Scissors className="h-4 w-4 text-neutral-700" />
+                      <span className="text-xs font-medium text-neutral-700">Serviços</span>
                     </Button>
                     
                     <Button 
                       onClick={() => setLocation("/provider/analytics")}
                       variant="outline"
-                      className="h-16 sm:h-20 flex flex-col items-center justify-center space-y-1 sm:space-y-2 border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 shadow-lg hover:shadow-xl transition-all duration-300 text-xs sm:text-sm px-2 sm:px-0"
+                      className="h-12 flex flex-col items-center justify-center space-y-1 border border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 shadow-sm hover:shadow-md transition-all duration-300 text-xs px-2"
                     >
-                      <BarChart className="h-6 w-6 text-gray-700" />
-                      <span className="text-xs font-medium text-gray-700">Analytics</span>
+                      <BarChart className="h-4 w-4 text-neutral-700" />
+                      <span className="text-xs font-medium text-neutral-700">Analytics</span>
                     </Button>
                   </div>
                 </div>
@@ -403,9 +420,9 @@ export default function ProviderDashboard() {
                 {/* Services */}
                 <div className="mb-8">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                      <Scissors className="h-6 w-6 text-gray-700" />
-                      Meus Serviços
+                    <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3 max-w-full overflow-hidden">
+                      <Scissors className="h-5 w-5 text-gray-700 flex-shrink-0" />
+                      <span className="truncate">Meus Serviços</span>
                     </h2>
                     <Button 
                       variant="ghost" 
@@ -418,10 +435,10 @@ export default function ProviderDashboard() {
                   </div>
                   
                   {areServicesLoading ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-1 gap-0.5 w-full max-w-full overflow-hidden">
                       {[...Array(4)].map((_, index) => (
-                        <Card key={index} className="border-0 shadow-lg bg-white/80 backdrop-blur-sm">
-                          <CardContent className="p-4">
+                        <Card key={index} className="border-0 shadow-lg bg-white/80 backdrop-blur-sm w-full max-w-full">
+                          <CardContent className="p-1 w-full max-w-full">
                             <Skeleton className="h-4 w-24 mb-2" />
                             <Skeleton className="h-5 w-16 mb-3" />
                             <Skeleton className="h-3 w-20" />
@@ -430,48 +447,48 @@ export default function ProviderDashboard() {
                       ))}
                     </div>
                   ) : services.length > 0 ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 w-full max-w-full min-w-0 overflow-x-auto">
+                    <div className="grid grid-cols-1 gap-0.5 w-full max-w-full overflow-hidden">
                       {services.slice(0, 4).map((service) => (
                         <Card 
                           key={service.id} 
-                          className="border-0 shadow-lg bg-white/80 backdrop-blur-sm hover:shadow-xl cursor-pointer transition-all duration-300 group"
+                          className="border border-neutral-200 shadow-sm bg-white hover:shadow-md cursor-pointer transition-all duration-300 group"
                           onClick={() => setLocation("/provider/services")}
                         >
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between mb-3">
-                              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                                <Scissors className="h-4 w-4 text-white" />
+                          <CardContent className="p-3 w-full max-w-full">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="w-6 h-6 rounded-lg bg-[#58c9d1]/10 flex items-center justify-center">
+                                <Scissors className="h-4 w-4 text-[#58c9d1]" />
                               </div>
-                              <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                              <div className="text-xs text-neutral-500 bg-neutral-100 px-2 py-1 rounded-full">
                                 {service.categoryName || "Categoria"}
                               </div>
                             </div>
-                            <h3 className="font-semibold text-gray-900 mb-2 truncate group-hover:text-blue-600 transition-colors break-words">
+                            <h3 className="font-semibold text-neutral-900 mb-1 truncate group-hover:text-[#58c9d1] transition-colors break-words text-sm">
                               {service.serviceName}
                             </h3>
-                            <p className="text-lg font-bold text-green-600">
-                              {service.price != null ? formatCurrency(service.price) : service.defaultPrice ? formatCurrency(service.defaultPrice) : "R$ 0,00"}
+                            <p className="text-base font-bold text-green-600">
+                              {service.price != null ? formatCurrency((service.price || 0) / 100) : service.defaultPrice ? formatCurrency((service.defaultPrice || 0) / 100) : "R$ 0,00"}
                             </p>
                           </CardContent>
                         </Card>
                       ))}
                     </div>
                   ) : (
-                    <Card className="border-2 border-dashed border-gray-300 bg-gray-50/50 p-4 sm:p-8 text-center w-full max-w-full">
-                      <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-4">
-                        <Scissors className="h-8 w-8 text-gray-400" />
+                    <Card className="border-2 border-dashed border-gray-300 bg-gray-50/50 p-1 text-center w-full max-w-full overflow-hidden">
+                      <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-2">
+                        <Scissors className="h-5 w-5 text-gray-400" />
                       </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum serviço cadastrado</h3>
-                      <p className="text-gray-600 mb-6 max-w-md mx-auto">
+                      <h3 className="text-base font-semibold text-gray-900 mb-1">Nenhum serviço cadastrado</h3>
+                      <p className="text-gray-600 mb-2 max-w-full mx-auto text-xs break-words">
                         Comece criando seu primeiro serviço para receber agendamentos dos clientes
                       </p>
                       <Button 
                         onClick={() => setLocation("/provider/services")} 
-                        size="lg"
-                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                        size="sm"
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg hover:shadow-xl transition-all duration-300 text-xs px-2 py-1"
                       >
-                        <Plus className="h-5 w-5 mr-2" />
-                        Cadastrar Primeiro Serviço
+                        <Plus className="h-4 w-4 mr-1" />
+                        Cadastrar Serviço
                       </Button>
                     </Card>
                   )}
@@ -480,9 +497,9 @@ export default function ProviderDashboard() {
                 {/* Today's Appointments */}
                 <div className="mb-8">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                      <Calendar className="h-6 w-6 text-gray-700" />
-                      Agendamentos de hoje
+                    <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3 max-w-full overflow-hidden">
+                      <Calendar className="h-5 w-5 text-gray-700 flex-shrink-0" />
+                      <span className="truncate">Agendamentos de hoje</span>
                     </h2>
                     <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
                       {todayAppointments.length} agendamento{todayAppointments.length !== 1 ? 's' : ''}
@@ -510,14 +527,24 @@ export default function ProviderDashboard() {
                       ))}
                     </div>
                   ) : todayAppointments.length > 0 ? (
-                    <div className="space-y-4">
-                      {todayAppointments.map((appointment) => (
-                        <AppointmentItem 
-                          key={appointment.id} 
-                          appointment={appointment} 
-                          userType="provider"
-                        />
-                      ))}
+                    <div>
+                      {todayAppointments.length > 3 && (
+                        <div className="mb-3 text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-lg border">
+                          📜 Mostrando 3 de {todayAppointments.length} agendamentos. Role para ver mais.
+                        </div>
+                      )}
+                      <div className="space-y-4 max-h-96 overflow-y-auto pr-2" style={{
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: '#d1d5db #f3f4f6'
+                      }}>
+                        {todayAppointments.map((appointment) => (
+                          <AppointmentItem 
+                            key={appointment.id} 
+                            appointment={appointment} 
+                            userType="provider"
+                          />
+                        ))}
+                      </div>
                     </div>
                   ) : (
                     <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm p-4 sm:p-8 text-center w-full max-w-full">
@@ -533,9 +560,9 @@ export default function ProviderDashboard() {
                 {/* Upcoming Appointments */}
                 <div className="mb-8">
                   <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                      <Calendar className="h-6 w-6 text-gray-700" />
-                      Próximos agendamentos
+                    <h2 className="text-xl font-bold text-gray-900 flex items-center gap-3 max-w-full overflow-hidden">
+                      <Calendar className="h-5 w-5 text-gray-700 flex-shrink-0" />
+                      <span className="truncate">Próximos agendamentos</span>
                     </h2>
                     <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
                       {upcomingAppointments.length} agendamento{upcomingAppointments.length !== 1 ? 's' : ''}
@@ -563,14 +590,24 @@ export default function ProviderDashboard() {
                       ))}
                     </div>
                   ) : upcomingAppointments.length > 0 ? (
-                    <div className="space-y-4">
-                      {upcomingAppointments.map((appointment) => (
-                        <AppointmentItem 
-                          key={appointment.id} 
-                          appointment={appointment} 
-                          userType="provider"
-                        />
-                      ))}
+                    <div>
+                      {upcomingAppointments.length > 3 && (
+                        <div className="mb-3 text-xs text-gray-500 bg-gray-50 px-3 py-2 rounded-lg border">
+                          📜 Mostrando 3 de {upcomingAppointments.length} agendamentos. Role para ver mais.
+                        </div>
+                      )}
+                      <div className="space-y-4 max-h-96 overflow-y-auto pr-2" style={{
+                        scrollbarWidth: 'thin',
+                        scrollbarColor: '#d1d5db #f3f4f6'
+                      }}>
+                        {upcomingAppointments.map((appointment) => (
+                          <AppointmentItem 
+                            key={appointment.id} 
+                            appointment={appointment} 
+                            userType="provider"
+                          />
+                        ))}
+                      </div>
                     </div>
                   ) : (
                     <Card className="border-0 shadow-lg bg-white/80 backdrop-blur-sm p-4 sm:p-8 text-center w-full max-w-full">
@@ -618,29 +655,38 @@ export default function ProviderDashboard() {
                 />
               </TabsContent>
             </Tabs>
-
-            {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 bg-white shadow flex justify-around py-2 rounded-t-2xl z-50 w-full max-w-full">
-              <button className="flex flex-col items-center text-blue-600 font-bold" aria-current="page">
-                <Home className="h-6 w-6" />
-                <span className="text-xs">Início</span>
-              </button>
-              <button className="flex flex-col items-center text-blue-600" onClick={() => setLocation('/provider/add-service-page')}>
-                <PlusCircle className="h-6 w-6" />
-                <span className="text-xs">Novo</span>
-              </button>
-              <button className="flex flex-col items-center text-blue-600" onClick={() => setLocation('/provider/clients-page')}>
-                <Search className="h-6 w-6" />
-                <span className="text-xs">Buscar</span>
-              </button>
-              <button className="flex flex-col items-center text-blue-600" onClick={() => setLocation('/provider/profile-page')}>
-                <User className="h-6 w-6" />
-                <span className="text-xs">Perfil</span>
-              </button>
-            </nav>
           </div>
         </PageTransition>
-      </div>
-    </ProviderLayout>
+      </ProviderLayout>
+      <Navbar 
+        items={[
+          {
+            icon: <Home size={26} />,
+            label: 'Início',
+            href: '/provider/dashboard'
+          },
+          {
+            icon: <CalendarCheck size={26} />,
+            label: 'Agenda',
+            href: '/provider/schedule'
+          },
+          {
+            icon: <PlusCircle size={32} className="animate-pulse" />,
+            label: 'Novo',
+            href: '/provider/manual-booking'
+          },
+          {
+            icon: <Search size={26} />,
+            label: 'Buscar',
+            href: '/provider/search'
+          },
+          {
+            icon: <User size={26} />,
+            label: 'Perfil',
+            href: '/provider/profile'
+          }
+        ]}
+      />
+    </div>
   );
 }

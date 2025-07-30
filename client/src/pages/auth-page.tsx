@@ -42,13 +42,10 @@ export default function AuthPage() {
   // Efeito para redirecionar usuário logado
   React.useEffect(() => {
     if (user && !isLoading) {
-      console.log("AuthPage - Usuário logado detectado, redirecionando:", user);
-      
       const redirectPath = user.userType === "client" ? "/client/dashboard" :
                           user.userType === "provider" ? "/provider/dashboard" :
                           user.userType === "admin" ? "/admin/dashboard" : "/";
       
-      console.log("AuthPage - Redirecionando para:", redirectPath);
       setLocation(redirectPath);
     }
   }, [user, isLoading, setLocation]);
@@ -109,29 +106,18 @@ export default function AuthPage() {
       });
       if (!res.ok) throw new Error(await res.text());
       const userData = await res.json();
-      console.log("Frontend - dados do usuário recebidos:", {
-        id: userData.id,
-        email: userData.email,
-        userType: userData.userType,
-        name: userData.name
-      });
       
       toast({ title: "Login realizado!", description: `Bem-vindo(a), ${userData.name || userData.email}` });
       
       // Redirecionamento imediato e confiável
-      console.log("Frontend - redirecionando para:", userData.userType);
       
       if (userData.userType === "client") {
-        console.log("Frontend - REDIRECIONANDO PARA CLIENT DASHBOARD");
         setLocation("/client/dashboard");
       } else if (userData.userType === "provider") {
-        console.log("Frontend - REDIRECIONANDO PARA PROVIDER DASHBOARD");
         setLocation("/provider/dashboard");
       } else if (userData.userType === "admin") {
-        console.log("Frontend - REDIRECIONANDO PARA ADMIN DASHBOARD");
         setLocation("/admin/dashboard");
       } else {
-        console.log("Frontend - REDIRECIONANDO PARA HOME");
         setLocation("/");
       }
     } catch (e: any) {

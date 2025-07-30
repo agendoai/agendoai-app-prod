@@ -63,6 +63,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import Navbar from "@/components/layout/navbar";
 
 // Step indicators
 const steps = [
@@ -173,8 +174,7 @@ export default function ManualBookingPage() {
     sendNotification: true,
   });
   
-  // Client search state
-  const [clientSearchTerm, setClientSearchTerm] = useState("");
+
   
   // Estado para toggle de otimização com IA
   const [useAiOptimization, setUseAiOptimization] = useState(true);
@@ -247,11 +247,12 @@ export default function ManualBookingPage() {
     return {
       value: format(date, "yyyy-MM-dd"),
       label: format(date, "EEE, dd/MM", { locale: ptBR }),
+      day: format(date, "dd", { locale: ptBR })
     };
   });
   
   // Fetch clients for the "existing client" selection
-  const { data: clients = [] } = useQuery<User[]>({
+  const { data: clients = [], isLoading: isClientsLoading } = useQuery<User[]>({
     queryKey: ["/api/clients"],
     enabled: !!user,
   });
@@ -262,11 +263,126 @@ export default function ManualBookingPage() {
   // Estado para controlar o carregamento durante a análise de IA
   const [isOptimizingSlots, setIsOptimizingSlots] = useState(false);
 
+  // Estado para armazenar os time slots do prestador
+  const [providerTimeSlots, setProviderTimeSlots] = useState<DisplayTimeSlot[]>([]);
+  const [isLoadingTimeSlots, setIsLoadingTimeSlots] = useState(false);
+
+  // Estado para busca de clientes
+  const [clientSearchTerm, setClientSearchTerm] = useState("");
+  const [searchedClients, setSearchedClients] = useState<any[]>([]);
+  const [isSearchingClients, setIsSearchingClients] = useState(false);
+  const [clientSearchError, setClientSearchError] = useState("");
+  
+  // Estado para cliente selecionado
+  const [selectedClient, setSelectedClient] = useState<any>(null);
+
   // Gera slots de tempo básicos (sem IA)
   const basicTimeSlots: DisplayTimeSlot[] = generateTimeSlots("09:00", "18:00", 30).map(time => ({
     value: time,
     label: time
   }));
+  
+  // Função para buscar clientes por CPF ou telefone
+  const searchClients = useCallback(async (searchTerm: string) => {
+    if (!searchTerm || searchTerm.trim().length === 0) {
+      setSearchedClients([]);
+      setClientSearchError("");
+      return;
+    }
+
+    // Validar se tem pelo menos 8 dígitos para segurança
+    const digitsOnly = searchTerm.replace(/\D/g, '');
+    if (digitsOnly.length < 8) {
+      setClientSearchError("Digite pelo menos 8 dígitos para buscar");
+      setSearchedClients([]);
+      return;
+    }
+
+    try {
+      setIsSearchingClients(true);
+      setClientSearchError("");
+
+      const res = await apiRequest(
+        "GET", 
+        `/api/clients/search?q=${encodeURIComponent(searchTerm.trim())}`
+      );
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Falha ao buscar clientes');
+      }
+
+      const data = await res.json();
+      setSearchedClients(data.clients || []);
+    } catch (error) {
+      console.error('Erro ao buscar clientes:', error);
+      setClientSearchError(error instanceof Error ? error.message : 'Erro ao buscar clientes');
+      setSearchedClients([]);
+    } finally {
+      setIsSearchingClients(false);
+    }
+  }, []);
+
+  // Efeito para buscar clientes quando o termo de busca muda
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (clientSearchTerm.trim().length >= 8) {
+        searchClients(clientSearchTerm);
+      } else {
+        setSearchedClients([]);
+        setClientSearchError("");
+      }
+    }, 500); // Debounce de 500ms
+
+    return () => clearTimeout(timeoutId);
+  }, [clientSearchTerm, searchClients]);
+  
+  // Função para buscar time slots do prestador
+  const fetchProviderTimeSlots = useCallback(async (date: string, serviceId: string) => {
+    if (!user?.id || !date || !serviceId) return;
+    
+    try {
+      setIsLoadingTimeSlots(true);
+      
+      console.log(`Buscando time slots para prestador ${user.id}, data ${date}, serviço ${serviceId}`);
+      
+      // Buscar time slots do prestador usando a API
+      const res = await apiRequest(
+        "GET", 
+        `/api/time-slots?providerId=${user.id}&date=${date}&serviceId=${serviceId}`
+      );
+      
+      if (!res.ok) {
+        throw new Error('Falha ao buscar time slots');
+      }
+      
+      const data = await res.json();
+      console.log('Resposta da API time-slots:', data);
+      
+      // Converter os slots recebidos para o formato correto
+      const formattedSlots: DisplayTimeSlot[] = data.timeSlots?.map((slot: any) => ({
+        value: slot.startTime,
+        label: slot.startTime,
+        adaptationScore: slot.adaptationScore,
+        adaptationReason: slot.adaptationReason
+      })) || [];
+      
+      console.log('Slots formatados:', formattedSlots);
+      setProviderTimeSlots(formattedSlots);
+    } catch (error) {
+      console.error("Erro ao buscar time slots do prestador:", error);
+      toast({
+        title: "Aviso",
+        description: "Não foi possível buscar os horários do prestador. Usando horários padrão.",
+        variant: "default"
+      });
+      
+      // Em caso de erro, usa os slots básicos
+      setProviderTimeSlots(basicTimeSlots);
+    } finally {
+      setIsLoadingTimeSlots(false);
+    }
+  }, [user, toast, basicTimeSlots]);
   
   // Função para buscar slots de tempo otimizados pela IA
   const fetchOptimizedTimeSlots = useCallback(async (date: string, serviceId: string) => {
@@ -327,16 +443,33 @@ export default function ManualBookingPage() {
     }
   }, [user, toast, basicTimeSlots, selectedService?.duration]);
   
+  // Efeito para buscar time slots do prestador quando a data muda
+  useEffect(() => {
+    // Configurar observador uma única vez
+    const subscription = dateTimeForm.watch((value, { name }) => {
+      if (name === "date" && value.date) {
+        // Quando a data mudar, buscar time slots do prestador
+        if (bookingData.providerServiceId && selectedService) {
+          console.log("Data alterada, buscando time slots do prestador");
+          fetchProviderTimeSlots(value.date, selectedService.serviceId.toString());
+        }
+      }
+    });
+    
+    // Limpeza do observer quando o componente for desmontado
+    return () => subscription.unsubscribe();
+  }, [dateTimeForm, fetchProviderTimeSlots, bookingData.providerServiceId, selectedService]);
+  
   // Efeito para buscar slots otimizados quando a data muda
   useEffect(() => {
     // Configurar observador uma única vez
     const subscription = dateTimeForm.watch((value, { name }) => {
       if (name === "date" && value.date) {
         // Quando a data mudar, buscar slots otimizados somente se IA estiver ativada
-        if (useAiOptimization && bookingData.serviceId) {
+        if (useAiOptimization && selectedService) {
           // Evitando chamadas desnecessárias
           console.log("Data alterada, buscando slots otimizados");
-          fetchOptimizedTimeSlots(value.date, bookingData.serviceId);
+          fetchOptimizedTimeSlots(value.date, selectedService.serviceId.toString());
         }
       }
     });
@@ -351,24 +484,26 @@ export default function ManualBookingPage() {
     // Só executa quando o valor do toggle realmente muda
     if (aiToggleRef.current !== useAiOptimization) {
       const currentDate = dateTimeForm.getValues("date");
-      if (useAiOptimization && currentDate && bookingData.serviceId) {
+      if (useAiOptimization && currentDate && selectedService) {
         console.log("Status de IA alterado, buscando slots otimizados");
-        fetchOptimizedTimeSlots(currentDate, bookingData.serviceId);
+        fetchOptimizedTimeSlots(currentDate, selectedService.serviceId.toString());
       }
       // Atualiza a referência
       aiToggleRef.current = useAiOptimization;
     }
   }, [useAiOptimization]);
   
-  // Slots a serem exibidos na interface (otimizados pela IA ou básicos)
-  const displayTimeSlots: DisplayTimeSlot[] = useAiOptimization && optimizedTimeSlots.length > 0
-    ? optimizedTimeSlots.map(slot => ({
-        value: slot.startTime,
-        label: slot.startTime,
-        adaptationScore: slot.adaptationScore,
-        adaptationReason: slot.adaptationReason
-      }))
-    : basicTimeSlots;
+  // Slots a serem exibidos na interface (prioridade: prestador > otimizados pela IA > básicos)
+  const displayTimeSlots: DisplayTimeSlot[] = providerTimeSlots.length > 0
+    ? providerTimeSlots
+    : useAiOptimization && optimizedTimeSlots.length > 0
+      ? optimizedTimeSlots.map(slot => ({
+          value: slot.startTime,
+          label: slot.startTime,
+          adaptationScore: slot.adaptationScore,
+          adaptationReason: slot.adaptationReason
+        }))
+      : basicTimeSlots;
   
   // Create client mutation
   const createClientMutation = useMutation({
@@ -495,6 +630,18 @@ export default function ManualBookingPage() {
       clientEmail: data.clientEmail,
       clientPhone: data.clientPhone
     });
+    
+    // Definir o cliente selecionado
+    if (data.clientType === "existing" && data.clientId) {
+      const client = clients.find(c => c.id.toString() === data.clientId);
+      setSelectedClient(client || null);
+    } else {
+      setSelectedClient({
+        name: data.clientName,
+        email: data.clientEmail,
+        phone: data.clientPhone
+      });
+    }
     
     // Avançar para a próxima etapa
     setCurrentStep(4);
@@ -686,768 +833,694 @@ export default function ManualBookingPage() {
     confirmationForm.reset({ notes: "", sendNotification: true });
   };
 
-  // Removendo versão duplicada da função (já existe abaixo)
-  
   return (
-    <PageTransition>
-      <ProviderLayout title="Agendamento Manual" showBackButton={true}>
-      
-      {/* Tela de sucesso */}
-      {bookingSuccess && createdAppointment ? (
-        <div className="p-4 flex flex-col items-center">
-          <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mt-8 mb-6">
-            <CheckCircle className="h-12 w-12 text-green-600" />
-          </div>
-          
-          <h2 className="text-2xl font-bold text-center mb-2">Agendamento Confirmado!</h2>
-          <p className="text-neutral-500 text-center mb-8">
-            O agendamento foi criado com sucesso e o cliente foi notificado.
-          </p>
-          
-          <Card className="w-full mb-8">
-            <CardContent className="pt-6">
-              <div className="space-y-4">
-                {/* Detalhes do serviço */}
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg mr-3 flex items-center justify-center">
-                    <ScissorsIcon className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium">{selectedService?.name}</p>
-                    <p className="text-sm text-neutral-500">
-                      {selectedService?.duration} min • {formatCurrency(selectedService?.price || 0)}
-                    </p>
-                  </div>
-                </div>
-                
-                {/* Detalhes da data/hora */}
-                <div className="flex items-center">
-                  <div className="w-10 h-10 bg-primary/10 rounded-lg mr-3 flex items-center justify-center">
-                    <Calendar className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-medium">
-                      {bookingData.date && format(parseISO(bookingData.date), "dd 'de' MMMM", { locale: ptBR })}
-                    </p>
-                    <p className="text-sm text-neutral-500">
-                      {bookingData.time && `${bookingData.time} - ${calculateEndTime(bookingData.time, selectedService?.duration || 30)}`}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <div className="flex flex-col w-full space-y-3">
-            <Button 
-              onClick={handleNewBooking}
-              className="w-full"
-            >
-              Novo Agendamento
-            </Button>
-            
-            <Button 
-              variant="outline"
-              onClick={handleReturnToDashboard}
-              className="w-full"
-            >
-              Voltar ao Dashboard
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <>
-          {/* Stepper */}
-          <div className="px-4 py-3 border-b">
-            <div className="flex items-center justify-between">
-              {steps.map((step) => (
-                <div key={step.id} className="flex flex-col items-center">
-                  <div 
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      step.id === currentStep 
-                        ? "bg-primary text-white" 
-                        : step.id < currentStep 
-                          ? "bg-primary/20 text-primary" 
-                          : "bg-neutral-200 text-neutral-500"
-                    }`}
-                  >
-                    {step.id < currentStep ? (
-                      <CheckCircle className="h-5 w-5" />
-                    ) : (
-                      step.id
-                    )}
-                  </div>
-                  <span className={`text-xs mt-1 ${
-                    step.id === currentStep 
-                      ? "text-primary" 
-                      : "text-neutral-500"
-                  }`}>
-                    {step.name}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-      
-      {/* Step Content */}
-      <div className="p-4">
-        {/* Step 1: Service Selection */}
-        {currentStep === 1 && (
-          <Form {...serviceForm}>
-            <form onSubmit={serviceForm.handleSubmit(onServiceSubmit)} className="space-y-4">
-              <h2 className="font-medium mb-4">Selecione o serviço</h2>
-              
-              <FormField
-                control={serviceForm.control}
-                name="providerServiceId"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="space-y-2">
-                      <RadioGroup 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                        className="flex flex-col space-y-2"
-                      >
-                        {isServicesLoading ? (
-                          <p>Carregando serviços...</p>
-                        ) : services.length > 0 ? (
-                          services.map((service) => (
-                            <Label
-                              key={service.id}
-                              htmlFor={`service-${service.id}`}
-                              className={`w-full flex items-center justify-between p-4 rounded-lg border ${
-                                field.value === service.id.toString()
-                                  ? "bg-primary/5 border-primary"
-                                  : "border-neutral-200"
-                              }`}
-                            >
-                              <div className="flex items-center">
-                                <div className="w-12 h-12 bg-primary/10 rounded-lg mr-3 flex items-center justify-center">
-                                  <ScissorsIcon className="h-6 w-6 text-primary" />
-                                </div>
-                                <div>
-                                  <p className="font-medium">{service.name}</p>
-                                  <p className="text-sm text-neutral-500">
-                                    {service.duration} min • {formatCurrency(service.price || 0)}
-                                  </p>
-                                </div>
-                              </div>
-                              <RadioGroupItem 
-                                value={service.id.toString()} 
-                                id={`service-${service.id}`} 
-                              />
-                            </Label>
-                          ))
-                        ) : (
-                          <p>Nenhum serviço encontrado. Adicione serviços no seu perfil.</p>
-                        )}
-                      </RadioGroup>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <Button 
-                type="submit" 
-                className="w-full mt-4"
-                disabled={isServicesLoading || services.length === 0}
-              >
-                Continuar
-              </Button>
-            </form>
-          </Form>
-        )}
-        
-        {/* Step 2: Date/Time Selection */}
-        {currentStep === 2 && selectedService && (
-          <Form {...dateTimeForm}>
-            <form onSubmit={dateTimeForm.handleSubmit(onDateTimeSubmit)} className="space-y-4">
-              <div className="flex items-center mb-4">
-                <Calendar className="h-5 w-5 mr-2 text-primary" />
-                <h2 className="font-medium">Selecione data e horário</h2>
+    <ProviderLayout title="Novo Agendamento" showBackButton>
+      <PageTransition>
+        <div className="w-full max-w-md mx-auto bg-white min-h-screen px-4 py-6">
+          {bookingSuccess && createdAppointment ? (
+            <div className="text-center py-8 px-4">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="h-8 w-8 text-green-600" />
               </div>
               
-              <FormField
-                control={dateTimeForm.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Data</FormLabel>
-                    <RadioGroup 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                      className="flex overflow-x-auto space-x-2 pb-2"
-                    >
-                      {availableDates.map((date) => (
-                        <Label
-                          key={date.value}
-                          htmlFor={`date-${date.value}`}
-                          className={`flex flex-col items-center p-2 min-w-[80px] rounded-lg border ${
-                            field.value === date.value
-                              ? "bg-primary/5 border-primary"
-                              : "border-neutral-200"
-                          }`}
-                        >
-                          <RadioGroupItem 
-                            value={date.value} 
-                            id={`date-${date.value}`} 
-                            className="sr-only"
-                          />
-                          <span className="text-sm">{date.label}</span>
-                        </Label>
-                      ))}
-                    </RadioGroup>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <h2 className="text-2xl font-bold text-center mb-2 text-neutral-900">Agendamento Confirmado!</h2>
+              <p className="text-neutral-600 text-center mb-8">
+                O agendamento foi criado com sucesso e o cliente foi notificado.
+              </p>
               
-              <FormField
-                control={dateTimeForm.control}
-                name="time"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Horário</FormLabel>
-                    <div className="space-y-4">
-                      {/* Opção de IA */}
-                      <div className="flex flex-row items-center space-x-2 space-y-0 bg-primary/5 p-3 rounded-lg">
-                        <input
-                          type="checkbox"
-                          checked={useAiOptimization}
-                          onChange={(e) => setUseAiOptimization(e.target.checked)}
-                          className="sr-only"
-                          id="use-ai-optimization"
-                        />
-                        <div className={`w-10 h-5 rounded-full relative ${useAiOptimization ? "bg-primary" : "bg-neutral-200"}`}>
-                          <div 
-                            className={`absolute w-4 h-4 rounded-full bg-white top-0.5 transition-all ${useAiOptimization ? "left-[calc(100%-20px)]" : "left-0.5"}`}
-                          />
-                        </div>
-                        <div className="flex flex-col">
-                          <div className="flex items-center">
-                            <Label 
-                              htmlFor="use-ai-optimization" 
-                              className="text-sm font-medium cursor-pointer"
-                              onClick={() => setUseAiOptimization(!useAiOptimization)}
-                            >
-                              Otimizar horários com IA
-                            </Label>
-                            <BrainCircuit className="ml-1 h-4 w-4 text-primary" />
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            Recomenda horários ideais baseados no serviço e histórico
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {/* Indicador de loading da IA */}
-                      {isOptimizingSlots && (
-                        <div className="flex items-center justify-center p-4">
-                          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-                          <span className="ml-3 text-sm">Analisando agenda com IA...</span>
-                        </div>
-                      )}
-                      
-                      <RadioGroup 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                        className="grid grid-cols-3 gap-2"
-                      >
-                        {displayTimeSlots.map((slot, idx) => {
-                          const hasScore = slot.adaptationScore !== undefined;
-                          const score = slot.adaptationScore || 0;
-                          const reason = slot.adaptationReason || '';
-                          
-                          return (
-                            <div key={idx}>
-                              {hasScore && reason ? (
-                                <TooltipProvider>
-                                  <Tooltip>
-                                    <TooltipTrigger asChild>
-                                      <Label
-                                        htmlFor={`time-${idx}`}
-                                        className={`relative flex justify-center p-2 rounded-lg border ${
-                                          field.value === slot.value
-                                            ? "bg-primary/5 border-primary"
-                                            : hasScore && score > 75
-                                              ? "bg-green-50 border-green-200"
-                                              : hasScore && score > 50
-                                                ? "bg-blue-50 border-blue-200"
-                                                : "border-neutral-200"
-                                        }`}
-                                      >
-                                        <RadioGroupItem 
-                                          value={slot.value} 
-                                          id={`time-${idx}`} 
-                                          className="sr-only"
-                                        />
-                                        <span className="text-sm">{slot.label}</span>
-                                        {hasScore && score > 60 && (
-                                          <Sparkles className="absolute top-0 right-0 h-3 w-3 -mt-1 -mr-1 text-primary" />
-                                        )}
-                                      </Label>
-                                    </TooltipTrigger>
-                                    <TooltipContent side="top" className="max-w-xs">
-                                      <div className="space-y-1">
-                                        <p className="text-sm font-medium">Recomendação da IA</p>
-                                        <p className="text-xs text-muted-foreground">{reason}</p>
-                                        <div className="flex items-center space-x-1 pt-1">
-                                          <div className="h-1.5 flex-1 rounded-full bg-neutral-100 overflow-hidden">
-                                            <div
-                                              className={`h-full ${
-                                                score > 75
-                                                  ? "bg-green-500"
-                                                  : score > 50
-                                                  ? "bg-blue-500"
-                                                  : score > 30
-                                                  ? "bg-yellow-500"
-                                                  : "bg-neutral-500"
-                                              }`}
-                                              style={{ width: `${score}%` }}
-                                            />
-                                          </div>
-                                          <span className="text-xs font-medium">{Math.round(score)}%</span>
-                                        </div>
-                                      </div>
-                                    </TooltipContent>
-                                  </Tooltip>
-                                </TooltipProvider>
-                              ) : (
-                                <Label
-                                  htmlFor={`time-${idx}`}
-                                  className={`relative flex justify-center p-2 rounded-lg border ${
-                                    field.value === slot.value
-                                      ? "bg-primary/5 border-primary"
-                                      : "border-neutral-200"
-                                  }`}
-                                >
-                                  <RadioGroupItem 
-                                    value={slot.value} 
-                                    id={`time-${idx}`} 
-                                    className="sr-only"
-                                  />
-                                  <span className="text-sm">{slot.label}</span>
-                                </Label>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </RadioGroup>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={dateTimeForm.control}
-                name="forceBooking"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <input
-                        type="checkbox"
-                        checked={field.value}
-                        onChange={field.onChange}
-                        className="sr-only"
-                        id="force-booking"
-                      />
-                    </FormControl>
-                    <div className={`w-10 h-5 rounded-full relative ${field.value ? "bg-primary" : "bg-neutral-200"}`}>
-                      <div 
-                        className={`absolute w-4 h-4 rounded-full bg-white top-0.5 transition-all ${field.value ? "left-[calc(100%-20px)]" : "left-0.5"}`}
-                        onClick={() => field.onChange(!field.value)}
-                      />
-                    </div>
-                    <FormLabel
-                      htmlFor="force-booking"
-                      className="text-sm cursor-pointer"
-                      onClick={() => field.onChange(!field.value)}
-                    >
-                      Forçar agendamento (ignorar conflitos)
-                    </FormLabel>
-                  </FormItem>
-                )}
-              />
-              
-              <div className="flex space-x-2 pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={handleBack}
-                >
-                  Voltar
-                </Button>
-                <Button 
-                  type="submit" 
-                  className="flex-1"
-                >
-                  Continuar
-                </Button>
-              </div>
-            </form>
-          </Form>
-        )}
-        
-        {/* Step 3: Client Selection */}
-        {currentStep === 3 && (
-          <Form {...clientForm}>
-            <form onSubmit={(e) => {
-                e.preventDefault();
-                console.log("Formulário enviado. Erros:", clientForm.formState.errors);
-                clientForm.handleSubmit(onClientSubmit)(e);
-              }} className="space-y-4">
-              <div className="flex items-center mb-4">
-                <UserRound className="h-5 w-5 mr-2 text-primary" />
-                <h2 className="font-medium">Selecione o cliente</h2>
-              </div>
-              
-              <FormField
-                control={clientForm.control}
-                name="clientType"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tipo de cliente</FormLabel>
-                    <Tabs
-                      value={field.value}
-                      onValueChange={(value) => {
-                        field.onChange(value);
-                        
-                        // Limpar campos quando alterna entre tabs
-                        if (value === "existing") {
-                          // Limpar campos de novo cliente
-                          clientForm.setValue("clientName", "");
-                          clientForm.setValue("clientEmail", "");
-                          clientForm.setValue("clientPhone", "");
-                          
-                          // Limpar erros de novo cliente
-                          clientForm.clearErrors("clientName");
-                          clientForm.clearErrors("clientEmail");
-                          clientForm.clearErrors("clientPhone");
-                        } else {
-                          // Limpar cliente selecionado e seu erro
-                          clientForm.setValue("clientId", "");
-                          clientForm.clearErrors("clientId");
-                        }
-                      }}
-                      className="w-full"
-                    >
-                      <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="existing">Cliente cadastrado</TabsTrigger>
-                        <TabsTrigger value="new">Novo cliente</TabsTrigger>
-                      </TabsList>
-                      
-                      <TabsContent value="existing" className="pt-4">
-                        {/* Existing client selection */}
-                        <div className="mb-4">
-                          <div className="relative">
-                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-neutral-500" />
-                            <Input
-                              placeholder="Buscar cliente por nome, email ou telefone"
-                              value={clientSearchTerm}
-                              onChange={(e) => setClientSearchTerm(e.target.value)}
-                              className="pl-9"
-                            />
-                          </div>
-                        </div>
-                        
-                        <FormField
-                          control={clientForm.control}
-                          name="clientId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <RadioGroup 
-                                onValueChange={(value) => {
-                                  field.onChange(value);
-                                  // Limpar erro quando um cliente é selecionado
-                                  clientForm.clearErrors("clientId");
-                                }} 
-                                value={field.value} // Use value em vez de defaultValue para controle total
-                                className="flex flex-col space-y-2 max-h-[300px] overflow-y-auto"
-                              >
-                                {filteredClients.length > 0 ? (
-                                  filteredClients.map((client) => (
-                                    <Label
-                                      key={client.id}
-                                      htmlFor={`client-${client.id}`}
-                                      className={`w-full flex items-center justify-between p-3 rounded-lg border ${
-                                        field.value === client.id.toString()
-                                          ? "bg-primary/5 border-primary"
-                                          : "border-neutral-200"
-                                      }`}
-                                    >
-                                      <div className="flex items-center">
-                                        <div className="w-10 h-10 bg-neutral-200 rounded-full mr-3 flex items-center justify-center overflow-hidden">
-                                          {client.profileImage ? (
-                                            <img 
-                                              src={client.profileImage} 
-                                              alt={client.name || 'Cliente'} 
-                                              className="w-full h-full object-cover"
-                                            />
-                                          ) : (
-                                            <UserRound className="h-5 w-5 text-neutral-500" />
-                                          )}
-                                        </div>
-                                        <div>
-                                          <p className="font-medium">{client.name}</p>
-                                          <p className="text-xs text-neutral-500">
-                                            {client.email} • {client.phone || "Sem telefone"}
-                                          </p>
-                                        </div>
-                                      </div>
-                                      <RadioGroupItem 
-                                        value={client.id.toString()} 
-                                        id={`client-${client.id}`} 
-                                      />
-                                    </Label>
-                                  ))
-                                ) : (
-                                  <div className="text-center py-6">
-                                    <UserRound className="mx-auto h-8 w-8 text-neutral-300" />
-                                    <p className="mt-2 text-sm text-neutral-500">
-                                      Nenhum cliente encontrado com os termos de busca
-                                    </p>
-                                  </div>
-                                )}
-                              </RadioGroup>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </TabsContent>
-                      
-                      <TabsContent value="new" className="pt-4 space-y-4">
-                        {/* New client form */}
-                        <FormField
-                          control={clientForm.control}
-                          name="clientName"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Nome completo</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="Nome do cliente" value={field.value || ""} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={clientForm.control}
-                          name="clientEmail"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Email</FormLabel>
-                              <FormControl>
-                                <Input {...field} type="email" placeholder="email@exemplo.com" value={field.value || ""} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={clientForm.control}
-                          name="clientPhone"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Telefone</FormLabel>
-                              <FormControl>
-                                <Input {...field} placeholder="(11) 98765-4321" value={field.value || ""} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </TabsContent>
-                    </Tabs>
-                  </FormItem>
-                )}
-              />
-              
-              <div className="flex space-x-2 pt-4">
-                <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={handleBack}
-                >
-                  Voltar
-                </Button>
-                <Button 
-                  type="submit" 
-                  className="flex-1"
-                >
-                  Continuar
-                </Button>
-              </div>
-            </form>
-          </Form>
-        )}
-        
-        {/* Step 4: Confirmation */}
-        {currentStep === 4 && selectedService && (
-          <Form {...confirmationForm}>
-            <form onSubmit={confirmationForm.handleSubmit(onConfirmationSubmit)} className="space-y-4">
-              <div className="flex items-center mb-4">
-                <CheckCircle className="h-5 w-5 mr-2 text-primary" />
-                <h2 className="font-medium">Confirmar agendamento</h2>
-              </div>
-              
-              <Card>
-                <CardContent className="pt-6">
+              <Card className="w-full mb-8 bg-white border border-neutral-200 rounded-xl shadow-sm">
+                <CardContent className="pt-6 p-6">
                   <div className="space-y-4">
-                    {/* Service details */}
+                    {/* Detalhes do serviço */}
                     <div className="flex items-center">
-                      <div className="w-10 h-10 bg-primary/10 rounded-lg mr-3 flex items-center justify-center">
-                        <ScissorsIcon className="h-5 w-5 text-primary" />
+                      <div className="w-10 h-10 bg-[#58c9d1]/10 rounded-lg mr-3 flex items-center justify-center">
+                        <ScissorsIcon className="h-5 w-5 text-[#58c9d1]" />
                       </div>
                       <div>
-                        <p className="font-medium">{selectedService.name}</p>
-                        <p className="text-sm text-neutral-500">
-                          {selectedService.duration} min • {formatCurrency(selectedService.price)}
+                        <p className="font-medium text-neutral-900">{selectedService?.name}</p>
+                        <p className="text-sm text-neutral-600">
+                          {selectedService?.duration} min • {formatCurrency((selectedService?.price || 0) / 100)}
                         </p>
                       </div>
                     </div>
                     
-                    {/* Date/Time details */}
+                    {/* Detalhes da data/hora */}
                     <div className="flex items-center">
-                      <div className="w-10 h-10 bg-primary/10 rounded-lg mr-3 flex items-center justify-center">
-                        <Calendar className="h-5 w-5 text-primary" />
+                      <div className="w-10 h-10 bg-[#58c9d1]/10 rounded-lg mr-3 flex items-center justify-center">
+                        <Calendar className="h-5 w-5 text-[#58c9d1]" />
                       </div>
                       <div>
-                        <p className="font-medium">
+                        <p className="font-medium text-neutral-900">
                           {bookingData.date && format(parseISO(bookingData.date), "dd 'de' MMMM", { locale: ptBR })}
                         </p>
-                        <p className="text-sm text-neutral-500">
-                          {bookingData.time && `${bookingData.time} - ${calculateEndTime(bookingData.time, selectedService.duration)}`}
+                        <p className="text-sm text-neutral-600">
+                          {bookingData.time && `${bookingData.time} - ${calculateEndTime(bookingData.time, selectedService?.duration || 30)}`}
                         </p>
                       </div>
                     </div>
-                    
-                    {/* Client details */}
-                    <div className="flex items-center">
-                      <div className="w-10 h-10 bg-primary/10 rounded-lg mr-3 flex items-center justify-center">
-                        <UserRound className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        {bookingData.clientType === "existing" && bookingData.clientId ? (
-                          <div>
-                            {clients.filter(c => c.id.toString() === bookingData.clientId).map(client => (
-                              <div key={client.id}>
-                                <p className="font-medium">{client.name}</p>
-                                <p className="text-sm text-neutral-500">
-                                  {client.email} • {client.phone}
-                                </p>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div>
-                            <p className="font-medium">{bookingData.clientName}</p>
-                            <p className="text-sm text-neutral-500">
-                              {bookingData.clientEmail} • {bookingData.clientPhone}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Force booking warning */}
-                    {bookingData.forceBooking && (
-                      <Alert className="bg-yellow-50 border-yellow-200">
-                        <AlertCircle className="h-4 w-4 text-yellow-600" />
-                        <AlertTitle className="text-yellow-600">Atenção: Agendamento forçado</AlertTitle>
-                        <AlertDescription className="text-yellow-600">
-                          Este agendamento ignorará conflitos de horários.
-                        </AlertDescription>
-                      </Alert>
-                    )}
                   </div>
                 </CardContent>
               </Card>
               
-              {/* Additional notes */}
-              <FormField
-                control={confirmationForm.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Observações (opcional)</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        {...field} 
-                        placeholder="Adicione observações sobre este agendamento" 
-                        value={field.value || ""}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Send notification option */}
-              <FormField
-                control={confirmationForm.control}
-                name="sendNotification"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                    <FormControl>
-                      <input
-                        type="checkbox"
-                        checked={field.value}
-                        onChange={field.onChange}
-                        className="sr-only"
-                        id="send-notification"
-                      />
-                    </FormControl>
-                    <div className={`w-10 h-5 rounded-full relative ${field.value ? "bg-primary" : "bg-neutral-200"}`}>
-                      <div 
-                        className={`absolute w-4 h-4 rounded-full bg-white top-0.5 transition-all ${field.value ? "left-[calc(100%-20px)]" : "left-0.5"}`}
-                        onClick={() => field.onChange(!field.value)}
-                      />
-                    </div>
-                    <FormLabel
-                      htmlFor="send-notification"
-                      className="text-sm cursor-pointer"
-                      onClick={() => field.onChange(!field.value)}
-                    >
-                      Enviar notificação ao cliente
-                    </FormLabel>
-                  </FormItem>
-                )}
-              />
-              
-              <div className="flex space-x-2 pt-4">
+              <div className="flex flex-col w-full space-y-3">
                 <Button 
-                  type="button" 
-                  variant="outline"
-                  onClick={handleBack}
+                  onClick={handleNewBooking}
+                  className="w-full bg-[#58c9d1] text-white hover:bg-[#58c9d1]/90"
                 >
-                  Voltar
+                  Novo Agendamento
                 </Button>
+                
                 <Button 
-                  type="submit" 
-                  className="flex-1"
-                  disabled={createAppointmentMutation.isPending}
+                  variant="outline"
+                  onClick={handleReturnToDashboard}
+                  className="w-full border-neutral-200 text-neutral-700 hover:bg-neutral-50"
                 >
-                  {createAppointmentMutation.isPending ? (
-                    <>
-                      <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent" />
-                      Agendando...
-                    </>
-                  ) : (
-                    "Confirmar agendamento"
-                  )}
+                  Voltar ao Dashboard
                 </Button>
               </div>
-            </form>
-          </Form>
-        )}
-      </div>
-      </>
-      )}
-      </ProviderLayout>
-    </PageTransition>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Stepper */}
+              <div className="py-3 border-b border-neutral-200 bg-white">
+                <div className="flex items-center justify-between px-2">
+                  {steps.map((step) => (
+                    <div key={step.id} className="flex flex-col items-center">
+                      <div 
+                        className={`w-7 h-7 rounded-full flex items-center justify-center text-sm ${
+                          step.id === currentStep 
+                            ? "bg-[#58c9d1] text-white" 
+                            : step.id < currentStep 
+                              ? "bg-[#58c9d1]/20 text-[#58c9d1]" 
+                              : "bg-neutral-200 text-neutral-500"
+                        }`}
+                      >
+                        {step.id < currentStep ? (
+                          <CheckCircle className="h-4 w-4" />
+                        ) : (
+                          step.id
+                        )}
+                      </div>
+                      <span className={`text-xs mt-1 px-1 text-center ${
+                        step.id === currentStep 
+                          ? "text-[#58c9d1]" 
+                          : step.id < currentStep 
+                            ? "text-[#58c9d1]" 
+                            : "text-neutral-500"
+                      }`}>
+                        {step.name}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+          
+              {/* Step Content */}
+              <div className="px-3 py-4 bg-white">
+                {/* Step 1: Service Selection */}
+                {currentStep === 1 && (
+                  <Form {...serviceForm}>
+                    <form onSubmit={serviceForm.handleSubmit(onServiceSubmit)} className="space-y-3">
+                      <h2 className="text-lg font-semibold mb-3 text-neutral-900">Selecione o serviço</h2>
+                      
+                      <FormField
+                        control={serviceForm.control}
+                        name="providerServiceId"
+                        render={({ field }) => (
+                          <FormItem>
+                            <div className="space-y-3">
+                              <RadioGroup 
+                                onValueChange={field.onChange} 
+                                defaultValue={field.value}
+                                className="flex flex-col space-y-1"
+                              >
+                                {isServicesLoading ? (
+                                  <div className="text-center py-8">
+                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#58c9d1] mx-auto"></div>
+                                    <p className="text-neutral-600 mt-2">Carregando serviços...</p>
+                                  </div>
+                                ) : services.length > 0 ? (
+                                  services.map((service) => (
+                                    <Label
+                                      key={service.id}
+                                      htmlFor={`service-${service.id}`}
+                                      className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all ${
+                                        field.value === service.id.toString()
+                                          ? "bg-[#58c9d1]/5 border-[#58c9d1] shadow-sm"
+                                          : "border-neutral-200 hover:border-neutral-300"
+                                      }`}
+                                    >
+                                      <div className="flex items-center">
+                                        <div className="w-8 h-8 bg-[#58c9d1]/10 rounded-lg mr-3 flex items-center justify-center">
+                                          <ScissorsIcon className="h-4 w-4 text-[#58c9d1]" />
+                                        </div>
+                                        <div>
+                                          <p className="font-medium text-neutral-900">{service.name}</p>
+                                                                                  <p className="text-sm text-neutral-600">
+                                          {service.duration} min • {formatCurrency((service.price || 0) / 100)}
+                                        </p>
+                                        </div>
+                                      </div>
+                                      <RadioGroupItem 
+                                        value={service.id.toString()} 
+                                        id={`service-${service.id}`} 
+                                      />
+                                    </Label>
+                                  ))
+                                ) : (
+                                  <div className="text-center py-8">
+                                    <AlertCircle className="h-12 w-12 text-neutral-400 mx-auto mb-3" />
+                                    <p className="text-neutral-600">Nenhum serviço encontrado.</p>
+                                    <p className="text-sm text-neutral-500 mt-1">Adicione serviços no seu perfil.</p>
+                                  </div>
+                                )}
+                              </RadioGroup>
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <Button 
+                        type="submit" 
+                        className="w-full mt-4 bg-[#58c9d1] text-white hover:bg-[#58c9d1]/90"
+                        disabled={isServicesLoading || services.length === 0}
+                      >
+                        Continuar
+                      </Button>
+                    </form>
+                  </Form>
+                )}
+                
+                {/* Step 2: Date/Time Selection */}
+                {currentStep === 2 && selectedService && (
+                  <Form {...dateTimeForm}>
+                    <form onSubmit={dateTimeForm.handleSubmit(onDateTimeSubmit)} className="space-y-3">
+                      <div className="flex items-center mb-3">
+                        <Calendar className="h-5 w-5 mr-2 text-primary" />
+                        <h2 className="font-medium">Selecione data e horário</h2>
+                      </div>
+                      
+                      <FormField
+                        control={dateTimeForm.control}
+                        name="date"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Data</FormLabel>
+                            <RadioGroup 
+                              onValueChange={field.onChange} 
+                              defaultValue={field.value}
+                              className="grid grid-cols-2 gap-2"
+                            >
+                              {availableDates.map((date) => (
+                                <Label
+                                  key={date.value}
+                                  htmlFor={`date-${date.value}`}
+                                  className={`flex flex-col items-center p-3 rounded-lg border cursor-pointer transition-all ${
+                                    field.value === date.value
+                                      ? "bg-[#58c9d1]/5 border-[#58c9d1]"
+                                      : "border-neutral-200 hover:border-neutral-300"
+                                  }`}
+                                >
+                                  <span className="text-sm font-medium text-neutral-900">{date.label}</span>
+                                  <span className="text-xs text-neutral-600">{date.day}</span>
+                                  <RadioGroupItem 
+                                    value={date.value} 
+                                    id={`date-${date.value}`} 
+                                  />
+                                </Label>
+                              ))}
+                            </RadioGroup>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={dateTimeForm.control}
+                        name="time"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Horário</FormLabel>
+                            {isLoadingTimeSlots ? (
+                              <div className="text-center py-8">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#58c9d1] mx-auto"></div>
+                                <p className="text-neutral-600 mt-2">Carregando horários do prestador...</p>
+                              </div>
+                            ) : displayTimeSlots.length > 0 ? (
+                              <RadioGroup 
+                                onValueChange={field.onChange} 
+                                defaultValue={field.value}
+                                className="grid grid-cols-3 gap-2"
+                              >
+                                {displayTimeSlots.map((slot, index) => (
+                                  <Label
+                                    key={`${slot.value}-${index}`}
+                                    htmlFor={`time-${slot.value}-${index}`}
+                                    className={`flex flex-col items-center p-2 rounded-lg border cursor-pointer transition-all ${
+                                      field.value === slot.value
+                                        ? "bg-[#58c9d1]/5 border-[#58c9d1]"
+                                        : "border-neutral-200 hover:border-neutral-300"
+                                    }`}
+                                  >
+                                    <span className="text-sm font-medium text-neutral-900">{slot.label}</span>
+                                    {slot.adaptationScore && (
+                                      <span className="text-xs text-neutral-600">
+                                        {slot.adaptationReason}
+                                      </span>
+                                    )}
+                                    <RadioGroupItem 
+                                      value={slot.value} 
+                                      id={`time-${slot.value}-${index}`} 
+                                    />
+                                  </Label>
+                                ))}
+                              </RadioGroup>
+                            ) : (
+                              <div className="text-center py-8">
+                                <Clock className="h-12 w-12 text-neutral-400 mx-auto mb-3" />
+                                <p className="text-neutral-600">Nenhum horário disponível.</p>
+                                <p className="text-sm text-neutral-500 mt-1">Configure sua agenda primeiro.</p>
+                              </div>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={dateTimeForm.control}
+                        name="forceBooking"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                              />
+                            </FormControl>
+                            <div className="space-y-0.5">
+                              <FormLabel className="text-sm">Agendamento forçado</FormLabel>
+                              <FormDescription className="text-xs text-neutral-600">
+                                Ignora conflitos de horário
+                              </FormDescription>
+                            </div>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="flex space-x-2 pt-4">
+                        <Button 
+                          type="button" 
+                          variant="outline"
+                          onClick={handleBack}
+                          className="flex-1"
+                        >
+                          Voltar
+                        </Button>
+                        <Button 
+                          type="submit" 
+                          className="flex-1 bg-[#58c9d1] text-white hover:bg-[#58c9d1]/90"
+                        >
+                          Continuar
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                )}
+                
+                {/* Step 3: Client Selection */}
+                {currentStep === 3 && (
+                  <Form {...clientForm}>
+                    <form onSubmit={clientForm.handleSubmit(onClientSubmit)} className="space-y-3">
+                                              <div className="flex items-center mb-3">
+                          <UserRound className="h-5 w-5 mr-2 text-primary" />
+                          <h2 className="font-medium">Informações do cliente</h2>
+                        </div>
+                      
+                      <Tabs defaultValue="existing" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                          <TabsTrigger value="existing">Cliente existente</TabsTrigger>
+                          <TabsTrigger value="new">Novo cliente</TabsTrigger>
+                        </TabsList>
+                        
+                        <TabsContent value="existing" className="space-y-4">
+                          {/* Campo de busca por CPF ou telefone */}
+                          <div className="space-y-3">
+                            <div>
+                              <Label htmlFor="clientSearch" className="text-sm font-medium text-neutral-700">
+                                Buscar cliente por CPF ou telefone
+                              </Label>
+                              <div className="relative">
+                                <Input
+                                  id="clientSearch"
+                                  type="text"
+                                  placeholder="Digite CPF ou telefone (mínimo 8 dígitos)"
+                                  value={clientSearchTerm}
+                                  onChange={(e) => setClientSearchTerm(e.target.value)}
+                                  className="pr-10"
+                                />
+                                {isSearchingClients && (
+                                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-[#58c9d1]"></div>
+                                  </div>
+                                )}
+                              </div>
+                              {clientSearchError && (
+                                <p className="text-sm text-red-600 mt-1">{clientSearchError}</p>
+                              )}
+                            </div>
+
+                          </div>
+
+                          <div className="border-t pt-4">
+                            <FormField
+                              control={clientForm.control}
+                              name="clientId"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Ou selecione da lista completa</FormLabel>
+                                  <RadioGroup 
+                                    onValueChange={field.onChange} 
+                                    value={field.value}
+                                    className="space-y-1"
+                                  >
+                                    {/* Clientes encontrados na busca */}
+                                    {searchedClients.length > 0 && (
+                                      <>
+                                        <div className="mb-3">
+                                          <Label className="text-sm font-medium text-neutral-700">
+                                            Clientes encontrados
+                                          </Label>
+                                        </div>
+                                        {searchedClients.map((client) => (
+                                          <Label
+                                            key={`searched-${client.id}`}
+                                            htmlFor={`searched-client-${client.id}`}
+                                            className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all cursor-pointer ${
+                                              field.value === client.id.toString()
+                                                ? "bg-[#58c9d1]/5 border-[#58c9d1] shadow-sm"
+                                                : "border-neutral-200 hover:border-neutral-300"
+                                            }`}
+                                          >
+                                            <div className="flex items-center">
+                                              <div className="w-8 h-8 bg-[#58c9d1]/10 rounded-lg mr-3 flex items-center justify-center">
+                                                <UserRound className="h-4 w-4 text-[#58c9d1]" />
+                                              </div>
+                                              <div>
+                                                <p className="font-medium text-neutral-900">{client.name}</p>
+                                                <p className="text-sm text-neutral-600">{client.email}</p>
+                                                {client.cpf && (
+                                                  <p className="text-xs text-neutral-500">CPF: {client.cpf}</p>
+                                                )}
+                                              </div>
+                                            </div>
+                                            <RadioGroupItem 
+                                              value={client.id.toString()} 
+                                              id={`searched-client-${client.id}`} 
+                                            />
+                                          </Label>
+                                        ))}
+                                        {clients.length > 0 && (
+                                          <div className="mt-3 mb-3">
+                                            <Label className="text-sm font-medium text-neutral-700">
+                                              Todos os clientes
+                                            </Label>
+                                          </div>
+                                        )}
+                                      </>
+                                    )}
+
+                                    {/* Lista completa de clientes */}
+                                    {isClientsLoading ? (
+                                      <div className="text-center py-8">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#58c9d1] mx-auto"></div>
+                                        <p className="text-neutral-600 mt-2">Carregando clientes...</p>
+                                      </div>
+                                    ) : clients.length > 0 ? (
+                                      clients.map((client) => (
+                                        <Label
+                                          key={client.id}
+                                          htmlFor={`client-${client.id}`}
+                                          className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all ${
+                                            field.value === client.id.toString()
+                                              ? "bg-[#58c9d1]/5 border-[#58c9d1] shadow-sm"
+                                              : "border-neutral-200 hover:border-neutral-300"
+                                          }`}
+                                        >
+                                          <div className="flex items-center">
+                                            <div className="w-8 h-8 bg-[#58c9d1]/10 rounded-lg mr-3 flex items-center justify-center">
+                                              <UserRound className="h-4 w-4 text-[#58c9d1]" />
+                                            </div>
+                                            <div>
+                                              <p className="font-medium text-neutral-900">{client.name}</p>
+                                              <p className="text-sm text-neutral-600">{client.email}</p>
+                                            </div>
+                                          </div>
+                                          <RadioGroupItem 
+                                            value={client.id.toString()} 
+                                            id={`client-${client.id}`} 
+                                          />
+                                        </Label>
+                                      ))
+                                    ) : (
+                                      <div className="text-center py-8">
+                                        <UserRound className="h-12 w-12 text-neutral-400 mx-auto mb-3" />
+                                        <p className="text-neutral-600">Nenhum cliente encontrado.</p>
+                                        <p className="text-sm text-neutral-500 mt-1">Adicione clientes primeiro.</p>
+                                      </div>
+                                    )}
+                                  </RadioGroup>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+                        </TabsContent>
+                        
+                        <TabsContent value="new" className="space-y-4">
+                          <FormField
+                            control={clientForm.control}
+                            name="clientName"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Nome completo</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    placeholder="Digite o nome completo" 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={clientForm.control}
+                            name="clientEmail"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Email</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    type="email"
+                                    placeholder="Digite o email" 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={clientForm.control}
+                            name="clientPhone"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Telefone (opcional)</FormLabel>
+                                <FormControl>
+                                  <Input 
+                                    {...field} 
+                                    placeholder="Digite o telefone" 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </TabsContent>
+                      </Tabs>
+                      
+                      <div className="flex space-x-2 pt-4">
+                        <Button 
+                          type="button" 
+                          variant="outline"
+                          onClick={handleBack}
+                          className="flex-1"
+                        >
+                          Voltar
+                        </Button>
+                        <Button 
+                          type="submit" 
+                          className="flex-1 bg-[#58c9d1] text-white hover:bg-[#58c9d1]/90"
+                        >
+                          Continuar
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                )}
+                
+                {/* Step 4: Confirmation */}
+                {currentStep === 4 && (
+                  <Form {...confirmationForm}>
+                    <form onSubmit={confirmationForm.handleSubmit(onConfirmationSubmit)} className="space-y-3">
+                                              <div className="flex items-center mb-3">
+                          <CheckCircle className="h-5 w-5 mr-2 text-primary" />
+                          <h2 className="font-medium">Confirmar agendamento</h2>
+                        </div>
+                      
+                      <Card className="bg-white border border-neutral-200 rounded-xl shadow-sm">
+                        <CardContent className="p-6">
+                          <div className="space-y-4">
+                            {/* Service details */}
+                            <div className="flex items-center">
+                              <div className="w-10 h-10 bg-[#58c9d1]/10 rounded-lg mr-3 flex items-center justify-center">
+                                <ScissorsIcon className="h-5 w-5 text-[#58c9d1]" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-neutral-900">{selectedService?.name}</p>
+                                                                  <p className="text-sm text-neutral-600">
+                                    {selectedService?.duration} min • {formatCurrency((selectedService?.price || 0) / 100)}
+                                  </p>
+                              </div>
+                            </div>
+                            
+                            {/* Date/Time details */}
+                            <div className="flex items-center">
+                              <div className="w-10 h-10 bg-[#58c9d1]/10 rounded-lg mr-3 flex items-center justify-center">
+                                <Calendar className="h-5 w-5 text-[#58c9d1]" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-neutral-900">
+                                  {bookingData.date && format(parseISO(bookingData.date), "dd 'de' MMMM", { locale: ptBR })}
+                                </p>
+                                <p className="text-sm text-neutral-600">
+                                  {bookingData.time && `${bookingData.time} - ${calculateEndTime(bookingData.time, selectedService?.duration || 30)}`}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {/* Client details */}
+                            <div className="flex items-center">
+                              <div className="w-10 h-10 bg-[#58c9d1]/10 rounded-lg mr-3 flex items-center justify-center">
+                                <UserRound className="h-5 w-5 text-[#58c9d1]" />
+                              </div>
+                              <div>
+                                <p className="font-medium text-neutral-900">{selectedClient?.name || bookingData.clientName}</p>
+                                <p className="text-sm text-neutral-600">{selectedClient?.email || bookingData.clientEmail}</p>
+                              </div>
+                            </div>
+                            
+                            {/* Force booking warning */}
+                            {bookingData.forceBooking && (
+                              <Alert className="bg-yellow-50 border-yellow-200">
+                                <AlertCircle className="h-4 w-4 text-yellow-600" />
+                                <AlertTitle className="text-yellow-600">Atenção: Agendamento forçado</AlertTitle>
+                                <AlertDescription className="text-yellow-600">
+                                  Este agendamento ignorará conflitos de horários.
+                                </AlertDescription>
+                              </Alert>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                      
+                      {/* Additional notes */}
+                      <FormField
+                        control={confirmationForm.control}
+                        name="notes"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Observações (opcional)</FormLabel>
+                            <FormControl>
+                              <Textarea 
+                                {...field} 
+                                placeholder="Adicione observações sobre este agendamento" 
+                                value={field.value || ""}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      {/* Send notification option */}
+                      <FormField
+                        control={confirmationForm.control}
+                        name="sendNotification"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center space-x-2 space-y-0">
+                            <FormControl>
+                              <input
+                                type="checkbox"
+                                checked={field.value}
+                                onChange={field.onChange}
+                                className="sr-only"
+                                id="send-notification"
+                              />
+                            </FormControl>
+                            <div className={`w-10 h-5 rounded-full relative ${field.value ? "bg-primary" : "bg-neutral-200"}`}>
+                              <div 
+                                className={`absolute w-4 h-4 rounded-full bg-white top-0.5 transition-all ${field.value ? "left-[calc(100%-20px)]" : "left-0.5"}`}
+                                onClick={() => field.onChange(!field.value)}
+                              />
+                            </div>
+                            <FormLabel
+                              htmlFor="send-notification"
+                              className="text-sm cursor-pointer"
+                              onClick={() => field.onChange(!field.value)}
+                            >
+                              Enviar notificação ao cliente
+                            </FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="flex space-x-2 pt-4">
+                        <Button 
+                          type="button" 
+                          variant="outline"
+                          onClick={handleBack}
+                        >
+                          Voltar
+                        </Button>
+                        <Button 
+                          type="submit" 
+                          className="flex-1"
+                          disabled={createAppointmentMutation.isPending}
+                        >
+                          {createAppointmentMutation.isPending ? (
+                            <>
+                              <div className="h-4 w-4 mr-2 animate-spin rounded-full border-2 border-background border-t-transparent" />
+                              Agendando...
+                            </>
+                          ) : (
+                            "Confirmar agendamento"
+                          )}
+                        </Button>
+                      </div>
+                    </form>
+                  </Form>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      </PageTransition>
+      <Navbar />
+    </ProviderLayout>
   );
 }

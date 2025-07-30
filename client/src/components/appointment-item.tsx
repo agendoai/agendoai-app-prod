@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useLocation } from 'wouter';
 import { apiRequest } from '@/lib/queryClient';
-import { Check, Ban, Star, Calendar, MessageSquare, X, AlertCircle } from 'lucide-react';
+import { Check, Ban, Star, Calendar, MessageSquare, X, AlertCircle, MoreVertical, Play, CheckCircle, CreditCard } from 'lucide-react';
 import { 
   Card, 
   CardContent, 
@@ -11,6 +11,12 @@ import {
   CardTitle
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -35,10 +41,29 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { formatStatus } from '@/lib/utils';
 
+// Função para formatar status de pagamento
+const formatPaymentStatus = (paymentStatus: string) => {
+  switch (paymentStatus) {
+    case 'paid':
+      return { text: 'Pago', color: 'bg-green-100 text-green-800', icon: <CreditCard className="h-3 w-3" /> };
+    case 'pending':
+      return { text: 'Aguardando', color: 'bg-yellow-100 text-yellow-800', icon: <AlertCircle className="h-3 w-3" /> };
+    case 'failed':
+      return { text: 'Falhou', color: 'bg-red-100 text-red-800', icon: <X className="h-3 w-3" /> };
+    case 'refunded':
+      return { text: 'Reembolsado', color: 'bg-gray-100 text-gray-800', icon: <Ban className="h-3 w-3" /> };
+    case 'paid_externally':
+      return { text: 'Pago ext.', color: 'bg-blue-100 text-blue-800', icon: <CreditCard className="h-3 w-3" /> };
+    default:
+      return { text: 'Não informado', color: 'bg-gray-100 text-gray-600', icon: <AlertCircle className="h-3 w-3" /> };
+  }
+};
+
 // Mapeamento de classes de cores por status
 const statusColorMap = {
   pending: 'bg-yellow-50 border-yellow-200',
   confirmed: 'bg-blue-50 border-blue-200',
+  executing: 'bg-purple-50 border-purple-200',
   completed: 'bg-green-50 border-green-200',
   canceled: 'bg-red-50 border-red-200',
   no_show: 'bg-gray-50 border-gray-200',
@@ -177,6 +202,21 @@ type AppointmentStatusUpdateParams = {
   const handleNoShow = () => {
     updateStatusMutation.mutate({ appointmentId: appointment.id, status: 'no_show' });
   };
+
+  const handleConfirm = () => {
+    updateStatusMutation.mutate({ appointmentId: appointment.id, status: 'confirmed' });
+  };
+
+  const handleExecute = () => {
+    updateStatusMutation.mutate({ appointmentId: appointment.id, status: 'executing' });
+  };
+
+  const handleMarkAsPaid = () => {
+    updateStatusMutation.mutate({ 
+      appointmentId: appointment.id, 
+      paymentStatus: 'paid' // marca como pago sem alterar o status
+    });
+  };
   
   // Função para enviar avaliação
   const handleSubmitReview = () => {
@@ -241,21 +281,38 @@ type AppointmentStatusUpdateParams = {
             <span className="font-semibold text-lg text-gray-900 truncate">
               {userType === 'client' ? appointment.providerName : appointment.clientName}
             </span>
-            <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1
+          </div>
+          
+          {/* Status badges em linha separada para melhor organização */}
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1
               ${appointment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
                 appointment.status === 'confirmed' ? 'bg-blue-100 text-blue-800' :
+                appointment.status === 'executing' ? 'bg-purple-100 text-purple-800' :
                 appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
                 appointment.status === 'canceled' ? 'bg-red-100 text-red-800' :
                 'bg-gray-100 text-gray-600'}
             `}>
               {appointment.status === 'pending' && <AlertCircle className="h-3 w-3" />}
               {appointment.status === 'confirmed' && <Check className="h-3 w-3" />}
+              {appointment.status === 'executing' && <Play className="h-3 w-3" />}
               {appointment.status === 'completed' && <Star className="h-3 w-3" />}
               {appointment.status === 'canceled' && <X className="h-3 w-3" />}
               {appointment.status === 'no_show' && <Ban className="h-3 w-3" />}
               {formatStatus(appointment.status)}
             </span>
+            
+            {/* Indicador de pagamento */}
+            {appointment.paymentStatus && (
+              <span className={`px-2 py-0.5 rounded-full text-xs font-medium flex items-center gap-1 ${
+                formatPaymentStatus(appointment.paymentStatus).color
+              }`}>
+                {formatPaymentStatus(appointment.paymentStatus).icon}
+                {formatPaymentStatus(appointment.paymentStatus).text}
+              </span>
+            )}
           </div>
+          
           <div className="text-sm text-gray-500 truncate mb-1">{appointment.serviceName}</div>
           <div className="flex items-center gap-3 text-xs text-gray-500">
             <span className="flex items-center gap-1"><Calendar className="h-3 w-3" /> {formattedDate}, {appointment.startTime}</span>
@@ -266,7 +323,7 @@ type AppointmentStatusUpdateParams = {
         </div>
         {/* Actions */}
         {showActions && (
-          <div className="flex flex-col gap-2 items-end ml-4">
+          <div className="flex items-center gap-2 ml-4">
             <Button 
               variant="outline" 
               size="icon" 
@@ -276,39 +333,99 @@ type AppointmentStatusUpdateParams = {
             >
               <Calendar className="h-4 w-4" />
             </Button>
-            {/* Outras ações (cancelar, concluir, etc.) */}
-            {userType === 'provider' && isFutureAppointment && appointment.status !== 'canceled' && (
-              <Button 
-                variant="destructive" 
-                size="icon" 
-                onClick={handleCancel}
-                className="h-8 w-8 p-0"
-                title="Cancelar"
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
-            {userType === 'provider' && isFutureAppointment && appointment.status !== 'canceled' && (
-              <Button 
-                variant="outline" 
-                size="icon" 
-                onClick={handleNoShow}
-                className="h-8 w-8 p-0 border-gray-300 hover:border-yellow-400"
-                title="Não compareceu"
-              >
-                <AlertCircle className="h-4 w-4" />
-              </Button>
-            )}
-            {userType === 'provider' && appointment.status !== 'completed' && appointment.status !== 'canceled' && (
-              <Button 
-                variant="default" 
-                size="icon" 
-                onClick={handleComplete}
-                className="h-8 w-8 p-0 bg-green-600 hover:bg-green-700"
-                title="Concluir"
-              >
-                <Check className="h-4 w-4" />
-              </Button>
+            
+            {/* Menu de ações com 3 pontos */}
+            {userType === 'provider' && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="outline" 
+                    size="icon" 
+                    className="h-8 w-8 p-0 border-gray-300 hover:border-blue-400"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48 bg-white border border-gray-200 shadow-lg">
+                  
+                  {/* Mostrar todas as opções de status disponíveis */}
+                  {appointment.status === 'pending' && (
+                    <DropdownMenuItem onClick={handleConfirm}>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Confirmado
+                    </DropdownMenuItem>
+                  )}
+                  
+                  {appointment.status === 'confirmed' && (
+                    <DropdownMenuItem onClick={handleExecute}>
+                      <Play className="mr-2 h-4 w-4" />
+                      Executando
+                    </DropdownMenuItem>
+                  )}
+                  
+                  {appointment.status === 'executing' && (
+                    <>
+                      <DropdownMenuItem onClick={handleComplete}>
+                        <Check className="mr-2 h-4 w-4" />
+                        Concluído
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleConfirm}>
+                        <CheckCircle className="mr-2 h-4 w-4" />
+                        Voltar para Confirmado
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  
+                  {/* Opções sempre disponíveis (exceto para agendamentos cancelados/concluídos) */}
+                  {appointment.status !== 'canceled' && appointment.status !== 'completed' && (
+                    <>
+                      <DropdownMenuItem onClick={handleNoShow}>
+                        <AlertCircle className="mr-2 h-4 w-4" />
+                        Não compareceu
+                      </DropdownMenuItem>
+                      
+                      <DropdownMenuItem onClick={handleCancel} className="text-red-600">
+                        <X className="mr-2 h-4 w-4" />
+                        Cancelar
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  
+                  {/* Opção para marcar como pago (sempre disponível exceto para cancelados) */}
+                  {appointment.status !== 'canceled' && appointment.paymentStatus !== 'paid' && (
+                    <DropdownMenuItem onClick={handleMarkAsPaid} className="text-green-600">
+                      <CreditCard className="mr-2 h-4 w-4" />
+                      Pago
+                    </DropdownMenuItem>
+                  )}
+                  
+                  {/* Opções de transição de status (para mostrar o fluxo completo) */}
+                  {appointment.status === 'pending' && (
+                    <>
+                      <DropdownMenuItem onClick={handleExecute}>
+                        <Play className="mr-2 h-4 w-4" />
+                        Executando
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={handleComplete}>
+                        <Check className="mr-2 h-4 w-4" />
+                        Concluído
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                  
+                  {appointment.status === 'confirmed' && (
+                    <DropdownMenuItem onClick={handleComplete}>
+                      <Check className="mr-2 h-4 w-4" />
+                      Concluído
+                    </DropdownMenuItem>
+                  )}
+                  
+                  {/* Separador visual */}
+                  {appointment.status !== 'canceled' && appointment.status !== 'completed' && (
+                    <div className="h-px bg-gray-200 my-1" />
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         )}

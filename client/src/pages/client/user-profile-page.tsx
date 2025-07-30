@@ -38,7 +38,6 @@ export default function UserProfilePage() {
   // Redirecionar se não estiver logado
   React.useEffect(() => {
     if (!isLoading && !user) {
-      console.log("UserProfilePage - Usuário não logado, redirecionando para /auth");
       setLocation("/auth");
     }
   }, [user, isLoading, setLocation]);
@@ -135,10 +134,8 @@ export default function UserProfilePage() {
       // Executar logout em background
       logoutMutation.mutate(undefined, {
         onSuccess: () => {
-          console.log("Logout confirmado, redirecionando...");
         },
         onError: (error) => {
-          console.error("Erro ao fazer logout:", error);
           toast({
             title: "Erro no logout",
             description: "Ocorreu um erro ao sair da conta.",
@@ -147,7 +144,6 @@ export default function UserProfilePage() {
         }
       });
     } catch (error) {
-      console.error("Erro ao fazer logout:", error);
       toast({
         title: "Erro no logout",
         description: "Ocorreu um erro ao sair da conta.",

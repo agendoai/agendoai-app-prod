@@ -155,7 +155,7 @@ app.use((req, res, next) => {
   }
 
   // Usar porta configurada para compatibilidade com o deployment
-  const port = process.env.PORT || 5000;
+  const port = parseInt(process.env.PORT || '5000', 10);
 
   server.listen(port, "0.0.0.0", () => {
     log(`serving on port ${port}`);

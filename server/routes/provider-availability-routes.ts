@@ -144,4 +144,50 @@ router.get('/blocked-times/provider/:providerId', async (req, res) => {
   }
 });
 
+// Rota para criar bloqueio de horário
+router.post('/blocked-times', async (req, res) => {
+  try {
+    const { providerId, date, startTime, endTime, reason } = req.body;
+    
+    if (!providerId || !date || !startTime || !endTime) {
+      return res.status(400).json({ error: 'providerId, date, startTime e endTime são obrigatórios' });
+    }
+
+    // Buscar uma disponibilidade existente para o provider ou criar uma temporária
+    const availabilities = await storage.getAvailabilityByProviderId(providerId);
+    let availabilityId = null;
+    
+    if (availabilities && availabilities.length > 0) {
+      // Usar a primeira disponibilidade encontrada
+      availabilityId = availabilities[0].id;
+    } else {
+      // Criar uma disponibilidade temporária se não existir
+      const tempAvailability = await storage.createAvailability({
+        providerId: Number(providerId),
+        dayOfWeek: new Date(date).getDay(),
+        startTime: '08:00',
+        endTime: '18:00',
+        isAvailable: true,
+        intervalMinutes: 30,
+        date: date
+      });
+      availabilityId = tempAvailability.id;
+    }
+
+    const blockedTime = await storage.createBlockedTime({
+      providerId: Number(providerId),
+      availabilityId: availabilityId,
+      date,
+      startTime,
+      endTime,
+      reason: reason || 'Bloqueio manual'
+    });
+
+    return res.status(201).json(blockedTime);
+  } catch (error) {
+    console.error('Erro ao criar bloqueio de horário:', error);
+    return res.status(500).json({ error: 'Erro ao criar bloqueio de horário' });
+  }
+});
+
 export default router;

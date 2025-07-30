@@ -76,11 +76,6 @@ export default function ProviderSchedulePage() {
     const isDirectAccess = !urlParams.get('fromWizard');
     
     if (isDirectAccess) {
-      console.log('🔒 Acesso direto à agenda do prestador detectado. Redirecionando para o fluxo correto...');
-      // Redirecionar para o wizard de agendamento com os parâmetros
-      const params = new URLSearchParams();
-      params.append('providerId', providerId);
-      params.append('serviceId', serviceId);
       setLocation(`/client/booking-wizard?${params.toString()}`);
       return;
     }
@@ -107,21 +102,17 @@ export default function ProviderSchedulePage() {
   const { data: providerData, isLoading: isLoadingProvider, error: providerError } = useQuery<ProviderData>({
     queryKey: ['/api/providers', parsedProviderId],
     queryFn: () => {
-      console.log(`Buscando prestador ID: ${parsedProviderId}`);
       return fetch(`/api/providers/${parsedProviderId}`)
         .then(res => {
-          console.log(`Resposta do prestador: ${res.status}`);
           if (!res.ok) {
             throw new Error(`Erro ao buscar prestador: ${res.status}`);
           }
           return res.json();
         })
         .then(data => {
-          console.log("Dados do prestador:", data);
           return data;
         })
         .catch(err => {
-          console.error("Erro na busca do prestador:", err);
           throw err;
         });
     },
@@ -132,21 +123,17 @@ export default function ProviderSchedulePage() {
   const { data: service, isLoading: isLoadingService, error: serviceError } = useQuery<Service>({
     queryKey: ['/api/services', parsedServiceId],
     queryFn: () => {
-      console.log(`Buscando serviço ID: ${parsedServiceId}`);
       return fetch(`/api/services/${parsedServiceId}`)
         .then(res => {
-          console.log(`Resposta do serviço: ${res.status}`);
           if (!res.ok) {
             throw new Error(`Erro ao buscar serviço: ${res.status}`);
           }
           return res.json();
         })
         .then(data => {
-          console.log("Dados do serviço:", data);
           return data;
         })
         .catch(err => {
-          console.error("Erro na busca do serviço:", err);
           throw err;
         });
     },
@@ -157,9 +144,7 @@ export default function ProviderSchedulePage() {
   const { data: availabilityData, isLoading: isLoadingAvailability } = useQuery<AvailabilitySlot[]>({
     queryKey: ['/api/providers', parsedProviderId, 'availability'],
     queryFn: () => {
-      console.log(`Buscando disponibilidade do prestador: ${parsedProviderId}`);
       return fetch(`/api/providers/${parsedProviderId}/availability`).then(res => {
-        console.log("Resposta da API de disponibilidade:", res.status);
         if (res.status === 401) {
           throw new Error("Unauthorized");
         }
@@ -167,11 +152,9 @@ export default function ProviderSchedulePage() {
           throw new Error(`Falha na requisição: ${res.status}`);
         }
         return res.json().then(data => {
-          console.log("Dados de disponibilidade recebidos:", data);
           return data;
         });
       }).catch(error => {
-        console.error("Erro ao buscar disponibilidade:", error);
         throw error;
       });
     },
@@ -196,9 +179,7 @@ export default function ProviderSchedulePage() {
     queryKey: ['/api/providers', parsedProviderId, 'time-slots', formattedDate],
     queryFn: () => {
       const url = `/api/providers/${parsedProviderId}/time-slots?date=${formattedDate}`;
-      console.log("Buscando slots de tempo:", url);
       return fetch(url).then(res => {
-        console.log("Resposta da API de slots:", res.status);
         if (res.status === 401) {
           throw new Error("Unauthorized");
         }
@@ -206,11 +187,9 @@ export default function ProviderSchedulePage() {
           throw new Error(`Request failed with status ${res.status}`);
         }
         return res.json().then(data => {
-          console.log("Time slots recebidos:", data);
           return data;
         });
       }).catch(error => {
-        console.error("Erro ao buscar slots de tempo:", error);
         throw error;
       });
     },

@@ -182,7 +182,7 @@ router.post('/', async (req, res) => {
       description: data.description || "",
       categoryId: data.categoryId,
       nicheId: data.nicheId,
-      price: data.price,
+      price: Math.round(data.price * 100), // Salva em centavos
       duration: data.duration,
       isActive: data.isActive ?? true
     });
@@ -195,7 +195,7 @@ router.post('/', async (req, res) => {
         data.executionTime,
         data.breakTime || 0,
         data.isActive ?? true,
-        data.price  // Usar o mesmo preço inicial
+        Math.round(data.price * 100)  // Salva em centavos
       );
     }
     

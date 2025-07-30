@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useParams, useLocation } from 'wouter';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-type Params = { id: string };
 import { apiRequest } from '@/lib/queryClient';
+
+type Params = { id: string };
 import { useAuth } from '@/hooks/use-auth';
 import ProviderLayout from '@/components/layout/provider-layout';
 import { Button } from '@/components/ui/button';
@@ -38,7 +39,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Textarea } from '@/components/ui/textarea';
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
 
 interface Appointment {
   id: number;
@@ -332,102 +333,164 @@ export default function ProviderAppointmentDetailsPage() {
               </div>
             )}
           </CardContent>
-          <CardFooter className="pt-2 flex flex-wrap gap-2 justify-end">
-            {/* Botões de ação com base no status atual */}
+          <CardFooter className="pt-6">
+            {/* Seção de ações do agendamento */}
             {appointment.status !== 'completed' && 
              appointment.status !== 'canceled' && 
              appointment.status !== 'no_show' && (
-              <>
-                {/* Botão Concluir */}
-                <AlertDialog open={isCompleteModalOpen} onOpenChange={setIsCompleteModalOpen}>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="default" className="bg-green-600 hover:bg-green-700">
-                      <CheckCircle className="h-4 w-4 mr-1" />
-                      Marcar como concluído
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Confirmar conclusão</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Tem certeza que deseja marcar este agendamento como concluído?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction 
-                        onClick={handleComplete}
-                        className="bg-green-600 hover:bg-green-700"
-                      >
-                        Confirmar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+              <div className="w-full">
+                {/* Título da seção */}
+                <div className="mb-4">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Ações do Agendamento</h3>
+                  <p className="text-sm text-gray-600">Escolha uma ação para atualizar o status do agendamento</p>
+                </div>
+                
+                {/* Container dos botões com design melhorado */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6 shadow-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    
+                    {/* Botão Concluir */}
+                    <AlertDialog open={isCompleteModalOpen} onOpenChange={setIsCompleteModalOpen}>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="default" 
+                          className="w-full h-12 bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+                        >
+                          <CheckCircle className="h-5 w-5 mr-2" />
+                          <div className="text-left">
+                            <div className="font-semibold">Concluir</div>
+                            <div className="text-xs opacity-90">Marcar como finalizado</div>
+                          </div>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Confirmar conclusão</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Tem certeza que deseja marcar este agendamento como concluído?
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                          <AlertDialogAction 
+                            onClick={handleComplete}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            Confirmar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
 
-                {/* Botão Cancelar */}
-                <Dialog open={isCancelModalOpen} onOpenChange={setIsCancelModalOpen}>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive">
-                      <XCircle className="h-4 w-4 mr-1" />
-                      Cancelar agendamento
-                    </Button>
-                  </AlertDialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Cancelar agendamento</DialogTitle>
-                      <DialogDescription>
-                        Por favor, informe o motivo do cancelamento.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <Textarea
-                      value={cancellationReason}
-                      onChange={(e) => setCancellationReason(e.target.value)}
-                      placeholder="Motivo do cancelamento"
-                      className="min-h-[100px]"
-                    />
-                    <DialogFooter className="mt-4">
-                      <Button
-                        variant="outline"
-                        onClick={() => setIsCancelModalOpen(false)}
-                      >
-                        Voltar
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={handleCancel}
-                        disabled={updateStatusMutation.isPending}
-                      >
-                        {updateStatusMutation.isPending ? 'Processando...' : 'Confirmar cancelamento'}
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
+                    {/* Botão Não Compareceu */}
+                    <AlertDialog open={isNoShowModalOpen} onOpenChange={setIsNoShowModalOpen}>
+                      <AlertDialogTrigger asChild>
+                        <Button 
+                          variant="outline" 
+                          className="w-full h-12 border-orange-300 text-orange-700 hover:bg-orange-50 hover:border-orange-400 font-medium shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+                        >
+                          <AlertTriangle className="h-5 w-5 mr-2" />
+                          <div className="text-left">
+                            <div className="font-semibold">Não Compareceu</div>
+                            <div className="text-xs opacity-90">Cliente ausente</div>
+                          </div>
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Marcar como não comparecimento</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Confirma que o cliente não compareceu a este agendamento?
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Voltar</AlertDialogCancel>
+                          <AlertDialogAction onClick={handleNoShow}>
+                            Confirmar
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
 
-                {/* Botão Não Compareceu */}
-                <AlertDialog open={isNoShowModalOpen} onOpenChange={setIsNoShowModalOpen}>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="outline">
-                      <AlertTriangle className="h-4 w-4 mr-1" />
-                      Não compareceu
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Marcar como não comparecimento</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Confirma que o cliente não compareceu a este agendamento?
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Voltar</AlertDialogCancel>
-                      <AlertDialogAction onClick={handleNoShow}>
-                        Confirmar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </>
+                    {/* Botão Cancelar */}
+                    <Dialog open={isCancelModalOpen} onOpenChange={setIsCancelModalOpen}>
+                      <DialogTrigger asChild>
+                        <Button 
+                          variant="destructive" 
+                          className="w-full h-12 bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-medium shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-105"
+                        >
+                          <XCircle className="h-5 w-5 mr-2" />
+                          <div className="text-left">
+                            <div className="font-semibold">Cancelar</div>
+                            <div className="text-xs opacity-90">Cancelar agendamento</div>
+                          </div>
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Cancelar agendamento</DialogTitle>
+                          <DialogDescription>
+                            Por favor, informe o motivo do cancelamento.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <Textarea
+                          value={cancellationReason}
+                          onChange={(e) => setCancellationReason(e.target.value)}
+                          placeholder="Motivo do cancelamento"
+                          className="min-h-[100px]"
+                        />
+                        <DialogFooter className="mt-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => setIsCancelModalOpen(false)}
+                          >
+                            Voltar
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            onClick={handleCancel}
+                            disabled={updateStatusMutation.isPending}
+                          >
+                            {updateStatusMutation.isPending ? 'Processando...' : 'Confirmar cancelamento'}
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                    
+                  </div>
+                  
+                  {/* Informação adicional */}
+                  <div className="mt-4 pt-4 border-t border-blue-200">
+                    <div className="flex items-center text-sm text-blue-700">
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      <span>Essas ações atualizarão permanentemente o status do agendamento</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {/* Mensagem para agendamentos já finalizados */}
+            {(appointment.status === 'completed' || 
+              appointment.status === 'canceled' || 
+              appointment.status === 'no_show') && (
+              <div className="w-full">
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-6 text-center">
+                  <div className="text-gray-600 mb-2">
+                    {appointment.status === 'completed' && <CheckCircle className="h-8 w-8 mx-auto text-green-600 mb-2" />}
+                    {appointment.status === 'canceled' && <XCircle className="h-8 w-8 mx-auto text-red-600 mb-2" />}
+                    {appointment.status === 'no_show' && <AlertTriangle className="h-8 w-8 mx-auto text-orange-600 mb-2" />}
+                  </div>
+                  <h3 className="font-semibold text-gray-900 mb-1">
+                    {appointment.status === 'completed' && 'Agendamento Concluído'}
+                    {appointment.status === 'canceled' && 'Agendamento Cancelado'}
+                    {appointment.status === 'no_show' && 'Cliente Não Compareceu'}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    Este agendamento já foi finalizado e não pode ser alterado
+                  </p>
+                </div>
+              </div>
             )}
           </CardFooter>
         </Card>
