@@ -10,7 +10,8 @@ import {
   Settings,
   HelpCircle,
   MessageSquare,
-  LogOut
+  LogOut,
+  Search
 } from 'lucide-react';
 
 interface SidebarItemProps {
@@ -88,6 +89,13 @@ export function ProviderSidebar() {
             path="/provider/dashboard"
             isActive={isActive("/provider/dashboard")}
             onClick={() => setLocation("/provider/dashboard")}  
+          />
+          <SidebarItem
+            icon={<Search />}
+            label="Teste Search"
+            path="/provider/teste-search"
+            isActive={isActive("/provider/teste-search")}
+            onClick={() => setLocation("/provider/teste-search")}
           />
           <SidebarItem 
             icon={<Calendar />} 

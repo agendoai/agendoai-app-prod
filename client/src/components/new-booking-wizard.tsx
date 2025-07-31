@@ -2735,25 +2735,18 @@ export function NewBookingWizard({
       });
     }
 
-    // Taxa de serviço fixa em centavos (R$ 1,75 = 175 centavos)
-    const rawTaxaServico = 175; // R$ 1,75 em centavos
-
-    // Garantir que ambos os valores são números inteiros
+    // Garantir que o valor é um número inteiro
     const servicePrice = totalServicePrice;
-    const taxaServico = Number(rawTaxaServico);
 
-    // Calcular o preço total somando valores já convertidos
-    const totalPrice = servicePrice + taxaServico;
+    // Preço total sem taxa adicional
+    const totalPrice = servicePrice;
 
     // Log detalhado para debug
     console.log("DADOS DO PREÇO:", {
       totalServicePrice,
-      rawTaxaServico,
       servicePrice,
-      taxaServico,
       totalPrice,
       formattedServicePrice: formatCurrency(servicePrice),
-      formattedTaxaServico: `R$ ${(taxaServico / 100).toFixed(2)}`,
       formattedTotalPrice: formatCurrency(totalPrice),
     });
 

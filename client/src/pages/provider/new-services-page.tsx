@@ -92,6 +92,8 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { ExecutionTimeDialog } from "@/components/execution-time-dialog";
+import Navbar from "@/components/layout/navbar";
+import { Home, Calendar, ClipboardList, Users, Scissors, User } from "lucide-react";
 
 // Service form schema
 const serviceFormSchema = insertServiceSchema.extend({
@@ -589,6 +591,15 @@ export default function NewServicesPage() {
       </div>
     );
   }
+
+  const providerNavItems = [
+    { icon: <Home size={26} />, label: "Início", href: "/provider/dashboard" },
+    { icon: <Calendar size={26} />, label: "Agenda", href: "/provider/schedule" },
+    { icon: <ClipboardList size={26} />, label: "Agendamentos", href: "/provider/appointments" },
+    { icon: <Users size={26} />, label: "Clientes", href: "/provider/clients" },
+    { icon: <Scissors size={26} />, label: "Serviços", href: "/provider/services-page" },
+    { icon: <User size={26} />, label: "Perfil", href: "/provider/profile-page" },
+  ];
 
   return (
     <div className="min-h-screen bg-background pb-20">

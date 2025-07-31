@@ -153,7 +153,7 @@ export const appointments = pgTable("appointments", {
   startTime: text("start_time").notNull(), // "HH:MM" format
   endTime: text("end_time").notNull(), // "HH:MM" format
   availabilityId: integer("availability_id"), // ID da disponibilidade (agendamento)
-  status: text("status").default("pending"), // "pending", "confirmed", "completed", "canceled"
+  status: text("status").default("pending"), // "pending", "confirmed", "executing", "completed", "canceled"
   notes: text("notes"),
   paymentMethod: text("payment_method"), // "local", "credit_card", "pix"
   paymentStatus: text("payment_status"), // "pending", "paid", "failed", "refunded" 

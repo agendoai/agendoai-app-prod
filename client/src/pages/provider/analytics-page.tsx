@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/use-auth";
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { ChevronLeft, BarChart4, Calendar, TrendingUp, PieChart as PieChartIcon, DollarSign, Users, Clock } from "lucide-react";
+import { ChevronLeft, BarChart4, Calendar, TrendingUp, PieChart as PieChartIcon, DollarSign, Users, Clock, Home, ClipboardList, Scissors, User } from "lucide-react";
 import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -23,6 +23,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
 import ProviderLayout from "@/components/layout/provider-layout";
 import type { ProviderAnalytics } from "@/types";
+import Navbar from "@/components/layout/navbar";
 
 // Cores para gráficos
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -66,6 +67,15 @@ export default function AnalyticsPage() {
   const handlePeriodChange = (value: string) => {
     setPeriod(value);
   };
+
+  const providerNavItems = [
+    { icon: <Home size={26} />, label: "Início", href: "/provider/dashboard" },
+    { icon: <Calendar size={26} />, label: "Agenda", href: "/provider/schedule" },
+    { icon: <ClipboardList size={26} />, label: "Agendamentos", href: "/provider/appointments" },
+    { icon: <Users size={26} />, label: "Clientes", href: "/provider/clients" },
+    { icon: <Scissors size={26} />, label: "Serviços", href: "/provider/services-page" },
+    { icon: <User size={26} />, label: "Perfil", href: "/provider/profile-page" },
+  ];
 
   return (
     <ProviderLayout>

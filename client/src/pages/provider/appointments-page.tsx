@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
-import { Calendar, Clock, User, Phone, MapPin, BadgeCheck, Ban, AlertTriangle, Search, Plus, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, Clock, User, Phone, MapPin, BadgeCheck, Ban, AlertTriangle, Search, Plus, ChevronDown, ChevronLeft, ChevronRight, Home, ClipboardList, Users, Scissors } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ProviderLayout from "@/components/layout/provider-layout";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { ptBR } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
+import Navbar from "@/components/layout/navbar";
 
 interface Appointment {
   id: number;
@@ -247,6 +248,15 @@ export default function ProviderAppointmentsPage() {
     );
   };
 
+  const providerNavItems = [
+    { icon: <Home size={26} />, label: "Início", href: "/provider/dashboard" },
+    { icon: <Calendar size={26} />, label: "Agenda", href: "/provider/schedule" },
+    { icon: <ClipboardList size={26} />, label: "Agendamentos", href: "/provider/appointments" },
+    { icon: <Users size={26} />, label: "Clientes", href: "/provider/clients" },
+    { icon: <Scissors size={26} />, label: "Serviços", href: "/provider/services-page" },
+    { icon: <User size={26} />, label: "Perfil", href: "/provider/profile-page" },
+  ];
+
   return (
     <ProviderLayout>
       <div className="max-w-md mx-auto bg-white min-h-screen">
@@ -335,7 +345,7 @@ export default function ProviderAppointmentsPage() {
         </div>
         
         {/* Botão flutuante para adicionar agendamento */}
-        <div className="fixed bottom-20 right-4">
+        <div className="fixed bottom-28 right-4">
           <Button 
             className="h-14 w-14 rounded-full shadow-lg"
             onClick={() => window.location.href = '/provider/manual-booking'}
@@ -343,6 +353,37 @@ export default function ProviderAppointmentsPage() {
             <Plus className="h-6 w-6" />
           </Button>
         </div>
+        
+        {/* Menu de navegação mobile */}
+        <Navbar 
+          items={[
+            {
+              icon: <Home size={26} />,
+              label: 'Início',
+              href: '/provider/dashboard'
+            },
+            {
+              icon: <Calendar size={26} />,
+              label: 'Agenda',
+              href: '/provider/schedule'
+            },
+            {
+              icon: <ClipboardList size={26} />,
+              label: 'Agendamentos',
+              href: '/provider/appointments'
+            },
+            {
+              icon: <Users size={26} />,
+              label: 'Clientes',
+              href: '/provider/clients'
+            },
+            {
+              icon: <Scissors size={26} />,
+              label: 'Serviços',
+              href: '/provider/services'
+            }
+          ]}
+        />
       </div>
     </ProviderLayout>
   );

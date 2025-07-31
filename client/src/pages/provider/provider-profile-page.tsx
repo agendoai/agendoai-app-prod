@@ -84,7 +84,8 @@ export default function ProviderProfilePage() {
   const [description, setDescription] = useState("");
   const [specialties, setSpecialties] = useState("");
   
-  // Contact Information states
+  // Contact Information states - COMENTADO TEMPORARIAMENTE
+  /*
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -92,6 +93,7 @@ export default function ProviderProfilePage() {
   const [phone, setPhone] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
   const [email, setEmail] = useState("");
+  */
   
   // Online Presence states
   const [website, setWebsite] = useState("");
@@ -121,7 +123,8 @@ export default function ProviderProfilePage() {
         setDescription(data.description || "");
         setSpecialties(data.specialties || "");
         
-        // Contact Information
+        // Contact Information - COMENTADO TEMPORARIAMENTE
+        /*
         setAddress(data.address || "");
         setCity(data.city || "");
         setState(data.state || "");
@@ -129,6 +132,7 @@ export default function ProviderProfilePage() {
         setPhone(data.phone || "");
         setWhatsapp(data.whatsapp || "");
         setEmail(data.email || user?.email || "");
+        */
         
         // Online Presence
         setWebsite(data.website || "");
@@ -179,7 +183,8 @@ export default function ProviderProfilePage() {
       description,
       specialties,
       
-      // Contact Information
+      // Contact Information - COMENTADO TEMPORARIAMENTE
+      /*
       address,
       city,
       state,
@@ -187,6 +192,7 @@ export default function ProviderProfilePage() {
       phone,
       whatsapp,
       email,
+      */
       
       // Online Presence
       website,
@@ -383,9 +389,9 @@ export default function ProviderProfilePage() {
               
               {/* Tabs for different sections */}
               <Tabs defaultValue="business" value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-4 mb-4">
+                <TabsList className="grid grid-cols-3 mb-4">
                   <TabsTrigger value="business">Negócio</TabsTrigger>
-                  <TabsTrigger value="contact">Contato</TabsTrigger>
+                  {/* <TabsTrigger value="contact">Contato</TabsTrigger> */}
                   <TabsTrigger value="online">Online</TabsTrigger>
                   <TabsTrigger value="payment">Pagamento</TabsTrigger>
                 </TabsList>
@@ -512,7 +518,8 @@ export default function ProviderProfilePage() {
                   </Card>
                 </TabsContent>
                 
-                {/* Contact Information Tab */}
+                {/* Contact Information Tab - COMENTADO TEMPORARIAMENTE */}
+                {/* 
                 <TabsContent value="contact">
                   <Card className="border border-neutral-200">
                     <CardHeader className="pb-2">
@@ -668,6 +675,7 @@ export default function ProviderProfilePage() {
                     </CardFooter>
                   </Card>
                 </TabsContent>
+                */}
                 
                 {/* Online Presence Tab */}
                 <TabsContent value="online">
@@ -1136,7 +1144,8 @@ export default function ProviderProfilePage() {
                 </CardContent>
               </Card>
               
-              {/* Receba pagamentos online Card */}
+              {/* Receba pagamentos online Card - COMENTADO TEMPORARIAMENTE */}
+              {/*
               <Card className="mb-6">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1177,6 +1186,7 @@ export default function ProviderProfilePage() {
                   </div>
                 </CardContent>
               </Card>
+              */}
               
               {/* Support Button */}
               <Button 

@@ -426,6 +426,9 @@ export interface IStorage {
 	createUserAddress(data: InsertUserAddress): Promise<UserAddress>;
 	updateUserAddress(id: number, data: Partial<InsertUserAddress>): Promise<UserAddress>;
 	deleteUserAddress(id: number): Promise<void>;
+	
+	// Client search methods
+	searchClientsByCpfOrPhone(searchTerm: string): Promise<User[]>;
 }
 
 // Memory storage implementation for testing
@@ -3912,6 +3915,35 @@ async getBlockedTimeSlotsByDate(
 			await db.delete(userAddresses).where(eq(userAddresses.id, id));
 		} catch (error) {
 			console.error("Erro ao deletar endereço do usuário:", error);
+			throw error;
+		}
+	}
+
+	async searchClientsByCpfOrPhone(searchTerm: string): Promise<User[]> {
+		try {
+			// Remover caracteres não numéricos para busca
+			const cleanSearchTerm = searchTerm.replace(/\D/g, '');
+			
+			// Buscar clientes por CPF ou telefone
+			const results = await db
+				.select()
+				.from(users)
+				.where(
+					and(
+						eq(users.userType, "client"),
+						or(
+							// Buscar por CPF (com ou sem formatação)
+							sql`REPLACE(REPLACE(REPLACE(${users.cpf}, '.', ''), '-', ''), ' ', '') LIKE ${`%${cleanSearchTerm}%`}`,
+							// Buscar por telefone (com ou sem formatação)
+							sql`REPLACE(REPLACE(REPLACE(REPLACE(${users.phone}, '(', ''), ')', ''), '-', ''), ' ', '') LIKE ${`%${cleanSearchTerm}%`}`
+						)
+					)
+				)
+				.limit(10) // Limitar resultados por segurança
+			
+			return results;
+		} catch (error) {
+			console.error("Erro ao buscar clientes por CPF/telefone:", error);
 			throw error;
 		}
 	}

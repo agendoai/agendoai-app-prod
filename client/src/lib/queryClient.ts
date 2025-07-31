@@ -37,12 +37,9 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   try {
-    console.log(`Fazendo requisição ${method} para ${url}`, data);
     
     // Verificar o estado de autenticação localmente antes da requisição
     const userDataFromCache = queryClient.getQueryData(["/api/user"]);
-    console.log(`Estado de autenticação para requisição ${url}:`, 
-      userDataFromCache ? "Autenticado" : "Não autenticado");
     
     // Usar a nova função de API
     const res = await apiCall(url, {
@@ -50,15 +47,9 @@ export async function apiRequest(
       body: data ? JSON.stringify(data) : undefined,
     });
 
-    console.log(`Resposta recebida de ${url}:`, { 
-      status: res.status, 
-      statusText: res.statusText,
-      headers: Object.fromEntries([...res.headers.entries()])
-    });
     
     // Para requisições 401, tentar refrescar o estado de autenticação
     if (res.status === 401 && url !== "/api/login" && url !== "/api/logout") {
-      console.warn(`Requisição ${url} retornou 401 (Não autorizado). Verificando estado de autenticação.`);
     }
     
     // Clonar resposta antes de consumir o corpo
@@ -98,17 +89,13 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    console.log(`Executando query para: ${queryKey[0]}, comportamento em 401: ${unauthorizedBehavior}`);
     
     try {
       // Usar a nova função de API
       const res = await apiCall(queryKey[0] as string);
 
-      console.log(`Resposta para ${queryKey[0]}: status=${res.status}, headers=`, 
-        Object.fromEntries([...res.headers.entries()]));
-
+      
       if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-        console.warn(`Requisição não autorizada para ${queryKey[0]}, retornando null conforme configurado`);
         return null;
       }
 
