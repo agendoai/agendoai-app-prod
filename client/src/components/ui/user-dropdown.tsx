@@ -32,16 +32,16 @@ export function UserDropdown({ userType = 'admin' }: UserDropdownProps) {
   };
 
   const handleLogout = () => {
-    // Forçar redirecionamento para a página de autenticação
-    console.log('Iniciando logout e redirecionando para /auth');
-    
     // Executar a mutação de logout
-    logoutMutation.mutate();
-    
-    // Garantir redirecionamento para página de login após logout
-    setTimeout(() => {
-      window.location.href = '/auth';
-    }, 100);
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        // Forçar atualização da página após logout
+        window.location.reload();
+      },
+      onError: (error) => {
+        console.error("Erro no logout:", error);
+      }
+    });
   };
 
   return (

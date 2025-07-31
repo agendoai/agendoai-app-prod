@@ -23,9 +23,15 @@ export default function AdminHeader({ title, description }: AdminHeaderProps) {
   
   const handleLogout = () => {
     // Chamamos logoutMutation para realizar o logout no servidor
-    logoutMutation.mutate();
-    // O redirecionamento para a página de autenticação será feito automaticamente
-    // pelo manipulador onSuccess da mutação em useAuth
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        // Forçar atualização da página após logout
+        window.location.reload();
+      },
+      onError: (error) => {
+        console.error("Erro no logout:", error);
+      }
+    });
   };
   
   const userInitials = user?.name

@@ -75,19 +75,17 @@ export default function AppHeader({
   const handleLogout = () => {
     try {
       // Executar a mutação de logout
-      logoutMutation.mutate();
-      
-      // Garantir redirecionamento para página de autenticação após logout
-      console.log('Iniciando logout e redirecionando para /auth');
-      setTimeout(() => {
-        window.location.href = '/auth';
-      }, 100);
+      logoutMutation.mutate(undefined, {
+        onSuccess: () => {
+          // Forçar atualização da página após logout
+          window.location.reload();
+        },
+        onError: (error) => {
+          console.error("Erro no logout:", error);
+        }
+      });
     } catch (error) {
       console.error("Erro ao processar logout:", error);
-      // Mesmo com erro, tentamos redirecionar para logout
-      setTimeout(() => {
-        window.location.href = '/auth';
-      }, 100);
     }
   };
   

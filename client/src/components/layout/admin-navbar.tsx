@@ -25,7 +25,15 @@ export function AdminNavbar() {
   const [open, setOpen] = useState(false);
 
   const handleLogout = () => {
-    logoutMutation.mutate();
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        // Forçar atualização da página após logout
+        window.location.reload();
+      },
+      onError: (error) => {
+        console.error("Erro no logout:", error);
+      }
+    });
   };
 
   const routes = [
