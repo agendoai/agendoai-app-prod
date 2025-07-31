@@ -36,7 +36,15 @@ export function ClientNavbar() {
   const [showNotifications, setShowNotifications] = useState(false);
 
   const handleLogout = () => {
-    logoutMutation.mutate();
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        // Forçar atualização da página após logout
+        window.location.reload();
+      },
+      onError: (error) => {
+        console.error("Erro no logout:", error);
+      }
+    });
   };
 
   // Rotas principais do cliente com detecção de rota ativa aprimorada

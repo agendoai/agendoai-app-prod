@@ -124,33 +124,28 @@ export default function UserProfilePage() {
     setLogoutDialogOpen(true);
   };
   
-  const confirmLogout = () => {
-    try {
-      setLogoutDialogOpen(false);
-      
-      // Redirecionar imediatamente para evitar delay
-      setLocation("/auth");
-      
-      // Executar logout em background
-      logoutMutation.mutate(undefined, {
-        onSuccess: () => {
-        },
-        onError: (error) => {
-          toast({
-            title: "Erro no logout",
-            description: "Ocorreu um erro ao sair da conta.",
-            variant: "destructive",
-          });
-        }
-      });
-    } catch (error) {
-      toast({
-        title: "Erro no logout",
-        description: "Ocorreu um erro ao sair da conta.",
-        variant: "destructive",
-      });
-    }
-  };
+          const confirmLogout = () => {
+          try {
+            setLogoutDialogOpen(false);
+            
+            // Executar logout em background
+            logoutMutation.mutate(undefined, {
+              onError: (error) => {
+                toast({
+                  title: "Erro no logout",
+                  description: "Ocorreu um erro ao sair da conta.",
+                  variant: "destructive",
+                });
+              }
+            });
+          } catch (error) {
+            toast({
+              title: "Erro no logout",
+              description: "Ocorreu um erro ao sair da conta.",
+              variant: "destructive",
+            });
+          }
+        };
 
   // Verificar se o usuário está carregado
   if (!user) {

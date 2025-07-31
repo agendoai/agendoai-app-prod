@@ -216,10 +216,18 @@ export default function ProviderProfilePage() {
     setLogoutDialogOpen(true);
   };
   
-  const confirmLogout = () => {
-    logoutMutation.mutate();
-    setLogoutDialogOpen(false);
-  };
+          const confirmLogout = () => {
+          logoutMutation.mutate(undefined, {
+            onError: (error) => {
+              toast({
+                title: "Erro no logout",
+                description: "Ocorreu um erro ao sair da conta.",
+                variant: "destructive",
+              });
+            }
+          });
+          setLogoutDialogOpen(false);
+        };
   
   // Função para upload de imagem de perfil
   const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {

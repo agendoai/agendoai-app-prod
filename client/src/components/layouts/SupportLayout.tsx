@@ -51,8 +51,15 @@ export default function SupportLayout({ children }: { children: React.ReactNode 
   }, [user, navigate]);
 
   const handleLogout = async () => {
-    await logoutMutation.mutateAsync();
-    navigate("/auth");
+    logoutMutation.mutate(undefined, {
+      onSuccess: () => {
+        // Forçar atualização da página após logout
+        window.location.reload();
+      },
+      onError: (error) => {
+        console.error("Erro no logout:", error);
+      }
+    });
   };
 
   // Links do menu de navegação

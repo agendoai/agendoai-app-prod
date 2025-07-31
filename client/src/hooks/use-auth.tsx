@@ -115,16 +115,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user && !isLoading && window.location.pathname === '/auth') {
       console.log("AuthProvider - Usuário logado detectado na página de auth, redirecionando...");
       
-      // Adicionar um pequeno delay para garantir que o redirecionamento funcione
-      setTimeout(() => {
-        if (user.userType === "client") {
-          setLocation("/client/dashboard");
-        } else if (user.userType === "provider") {
-          setLocation("/provider/dashboard");
-        } else if (user.userType === "admin") {
-          setLocation("/admin/dashboard");
-        }
-      }, 100);
+      // Redirecionamento imediato sem delay
+      if (user.userType === "client") {
+        setLocation("/client/dashboard");
+      } else if (user.userType === "provider") {
+        setLocation("/provider/dashboard");
+      } else if (user.userType === "admin") {
+        setLocation("/admin/dashboard");
+      }
     }
   }, [user, isLoading, setLocation]);
 
@@ -150,15 +148,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: (user: User) => {
-      console.log("Login bem-sucedido, limpando cache e atualizando dados:", user);
+      console.log("Login bem-sucedido, atualizando cache:", user);
       
       // Limpar todo o cache para garantir dados frescos
       queryClient.clear();
       queryClient.setQueryData(["/api/user"], user);
       
-      // DESABILITADO: Redirecionamento automático do hook
-      // O redirecionamento será feito pela página de login
-      console.log("Hook useAuth - login bem-sucedido, cache limpo, redirecionamento desabilitado");
+      console.log("Hook useAuth - login bem-sucedido, cache limpo");
       
       toast({
         title: "Login realizado com sucesso!",
@@ -203,9 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Atualizar cache do usuário
       queryClient.setQueryData(["/api/user"], user);
       
-      // DESABILITADO: Redirecionamento automático do hook
-      // O redirecionamento será feito pela página de login
-      console.log("Hook useAuth - registro bem-sucedido, mas redirecionamento desabilitado");
+      console.log("Hook useAuth - registro bem-sucedido");
       
       toast({
         title: "Conta criada com sucesso!",
@@ -236,15 +230,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: () => {
-      console.log("Logout bem-sucedido. Redirecionando para página de autenticação.");
+      console.log("Logout bem-sucedido. Recarregando página.");
       
       // Limpar cache imediatamente
       queryClient.setQueryData(["/api/user"], null);
       queryClient.invalidateQueries({queryKey: ["/api/user"]});
       queryClient.clear(); // Limpar todo o cache
       
-      // Redirecionar para página de login
-      setLocation("/auth");
+      // Forçar recarregamento da página após logout
+      window.location.reload();
       
       toast({
         title: "Logout realizado",
@@ -254,11 +248,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onError: (error: Error) => {
       console.error("Erro ao processar logout:", error);
       
-      // Limpar cache e redirecionar mesmo com erro
+      // Limpar cache e recarregar página mesmo com erro
       queryClient.setQueryData(["/api/user"], null);
       queryClient.invalidateQueries({queryKey: ["/api/user"]});
       queryClient.clear();
-      setLocation("/auth");
+      window.location.reload();
       
       toast({
         title: "Falha ao sair",

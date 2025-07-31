@@ -109,17 +109,9 @@ export default function AuthPage() {
       
       toast({ title: "Login realizado!", description: `Bem-vindo(a), ${userData.name || userData.email}` });
       
-      // Redirecionamento imediato e confiável
+      // Forçar atualização da página após login
+      window.location.reload();
       
-      if (userData.userType === "client") {
-        setLocation("/client/dashboard");
-      } else if (userData.userType === "provider") {
-        setLocation("/provider/dashboard");
-      } else if (userData.userType === "admin") {
-        setLocation("/admin/dashboard");
-      } else {
-        setLocation("/");
-      }
     } catch (e: any) {
       toast({ title: "Erro ao entrar", description: e.message || "Verifique seus dados.", variant: "destructive" });
     } finally {
@@ -141,12 +133,10 @@ export default function AuthPage() {
       if (!res.ok) throw new Error(await res.text());
       const userData = await res.json();
       toast({ title: "Conta criada!", description: "Bem-vindo(a) ao AgendoAI!" });
-      setTimeout(() => {
-        if (userData.userType === "client") setLocation("/client/dashboard");
-        else if (userData.userType === "provider") setLocation("/provider/dashboard");
-        else if (userData.userType === "admin") setLocation("/admin/dashboard");
-        else setLocation("/");
-      }, 1000);
+      
+      // Forçar atualização da página após registro
+      window.location.reload();
+      
     } catch (e: any) {
       toast({ title: "Erro ao cadastrar", description: e.message || "Verifique seus dados.", variant: "destructive" });
     } finally {

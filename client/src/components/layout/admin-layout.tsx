@@ -110,10 +110,14 @@ export default function AdminLayout({
     setLogoutDialogOpen(true);
   };
 
-  const confirmLogout = () => {
-    setLogoutDialogOpen(false);
-    logoutMutation.mutate();
-  };
+          const confirmLogout = () => {
+          setLogoutDialogOpen(false);
+          logoutMutation.mutate(undefined, {
+            onError: (error) => {
+              console.error("Erro no logout:", error);
+            }
+          });
+        };
   
   // Verificar se a rota atual corresponde a algum item de navegação
   const isActive = (path: string) => {

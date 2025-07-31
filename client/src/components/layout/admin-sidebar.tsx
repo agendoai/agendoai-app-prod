@@ -68,7 +68,15 @@ export default function AdminSidebar() {
       </nav>
       <div className="mt-auto p-4 border-t border-gray-100">
         <button
-          onClick={() => logoutMutation.mutate()}
+          onClick={() => logoutMutation.mutate(undefined, {
+            onSuccess: () => {
+              // Forçar atualização da página após logout
+              window.location.reload();
+            },
+            onError: (error) => {
+              console.error("Erro no logout:", error);
+            }
+          })}
           className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium text-red-600 hover:bg-red-50 transition-colors"
         >
           <LogOut className="h-5 w-5" />
