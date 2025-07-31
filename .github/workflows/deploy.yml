@@ -21,8 +21,25 @@ jobs:
       - name: Deploy on VPS
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.VPS_USER }}@${{ secrets.VPS_HOST }} << 'EOF'
+            set -e  # Se der erro, para tudo
+
+            echo "📦 Indo para o projeto"
             cd /var/www/agendoai-app-prod || exit
+
+            echo "🔄 Dando git pull"
             git pull origin desenvolvimento
+
+            echo "📁 Buildando frontend"
+            cd client
             npm install
+            NODE_OPTIONS="--max-old-space-size=4096" npm run build
+
+            echo "🔙 Voltando para backend"
+            cd ..
+
+            echo "📦 Instalando dependências do backend"
+            npm install
+
+            echo "🚀 Reiniciando backend com PM2"
             pm2 restart agendoai-backend
           EOF
