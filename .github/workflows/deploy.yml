@@ -29,14 +29,6 @@ jobs:
             echo "🔄 Dando git pull"
             git pull origin desenvolvimento
 
-            echo "📁 Buildando frontend"
-            cd client
-            npm install
-            NODE_OPTIONS="--max-old-space-size=4096" npm run build
-
-            echo "🔙 Voltando para backend"
-            cd ..
-
             echo "📦 Instalando dependências do backend"
             npm install
 
