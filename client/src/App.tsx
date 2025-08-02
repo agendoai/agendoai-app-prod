@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { AuthProvider } from "@/hooks/use-auth";
 import { NotificationProvider } from "@/hooks/use-notifications";
 import { AnimatePresence } from "framer-motion";
+import { HelmetProvider } from "react-helmet-async";
 
 // Componentes essenciais carregados imediatamente
 import SplashPage from "@/pages/splash-page";
@@ -82,6 +83,7 @@ const ProviderHelpPage = lazy(() => import("@/pages/provider/help-page"));
 const ProviderSupportPage = lazy(() => import("@/pages/provider/support-page"));
 const ProviderAppointmentDetailsPage = lazy(() => import("@/pages/provider/appointment-details-page"));
 const ProviderAppointmentsPage = lazy(() => import("@/pages/provider/appointments-page"));
+const ProviderAppointmentsManagementPage = lazy(() => import("@/pages/provider/provider-appointments-management-page"));
 const ProviderClientsPage = lazy(() => import("@/pages/provider/clients-page"));
 const ProviderFinancesPage = lazy(() => import("@/pages/provider/provider-finances-page"));
 const AsaasOnboardingPage = lazy(() => import("@/pages/provider/asaas-onboarding-page"));
@@ -419,6 +421,11 @@ function RouterWithTransitions() {
           userType="provider"
         />
         <ProtectedRoute
+          path="/provider/appointments-management"
+          component={() => <LazyWrapper component={ProviderAppointmentsManagementPage} />}
+          userType="provider"
+        />
+        <ProtectedRoute
           path="/provider/appointments/:id"
           component={() => <LazyWrapper component={ProviderAppointmentDetailsPage} />}
           userType="provider"
@@ -631,14 +638,16 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <NotificationProvider>
-          <div className={`${needsFullWidth ? 'w-full' : 'max-w-md mx-auto'} min-h-screen bg-white`}>
-            <RouterWithTransitions />
-            <Toaster />
-          </div>
-        </NotificationProvider>
-      </AuthProvider>
+      <HelmetProvider>
+        <AuthProvider>
+          <NotificationProvider>
+            <div className={`${needsFullWidth ? 'w-full' : 'max-w-md mx-auto'} min-h-screen bg-white`}>
+              <RouterWithTransitions />
+              <Toaster />
+            </div>
+          </NotificationProvider>
+        </AuthProvider>
+      </HelmetProvider>
     </QueryClientProvider>
   );
 }

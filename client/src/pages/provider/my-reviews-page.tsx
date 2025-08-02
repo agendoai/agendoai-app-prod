@@ -1,4 +1,4 @@
-import { Helmet } from "react-helmet";
+import { Helmet } from "react-helmet-async";
 import { useAuth } from "@/hooks/use-auth";
 import { useProviderReviews } from "@/hooks/use-reviews";
 import { ProviderLayout } from "@/components/layout/provider-layout";

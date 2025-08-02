@@ -61,7 +61,7 @@ export interface BookingDetails {
   // Propriedades para pagamento PIX
   pixCode?: string;
   pixQrCodeUrl?: string;
-  paymentStatus?: "pending" | "paid" | "failed";
+  paymentStatus?: "pending" | "paid" | "failed" | "refunded";
   paymentId?: string;
   totalPrice?: number;
 }
@@ -78,6 +78,7 @@ export interface Appointment {
   notes?: string;
   totalPrice?: number | null;
   createdAt?: string;
+  paymentStatus?: string; // "pending", "paid", "failed", "refunded"
   // Informações do prestador
   providerName?: string;
   providerPhone?: string;

@@ -125,7 +125,10 @@ export default function ProviderDashboard() {
   // Stats
   const stats = {
     todayAppointments: todayAppointments.length,
-    monthlyRevenue: 245000,
+    // Calcula a receita total somando todos os agendamentos com paymentStatus 'paid'
+    monthlyRevenue: appointments
+      .filter(a => a.paymentStatus === 'paid' && a.totalPrice)
+      .reduce((sum, a) => sum + (a.totalPrice || 0), 0),
     manualAppointments: 3,
     manualRevenue: 85000
   };
@@ -329,7 +332,7 @@ export default function ProviderDashboard() {
                     </div>
                     <span className="text-xs font-semibold text-neutral-500">Receita</span>
                   </div>
-                  <div className="text-lg font-bold text-neutral-900">{formatCurrency((stats.monthlyRevenue || 0) / 100)}</div>
+                  <div className="text-lg font-bold text-neutral-900">{formatCurrency(stats.monthlyRevenue || 0)}</div>
                 </CardContent>
               </Card>
               <Card className="bg-white border border-neutral-200 rounded-lg shadow-sm w-full max-w-full">
@@ -467,7 +470,7 @@ export default function ProviderDashboard() {
                               {service.serviceName}
                             </h3>
                             <p className="text-base font-bold text-green-600">
-                              {service.price != null ? formatCurrency((service.price || 0) / 100) : service.defaultPrice ? formatCurrency((service.defaultPrice || 0) / 100) : "R$ 0,00"}
+                              {service.price != null ? formatCurrency(service.price || 0) : service.defaultPrice ? formatCurrency(service.defaultPrice || 0) : "R$ 0,00"}
                             </p>
                           </CardContent>
                         </Card>
@@ -501,9 +504,19 @@ export default function ProviderDashboard() {
                       <Calendar className="h-5 w-5 text-gray-700 flex-shrink-0" />
                       <span className="truncate">Agendamentos de hoje</span>
                     </h2>
-                    <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                      {todayAppointments.length} agendamento{todayAppointments.length !== 1 ? 's' : ''}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                        {todayAppointments.length} agendamento{todayAppointments.length !== 1 ? 's' : ''}
+                      </span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setLocation("/provider/appointments-management")}
+                        className="text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                      >
+                        Ver todos →
+                      </Button>
+                    </div>
                   </div>
                   
                   {areAppointmentsLoading ? (
@@ -564,9 +577,19 @@ export default function ProviderDashboard() {
                       <Calendar className="h-5 w-5 text-gray-700 flex-shrink-0" />
                       <span className="truncate">Próximos agendamentos</span>
                     </h2>
-                    <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
-                      {upcomingAppointments.length} agendamento{upcomingAppointments.length !== 1 ? 's' : ''}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                        {upcomingAppointments.length} agendamento{upcomingAppointments.length !== 1 ? 's' : ''}
+                      </span>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => setLocation("/provider/appointments-management")}
+                        className="text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                      >
+                        Ver todos →
+                      </Button>
+                    </div>
                   </div>
                   
                   {areAppointmentsLoading ? (

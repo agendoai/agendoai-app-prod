@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import ClientLayout from '@/components/layout/client-layout';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 import { Loader2, Check, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 

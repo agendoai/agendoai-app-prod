@@ -187,6 +187,23 @@ export default function ProviderServicesPage() {
           </p>
         </motion.div>
 
+        {/* Botão Adicionar Serviço */}
+        <motion.div 
+          className="mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+        >
+          <Button 
+            onClick={handleAddNewService}
+            className="w-full sm:w-auto bg-[#58c9d1] hover:bg-[#4bb8c0] text-white font-semibold py-3 px-6 rounded-lg shadow-sm transition-all duration-200 hover:shadow-md"
+            size="lg"
+          >
+            <Plus className="h-5 w-5 mr-2" />
+            Adicionar Serviço
+          </Button>
+        </motion.div>
+
         {/* Estatísticas */}
         <motion.div 
           className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6"

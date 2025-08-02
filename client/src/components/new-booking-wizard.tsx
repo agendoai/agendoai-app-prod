@@ -1466,6 +1466,7 @@ export function NewBookingWizard({
 
   // Renderizar conteúdo da etapa de seleção de prestador - Passo 6
   const renderProvidersStep = () => {
+    
     if (isProvidersLoading) {
       return (
         <div className="space-y-4">
@@ -1597,6 +1598,7 @@ export function NewBookingWizard({
               let matchingService = null;
 
               if (selectedServiceTemplate) {
+                
                 // Estratégia 1: Correspondência exata ou parcial por nome
                 matchingService = provider.services.find(
                   (service) =>
@@ -1605,11 +1607,12 @@ export function NewBookingWizard({
                     selectedServiceTemplate.name.includes(service.name),
                 );
 
+                if (matchingService) {
+                  // Serviço encontrado por nome
+                }
+
                 // Estratégia 2: Se não encontrar por nome, verificar pela categoria e duração
                 if (!matchingService) {
-                  console.log(
-                    `Tentando encontrar correspondência por categoria e duração para ${selectedServiceTemplate.name}`,
-                  );
                   matchingService = provider.services.find(
                     (service) =>
                       service.categoryId ===
@@ -1620,11 +1623,11 @@ export function NewBookingWizard({
                   );
 
                   if (matchingService) {
-                    console.log(
-                      `Encontrado serviço similar por categoria e duração: ${matchingService.name} (${matchingService.duration} min)`,
-                    );
+                    // Serviço encontrado por categoria e duração
                   }
                 }
+                
+                // matchingService encontrado ou não
               }
 
               // Verificar se é o prestador com melhor disponibilidade
@@ -1690,7 +1693,10 @@ export function NewBookingWizard({
                               variant="outline"
                               className="bg-primary/5 hover:bg-primary/10"
                             >
-                              {formatCurrency(matchingService.price || 0)}
+                              {(() => {
+                                console.log('DEBUG - Valor do serviço:', matchingService.price);
+                                return formatCurrency(matchingService.price || 0);
+                              })()}
                             </Badge>
                           )}
 
@@ -2189,9 +2195,6 @@ export function NewBookingWizard({
       }
     }
 
-    console.log('DEBUG - availableTimeSlots vindos da API:', availableTimeSlots);
-    console.log('DEBUG - timeSlotsToUse (filtrados):', timeSlotsToUse);
-
     return (
       <div className="space-y-4">
         <Alert>
@@ -2562,7 +2565,7 @@ export function NewBookingWizard({
                         <div className="font-medium">Valor</div>
                         <div className="text-muted-foreground">
                           {matchingService
-                            ? formatCurrency(matchingService.price || 0)
+                                                          ? formatCurrency(matchingService.price || 0)
                             : "A definir"}
                         </div>
                       </div>
@@ -2574,9 +2577,11 @@ export function NewBookingWizard({
 
                 {/* Resumo do pagamento usando PaymentSummary */}
                 <PaymentSummary
-                  servicePrice={
-                    matchingService ? matchingService.price || 0 : 0
-                  }
+                  servicePrice={(() => {
+                    const price = matchingService ? matchingService.price || 0 : 0;
+                    console.log('DEBUG - PaymentSummary servicePrice:', price);
+                    return price;
+                  })()}
                   taxaServico={175}
                 />
 
@@ -2696,10 +2701,11 @@ export function NewBookingWizard({
 
     // Calcular o preço total de todos os serviços selecionados
     let totalServicePrice = 0;
+    let matchingService: Service | null = null;
 
     // Se temos apenas um serviço selecionado, usar a lógica original
     if (selectedServiceTemplates.length === 1) {
-      const matchingService = selectedProvider.services.find(
+      matchingService = selectedProvider.services.find(
         (service) =>
           service.name === selectedServiceTemplate.name ||
           service.name.includes(selectedServiceTemplate.name) ||
@@ -2709,7 +2715,7 @@ export function NewBookingWizard({
               10),
       );
 
-      // Obter o preço do serviço em centavos
+      // Obter o preço do serviço
       totalServicePrice = Number(
         matchingService?.price || selectedServiceTemplate.price || 0,
       );
@@ -2740,15 +2746,6 @@ export function NewBookingWizard({
 
     // Preço total sem taxa adicional
     const totalPrice = servicePrice;
-
-    // Log detalhado para debug
-    console.log("DADOS DO PREÇO:", {
-      totalServicePrice,
-      servicePrice,
-      totalPrice,
-      formattedServicePrice: formatCurrency(servicePrice),
-      formattedTotalPrice: formatCurrency(totalPrice),
-    });
 
     return (
       <div className="space-y-6">
@@ -2856,27 +2853,27 @@ export function NewBookingWizard({
 
             {/* Resumo do pagamento usando o componente PaymentSummary */}
             <PaymentSummary
-              servicePrice={servicePrice}
-              taxaServico={taxaServico}
+              servicePrice={(() => {
+                console.log('DEBUG - PaymentStep servicePrice:', servicePrice);
+                return servicePrice;
+              })()}
+              taxaServico={175}
               totalPrice={totalPrice}
               services={
                 selectedServiceTemplates.length > 1
                   ? selectedServiceTemplates.map((template) => {
-                      // Encontrar o serviço correspondente para obter o preço correto
                       const matchingService = selectedProvider.services.find(
                         (service) =>
                           service.name === template.name ||
                           service.name.includes(template.name) ||
                           template.name.includes(service.name) ||
                           (service.categoryId === template.categoryId &&
-                            Math.abs(service.duration - template.duration) <=
-                              10),
+                            Math.abs(service.duration - template.duration) <= 10),
                       );
-
                       return {
                         id: template.id,
                         name: template.name,
-                        price: matchingService?.price || template.price || 0,
+                                                          price: matchingService?.price || template.price || 0,
                       };
                     })
                   : undefined
@@ -2960,11 +2957,7 @@ export function NewBookingWizard({
 
   // Repita o padrão para as demais etapas (nichos, categorias, serviços, horários, profissional, pagamento)
 
-  // LOGS DE DEPURAÇÃO PARA AJUDAR A IDENTIFICAR O PROBLEMA
-  console.log('DEBUG - selectedProvider:', selectedProvider);
-  console.log('DEBUG - selectedDate:', selectedDate);
-  console.log('DEBUG - selectedServiceTemplate:', selectedServiceTemplate);
-  console.log('DEBUG - isSlotsLoading:', isSlotsLoading);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 to-blue-300 pb-24">

@@ -32,19 +32,8 @@ export default function AddServicePage() {
     );
   }
 
-  // Estados para criação de serviço personalizado
-  const [serviceName, setServiceName] = useState("");
-  const [serviceDescription, setServiceDescription] = useState("");
-  const [selectedNiche, setSelectedNiche] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [price, setPrice] = useState("");
-  const [duration, setDuration] = useState("30");
-  const [executionTime, setExecutionTime] = useState("25");
-  const [breakTime, setBreakTime] = useState("5");
-
   // Estados para busca de templates (opcional)
   const [searchTerm, setSearchTerm] = useState("");
-  const [showTemplateSearch, setShowTemplateSearch] = useState(false);
 
   // Estados para filtros
   const [filterNiche, setFilterNiche] = useState("");
@@ -79,30 +68,6 @@ export default function AddServicePage() {
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
 
-  // Fetch categories based on selected niche
-  const { data: categories = [], isLoading: isLoadingCategories, error: categoriesError } = useQuery({
-    queryKey: ["/api/categories", selectedNiche],
-    queryFn: async () => {
-      try {
-        if (!selectedNiche || selectedNiche === "teste") return [];
-        const response = await fetch(`/api/categories?nicheId=${selectedNiche}`);
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error("Erro ao carregar categorias:", error);
-        return [];
-      }
-    },
-    enabled: !!selectedNiche && selectedNiche !== "teste",
-    retry: 2,
-    retryDelay: 1000,
-    staleTime: 5 * 60 * 1000, // 5 minutos
-  });
-
-
   // Buscar todas as categorias para os filtros
   const { data: allCategories = [], isLoading: isLoadingAllCategories } = useQuery({
     queryKey: ["/api/categories"],
@@ -123,7 +88,6 @@ export default function AddServicePage() {
     retryDelay: 1000,
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
-
 
 
   // Buscar templates de serviço
@@ -238,32 +202,6 @@ export default function AddServicePage() {
     }
   });
 
-  const handleCreateCustomService = () => {
-    if (!serviceName || !selectedNiche || !selectedCategory || !price) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Preencha todos os campos obrigatórios.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const serviceData = {
-      providerId: user?.id,
-      name: serviceName,
-      description: serviceDescription,
-      nicheId: parseInt(selectedNiche),
-      categoryId: parseInt(selectedCategory),
-      price: parseFloat(price),
-      duration: parseInt(duration),
-      executionTime: parseInt(executionTime),
-      breakTime: parseInt(breakTime),
-    };
-
-    // TODO: Implementar createCustomServiceMutation
-    console.log("Criando serviço personalizado:", serviceData);
-  };
-
   // Função para renderizar nichos com segurança
   const renderNiches = () => {
     if (isLoadingNiches) {
@@ -304,27 +242,6 @@ export default function AddServicePage() {
     ));
   };
 
-  // Função para renderizar categorias com segurança (para o formulário de criação)
-  const renderCategories = () => {
-    if (isLoadingCategories) {
-      return <SelectItem value="loading" disabled>Carregando categorias...</SelectItem>;
-    }
-    
-    if (categoriesError) {
-      return <SelectItem value="error" disabled>Erro ao carregar categorias</SelectItem>;
-    }
-    
-    if (!Array.isArray(categories) || categories.length === 0) {
-      return <SelectItem value="empty" disabled>Nenhuma categoria disponível</SelectItem>;
-    }
-    
-    return categories.map((category: any) => (
-      <SelectItem key={category?.id || 'unknown'} value={(category?.id || 'unknown').toString()}>
-        {category?.name || 'Categoria sem nome'}
-      </SelectItem>
-    ));
-  };
-
   // Garante que filterCategory sempre seja válido ao trocar o nicho, usando useEffect para evitar render loop
   useEffect(() => {
     const filteredCategoriesForFilter = filterNiche
@@ -352,10 +269,10 @@ export default function AddServicePage() {
                 Voltar
               </Button>
               <div className="h-6 w-px bg-gray-300"></div>
-              <h1 className="text-4xl font-bold text-gray-900">Adicionar Novo Serviço</h1>
+              <h1 className="text-xl font-bold text-gray-900">Adicionar Novo Serviço</h1>
             </div>
             <p className="text-gray-600 text-lg max-w-2xl">
-              Crie um serviço personalizado para seu catálogo ou encontre templates prontos para adicionar.
+              Encontre templates de serviços prontos para adicionar ao seu catálogo.
             </p>
           </div>
 
@@ -374,206 +291,176 @@ export default function AddServicePage() {
             </div>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-            {/* Sidebar */}
-            <div className="lg:col-span-1">
-              <Card className="sticky top-8 shadow-lg border-0 bg-white/80 backdrop-blur-sm">
-                <CardHeader className="pb-4">
-                  <CardTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-gray-700" />
-                    Opções
+          <div className="grid grid-cols-1 gap-8">
+            {/* Main Content */}
+            <div className="col-span-1">
+              <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
+                <CardHeader className="pb-6">
+                  <CardTitle className="text-2xl font-bold text-gray-900 flex items-center gap-3">
+                    <Search className="h-6 w-6 text-[#58c9d1]" />
+                    Buscar Templates
                   </CardTitle>
-                  <CardDescription className="text-gray-600">
-                    Escolha como adicionar seu serviço
+                  <CardDescription className="text-gray-600 text-base">
+                    Encontre serviços prontos para adicionar ao seu catálogo
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  <Button 
-                    className="w-full justify-start h-12 transition-all duration-200 bg-gray-900 text-white hover:bg-gray-800 shadow-lg"
-                    variant="default"
-                    onClick={() => setShowTemplateSearch(true)}
-                  >
-                    <Search className="mr-3 h-4 w-4" />
-                    <div className="text-left">
-                      <div className="font-medium">Buscar Templates</div>
-                      <div className="text-xs opacity-80">Serviços prontos</div>
+                <CardContent className="py-6">
+                  {/* Filtros e Busca */}
+                  <div className="mb-6 space-y-4">
+                    {/* Barra de busca */}
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Buscar templates..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="pl-10 h-12 bg-white border-gray-200 focus:border-[#58c9d1] focus:ring-[#58c9d1]"
+                      />
                     </div>
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
 
-            {/* Main Content */}
-            <div className="lg:col-span-3">
-              {showTemplateSearch && (
-                <Card className="shadow-xl border-0 bg-white/90 backdrop-blur-sm">
-                  <CardHeader className="pb-6">
-                    <CardTitle className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-                      <Search className="h-6 w-6 text-gray-700" />
-                      Buscar Templates
-                    </CardTitle>
-                    <CardDescription className="text-gray-600 text-base">
-                      Encontre serviços prontos para adicionar ao seu catálogo
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="py-6">
-                    {/* Filtros e Busca */}
-                    <div className="mb-6 space-y-4">
-                      {/* Barra de busca */}
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                        <Input
-                          placeholder="Buscar templates..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-10 h-12 bg-white border-gray-200 focus:border-blue-500 focus:ring-blue-500"
-                        />
-                      </div>
-
-                      {/* Botão de filtros */}
-                      <div className="flex items-center gap-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowFilters(!showFilters)}
-                          className="flex items-center gap-2"
-                        >
-                          <Filter className="h-4 w-4" />
-                          Filtros
-                          {(filterNiche || filterCategory) && (
-                            <span className="bg-blue-100 text-blue-700 text-xs px-2 py-1 rounded-full">
-                              {(filterNiche ? 1 : 0) + (filterCategory ? 1 : 0)}
-                            </span>
-                          )}
-                        </Button>
-                        
-                        {(filterNiche || filterCategory || searchTerm) && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={clearFilters}
-                            className="flex items-center gap-2 text-gray-500 hover:text-gray-700"
-                          >
-                            <X className="h-4 w-4" />
-                            Limpar
-                          </Button>
+                    {/* Botão de filtros */}
+                    <div className="flex items-center gap-3">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowFilters(!showFilters)}
+                        className="flex items-center gap-2 border-[#58c9d1] text-[#58c9d1] hover:bg-[#58c9d1] hover:text-white"
+                      >
+                        <Filter className="h-4 w-4" />
+                        Filtros
+                        {(filterNiche || filterCategory) && (
+                          <span className="bg-[#58c9d1] text-white text-xs px-2 py-1 rounded-full">
+                            {(filterNiche ? 1 : 0) + (filterCategory ? 1 : 0)}
+                          </span>
                         )}
-                      </div>
-
-                      {/* Painel de filtros */}
-                      {showFilters && (
-                        <div className="bg-gray-50 rounded-lg p-4 space-y-4">
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <Label className="text-sm font-medium text-gray-700 mb-2 block">Nicho</Label>
-                              <Select value={filterNiche} onValueChange={value => { setFilterNiche(value); setFilterCategory(""); }}>
-                                <SelectTrigger className="h-10 bg-white rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 shadow-sm text-base font-medium transition-all duration-150">
-                                  <SelectValue placeholder="Selecione um nicho" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-white rounded-lg shadow-lg border border-gray-200 py-1 text-base">
-                                  {renderNiches()}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                            
-                            <div>
-                              <Label className="text-sm font-medium text-gray-700 mb-2 block">Categoria</Label>
-                              <Select value={filterCategory} onValueChange={setFilterCategory}>
-                                <SelectTrigger className="h-10 bg-white rounded-lg border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 shadow-sm text-base font-medium transition-all duration-150">
-                                  <SelectValue placeholder="Selecione uma categoria" />
-                                </SelectTrigger>
-                                <SelectContent className="bg-white rounded-lg shadow-lg border border-gray-200 py-1 text-base">
-                                  {renderFilterCategories()}
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-                        </div>
+                      </Button>
+                      
+                      {(filterNiche || filterCategory || searchTerm) && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={clearFilters}
+                          className="flex items-center gap-2 text-gray-500 hover:text-gray-700"
+                        >
+                          <X className="h-4 w-4" />
+                          Limpar
+                        </Button>
                       )}
                     </div>
 
-                    {/* Resultados */}
-                    {isLoadingTemplates ? (
-                      <div className="text-center py-8">
-                        <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-gray-400" />
-                        <p className="text-gray-500">Carregando templates...</p>
-                      </div>
-                    ) : templatesError ? (
-                      <div className="text-center py-8 text-red-500">Erro ao carregar templates</div>
-                    ) : filteredTemplates.length === 0 ? (
-                      <div className="text-center py-8">
-                        <Search className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                        <p className="text-gray-500 text-lg font-medium mb-2">
-                          {searchTerm || filterNiche || filterCategory 
-                            ? "Nenhum template encontrado" 
-                            : "Nenhum template disponível"
-                          }
-                        </p>
-                        <p className="text-gray-400 text-sm">
-                          {searchTerm || filterNiche || filterCategory 
-                            ? "Tente ajustar os filtros ou termos de busca"
-                            : "Templates serão adicionados em breve"
-                          }
-                        </p>
-                      </div>
-                    ) : (
-                      <div>
-                        {/* Contador de resultados */}
-                        <div className="mb-4 text-sm text-gray-600">
-                          {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''} encontrado{filteredTemplates.length !== 1 ? 's' : ''}
-                        </div>
-                        
-                        {/* Grid de templates */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {filteredTemplates.map((template: ServiceTemplate) => (
-                            <Card
-                              key={template.id}
-                              className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100"
-                            >
-                              <CardContent className="p-4">
-                                <div className="flex items-start justify-between mb-2">
-                                  <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2">
-                                    {template.name}
-                                  </h3>
-                                  <span className={`px-2 py-1 rounded-full text-xs font-medium ml-2 flex-shrink-0 ${
-                                    template.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
-                                  }`}>
-                                    {template.isActive ? "Ativo" : "Inativo"}
-                                  </span>
-                                </div>
-                                
-                                <p className="text-gray-600 text-xs mb-3 line-clamp-2">
-                                  {template.description}
-                                </p>
-                                
-                                <div className="flex items-center gap-3 text-gray-500 text-xs mb-3">
-                                  <span className="flex items-center gap-1">
-                                    <FileText className="h-3 w-3" />
-                                    {categories.find((c: Category) => c.id === template.categoryId)?.name || "-"}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    {template.duration} min
-                                  </span>
-                                </div>
-                                
-                                <Button
-                                  className="w-full h-8 bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium"
-                                  onClick={() => handleOpenTemplateDialog(template)}
-                                  disabled={addServiceMutation.isPending}
-                                >
-                                  <Plus className="h-3 w-3 mr-1" />
-                                  Adicionar
-                                </Button>
-                              </CardContent>
-                            </Card>
-                          ))}
+                    {/* Painel de filtros */}
+                    {showFilters && (
+                      <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <Label className="text-sm font-medium text-gray-700 mb-2 block">Nicho</Label>
+                            <Select value={filterNiche} onValueChange={value => { setFilterNiche(value); setFilterCategory(""); }}>
+                              <SelectTrigger className="h-10 bg-white rounded-lg border border-gray-300 focus:border-[#58c9d1] focus:ring-2 focus:ring-[#58c9d1]/20 shadow-sm text-base font-medium transition-all duration-150">
+                                <SelectValue placeholder="Selecione um nicho" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-white rounded-lg shadow-lg border border-gray-200 py-1 text-base">
+                                {renderNiches()}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          
+                          <div>
+                            <Label className="text-sm font-medium text-gray-700 mb-2 block">Categoria</Label>
+                            <Select value={filterCategory} onValueChange={setFilterCategory}>
+                              <SelectTrigger className="h-10 bg-white rounded-lg border border-gray-300 focus:border-[#58c9d1] focus:ring-2 focus:ring-[#58c9d1]/20 shadow-sm text-base font-medium transition-all duration-150">
+                                <SelectValue placeholder="Selecione uma categoria" />
+                              </SelectTrigger>
+                              <SelectContent className="bg-white rounded-lg shadow-lg border border-gray-200 py-1 text-base">
+                                {renderFilterCategories()}
+                              </SelectContent>
+                            </Select>
+                          </div>
                         </div>
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              )}
+                  </div>
+
+                  {/* Resultados */}
+                  {isLoadingTemplates ? (
+                    <div className="text-center py-8">
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-gray-400" />
+                      <p className="text-gray-500">Carregando templates...</p>
+                    </div>
+                  ) : templatesError ? (
+                    <div className="text-center py-8 text-red-500">Erro ao carregar templates</div>
+                  ) : filteredTemplates.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Search className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                      <p className="text-gray-500 text-lg font-medium mb-2">
+                        {searchTerm || filterNiche || filterCategory 
+                          ? "Nenhum template encontrado" 
+                          : "Nenhum template disponível"
+                        }
+                      </p>
+                      <p className="text-gray-400 text-sm">
+                        {searchTerm || filterNiche || filterCategory 
+                          ? "Tente ajustar os filtros ou termos de busca"
+                          : "Templates serão adicionados em breve"
+                        }
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      {/* Contador de resultados */}
+                      <div className="mb-4 text-sm text-gray-600">
+                        {filteredTemplates.length} template{filteredTemplates.length !== 1 ? 's' : ''} encontrado{filteredTemplates.length !== 1 ? 's' : ''}
+                      </div>
+                      
+                      {/* Grid de templates */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                        {filteredTemplates.map((template: ServiceTemplate) => (
+                          <Card
+                            key={template.id}
+                            className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-200 border border-gray-100"
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between mb-2">
+                                <h3 className="font-semibold text-gray-900 text-sm leading-tight line-clamp-2">
+                                  {template.name}
+                                </h3>
+                                <span className={`px-2 py-1 rounded-full text-xs font-medium ml-2 flex-shrink-0 ${
+                                  template.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
+                                }`}>
+                                  {template.isActive ? "Ativo" : "Inativo"}
+                                </span>
+                              </div>
+                              
+                              <p className="text-gray-600 text-xs mb-3 line-clamp-2">
+                                {template.description}
+                              </p>
+                              
+                              <div className="flex items-center gap-3 text-gray-500 text-xs mb-3">
+                                <span className="flex items-center gap-1">
+                                  <FileText className="h-3 w-3" />
+                                  {allCategories.find((c: Category) => c.id === template.categoryId)?.name || "-"}
+                                </span>
+                                <span className="flex items-center gap-1">
+                                  <Clock className="h-3 w-3" />
+                                  {template.duration} min
+                                </span>
+                              </div>
+                              
+                              <Button
+                                className="w-full h-8 bg-[#58c9d1] hover:bg-[#4bb8c0] text-white text-xs font-medium"
+                                onClick={() => handleOpenTemplateDialog(template)}
+                                disabled={addServiceMutation.isPending}
+                              >
+                                <Plus className="h-3 w-3 mr-1" />
+                                Adicionar
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </div>
 
@@ -595,7 +482,7 @@ export default function AddServicePage() {
                       type="number"
                       min="0"
                       step="0.01"
-                      className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 transition"
+                      className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#58c9d1] focus:border-[#58c9d1] bg-white text-gray-900 transition"
                       value={customPrice}
                       onChange={e => setCustomPrice(e.target.value)}
                       placeholder="Ex: 99.90"
@@ -611,7 +498,7 @@ export default function AddServicePage() {
                     <input
                       type="number"
                       min="1"
-                      className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 transition"
+                      className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-[#58c9d1] focus:border-[#58c9d1] bg-white text-gray-900 transition"
                       value={customDuration}
                       onChange={e => setCustomDuration(e.target.value)}
                       placeholder="Ex: 60"
@@ -632,7 +519,7 @@ export default function AddServicePage() {
               </div>
               <DialogFooter className="flex-row justify-center gap-4 mt-8">
                 {step > 1 ? (
-                  <Button variant="outline" onClick={() => setStep(step - 1)} className="rounded-lg px-6 border-blue-700 text-blue-700 hover:bg-blue-50 font-semibold">Voltar</Button>
+                  <Button variant="outline" onClick={() => setStep(step - 1)} className="rounded-lg px-6 border-[#58c9d1] text-[#58c9d1] hover:bg-[#58c9d1]/10 font-semibold">Voltar</Button>
                 ) : null}
                 {step < 3 ? (
                   <Button
@@ -641,7 +528,7 @@ export default function AddServicePage() {
                       if (step === 2 && !customDuration) return;
                       setStep(step + 1);
                     }}
-                    className="bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-lg px-6"
+                    className="bg-[#58c9d1] hover:bg-[#4bb8c0] text-white font-semibold rounded-lg px-6"
                     disabled={(step === 1 && !customPrice) || (step === 2 && !customDuration) || addServiceMutation.isPending}
                   >
                     Próximo
@@ -649,7 +536,7 @@ export default function AddServicePage() {
                 ) : (
                   <Button
                     onClick={handleAddTemplate}
-                    className="bg-blue-700 hover:bg-blue-800 text-white font-semibold rounded-lg px-6"
+                    className="bg-[#58c9d1] hover:bg-[#4bb8c0] text-white font-semibold rounded-lg px-6"
                     disabled={addServiceMutation.isPending}
                   >
                     {addServiceMutation.isPending ? <Loader2 className="animate-spin h-4 w-4 mr-2 inline" /> : null}

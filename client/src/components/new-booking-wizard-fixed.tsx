@@ -67,7 +67,6 @@ export function NewBookingWizard({
   onComplete,
   preSelectedServiceId = null,
 }: NewBookingWizardProps) {
-  console.log('NewBookingWizard RENDERIZADO');
   const { toast } = useToast();
   const { user } = useAuth();
   const [, setLocation] = useLocation();
@@ -119,7 +118,6 @@ export function NewBookingWizard({
         const url = `/api/providers/${selectedProvider}/time-slots?date=${selectedDate.toISOString().split("T")[0]}&duration=${duration}`;
         const response = await fetch(url);
         const data = await response.json();
-        console.log('[API] /api/providers/:id/time-slots - RESPOSTA:', data);
         setTimeSlots(Array.isArray(data) ? data : data.timeSlots || []);
       } catch (error) {
         console.error('Erro ao buscar horários:', error);
@@ -196,7 +194,6 @@ export function NewBookingWizard({
         `/api/providers/service-search?serviceIds=${selectedServiceIds.join(',')}&date=${selectedDate.toISOString().split("T")[0]}`
       );
       const data = await response.json();
-      console.log('DADOS RECEBIDOS DA API /api/providers/service-search:', data);
       
       // Verificar o formato e normalizar a resposta se necessário
       let providersData = data.providers || [];
@@ -280,7 +277,6 @@ export function NewBookingWizard({
             )
               .then(slotsResponse => slotsResponse.json())
               .then(slots => {
-                console.log('[API] /api/providers/:id/time-slots - RESPOSTA:', slots);
                 // Só adicionar o prestador se tiver slots disponíveis
                 if (Array.isArray(slots) && slots.length > 0) {
                   validProviders[provider.id] = services;
@@ -942,7 +938,7 @@ export function NewBookingWizard({
                   <div className="text-right">
                     {providerServices[provider.id] && providerServices[provider.id].length > 0 && providerServices[provider.id].map((service, idx) => (
                       <div key={service.id} className="text-sm font-semibold text-neutral-800">
-                        {service.name} - R$ {Number(service.price).toFixed(2).replace('.', ',')}
+                        {`${service.name} - R$ ${(Number(service.price) / 100).toFixed(2).replace('.', ',')}`}
                       </div>
                     ))}
                     <div className={`text-sm ${
@@ -1145,17 +1141,19 @@ export function NewBookingWizard({
                 <>
                   <div className="flex justify-between text-sm font-semibold">
                     <span>Subtotal:</span>
-                    <span className="text-teal-600">R$ {totalPrice.toFixed(2).replace(".", ",")}</span>
+                    <span className="text-teal-600">
+                      {`R$ ${(totalPrice / 100).toFixed(2).replace(".", ",")}`}
+                    </span>
                   </div>
                   {adminFee > 0 && (
                     <div className="flex justify-between text-sm font-semibold">
                       <span>Taxa administrativa:</span>
-                      <span className="text-teal-600">R$ {adminFee.toFixed(2).replace(".", ",")}</span>
+                      <span className="text-teal-600">R$ {(adminFee / 100).toFixed(2).replace(".", ",")}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-lg font-bold border-t border-teal-200 pt-3 mt-3 bg-white/50 rounded-lg p-3">
                     <span>Total:</span>
-                    <span className="text-teal-600">R$ {totalWithFee.toFixed(2).replace(".", ",")}</span>
+                    <span className="text-teal-600">R$ {(totalWithFee / 100).toFixed(2).replace(".", ",")}</span>
                   </div>
                 </>
               )}

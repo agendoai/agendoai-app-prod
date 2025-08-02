@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ChevronRight, ArrowRight } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Helmet } from "react-helmet";
+import { Helmet } from "react-helmet-async";
 
 export default function NichesPage() {
   const [, setLocation] = useLocation();

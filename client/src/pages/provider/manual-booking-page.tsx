@@ -81,7 +81,6 @@ const serviceSchema = z.object({
 const dateTimeSchema = z.object({
   date: z.string({ required_error: "Selecione uma data" }),
   time: z.string({ required_error: "Selecione um horário" }),
-  forceBooking: z.boolean().default(false),
 });
 
 // Schema para validação do formulário de cliente
@@ -118,7 +117,6 @@ type ManualBookingData = {
   providerServiceId: string;
   date: string;
   time: string;
-  forceBooking: boolean;
   clientType: "existing" | "new";
   clientId?: string;
   clientName?: string;
@@ -164,7 +162,6 @@ export default function ManualBookingPage() {
     providerServiceId: "",
     date: "",
     time: "",
-    forceBooking: false,
     clientType: "existing",
     clientId: "",
     clientName: "",
@@ -192,7 +189,6 @@ export default function ManualBookingPage() {
     defaultValues: {
       date: bookingData.date,
       time: bookingData.time,
-      forceBooking: bookingData.forceBooking,
     },
   });
   
@@ -605,8 +601,7 @@ export default function ManualBookingPage() {
     setBookingData({ 
       ...bookingData, 
       date: data.date, 
-      time: data.time,
-      forceBooking: data.forceBooking
+      time: data.time
     });
     
     // Mostrar toast de confirmação
@@ -810,7 +805,6 @@ export default function ManualBookingPage() {
       providerServiceId: "",
       date: "",
       time: "",
-      forceBooking: false,
       clientType: "existing",
       clientId: "",
       clientName: "",
@@ -822,7 +816,7 @@ export default function ManualBookingPage() {
     
     // Resetar todos os formulários
     serviceForm.reset({ providerServiceId: "" });
-    dateTimeForm.reset({ date: "", time: "", forceBooking: false });
+    dateTimeForm.reset({ date: "", time: "" });
     clientForm.reset({ 
       clientType: "existing", 
       clientId: "", 
@@ -859,7 +853,7 @@ export default function ManualBookingPage() {
                       <div>
                         <p className="font-medium text-neutral-900">{selectedService?.name}</p>
                         <p className="text-sm text-neutral-600">
-                          {selectedService?.duration} min • {formatCurrency((selectedService?.price || 0) / 100)}
+                          {selectedService?.duration} min • {formatCurrency(selectedService?.price || 0)}
                         </p>
                       </div>
                     </div>
@@ -976,9 +970,9 @@ export default function ManualBookingPage() {
                                         </div>
                                         <div>
                                           <p className="font-medium text-neutral-900">{service.name}</p>
-                                                                                  <p className="text-sm text-neutral-600">
-                                          {service.duration} min • {formatCurrency((service.price || 0) / 100)}
-                                        </p>
+                                          <p className="text-sm text-neutral-600">
+                                            {service.duration} min • {formatCurrency(service.price || 0)}
+                                          </p>
                                         </div>
                                       </div>
                                       <RadioGroupItem 
@@ -1108,26 +1102,7 @@ export default function ManualBookingPage() {
                         )}
                       />
                       
-                      <FormField
-                        control={dateTimeForm.control}
-                        name="forceBooking"
-                        render={({ field }) => (
-                          <FormItem className="flex flex-row items-center space-x-2 space-y-0">
-                            <FormControl>
-                              <Switch
-                                checked={field.value}
-                                onCheckedChange={field.onChange}
-                              />
-                            </FormControl>
-                            <div className="space-y-0.5">
-                              <FormLabel className="text-sm">Agendamento forçado</FormLabel>
-                              <FormDescription className="text-xs text-neutral-600">
-                                Ignora conflitos de horário
-                              </FormDescription>
-                            </div>
-                          </FormItem>
-                        )}
-                      />
+
                       
                       <div className="flex space-x-2 pt-4">
                         <Button 
@@ -1393,7 +1368,7 @@ export default function ManualBookingPage() {
                               <div>
                                 <p className="font-medium text-neutral-900">{selectedService?.name}</p>
                                                                   <p className="text-sm text-neutral-600">
-                                    {selectedService?.duration} min • {formatCurrency((selectedService?.price || 0) / 100)}
+                                    {selectedService?.duration} min • {formatCurrency(selectedService?.price || 0)}
                                   </p>
                               </div>
                             </div>
@@ -1424,16 +1399,7 @@ export default function ManualBookingPage() {
                               </div>
                             </div>
                             
-                            {/* Force booking warning */}
-                            {bookingData.forceBooking && (
-                              <Alert className="bg-yellow-50 border-yellow-200">
-                                <AlertCircle className="h-4 w-4 text-yellow-600" />
-                                <AlertTitle className="text-yellow-600">Atenção: Agendamento forçado</AlertTitle>
-                                <AlertDescription className="text-yellow-600">
-                                  Este agendamento ignorará conflitos de horários.
-                                </AlertDescription>
-                              </Alert>
-                            )}
+
                           </div>
                         </CardContent>
                       </Card>

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import ClientLayout from '@/components/layout/client-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 import { useLocation, useRoute, Link } from 'wouter';
 import { Loader2, CheckCircle, AlertTriangle, XCircle, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
