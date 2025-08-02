@@ -148,7 +148,9 @@ app.use((req, res, next) => {
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
   // doesn't interfere with the other routes
-  if (app.get("env") === "development") {
+  const backendOnly = process.argv.includes('--backend-only');
+  
+  if (app.get("env") === "development" && !backendOnly) {
     await setupVite(app, server);
   } else {
     serveStatic(app);

@@ -2,6 +2,24 @@ import { memo, useCallback, useEffect, useState, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Category } from "../../../../shared/schema";
+
+// Estilos CSS personalizados para barra de rolagem fina
+const scrollbarStyles = `
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 2px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 2px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+`;
 import { ScissorsIcon } from "@/components/ui/scissors-icon";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -347,7 +365,7 @@ const StatusBadge = ({ status }: { status: string | null }) => {
   if (!status) return null;
   let variant = "outline";
   let label = status;
-  let className = "text-[10px] px-1.5 py-0.5";
+  let className = "text-[8px] sm:text-[10px] px-1 py-0.5 sm:px-1.5";
   switch (status) {
     case "confirmed":
     case "confirmado":
@@ -370,6 +388,16 @@ const StatusBadge = ({ status }: { status: string | null }) => {
       label = "Cancelado";
       className += " bg-red-100 text-red-800 border-red-200";
       break;
+    case "executing":
+      variant = "outline";
+      label = "Executando";
+      className += " bg-blue-100 text-blue-800 border-blue-200";
+      break;
+    case "no_show":
+      variant = "destructive";
+      label = "Não Compareceu";
+      className += " bg-orange-100 text-orange-800 border-orange-200";
+      break;
     default:
       variant = "outline";
   }
@@ -379,7 +407,7 @@ const StatusBadge = ({ status }: { status: string | null }) => {
 };
 // Badge de status de pagamento igual appointments-page
 const PaymentStatusBadge = ({ status }: { status: string | null | undefined }) => {
-  let className = "text-[10px] px-1.5 py-0.5";
+  let className = "text-[8px] sm:text-[10px] px-1 py-0.5 sm:px-1.5";
   if (!status || status === 'pending' || status === 'aguardando_pagamento') {
     return <Badge variant="warning" className={className + " bg-yellow-100 text-yellow-800 border-yellow-200"}>Aguardando pagamento</Badge>;
   }
@@ -709,8 +737,9 @@ export default function ClientDashboard() {
   
   const todayAppointments = appointments.filter(a => a.date === new Date().toISOString().split('T')[0]);
 
-    return (
-    <div className="min-h-screen w-full bg-white pb-24 flex justify-center items-start">
+         return (
+     <div className="min-h-screen w-full bg-white pb-24 flex justify-center items-start">
+       <style>{scrollbarStyles}</style>
       <div className="w-full max-w-md mx-auto px-2 sm:px-0">
         <header className="flex flex-col items-center justify-center pt-6 pb-2 relative">
           <img src="/AgendoAilogo.png" alt="AgendoAI Logo" className="h-12 w-auto mb-1 drop-shadow-2xl" />
@@ -735,7 +764,7 @@ export default function ClientDashboard() {
         <div className="pt-1 pb-4 space-y-5">
           <div className="mb-1">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="font-bold text-neutral-900 text-base tracking-wide">Próximos Agendamentos</h2>
+              <h2 className="font-bold text-neutral-900 text-base tracking-wide">Agendamentos</h2>
               <div className="flex items-center gap-2">
                 {appointments.filter(a => a.status === 'pending').length > 0 && (
                   <div className="flex items-center gap-1 bg-yellow-100 text-yellow-700 px-2 py-1 rounded-full text-xs font-medium">
@@ -753,145 +782,234 @@ export default function ClientDashboard() {
                 )}
               </div>
             </div>
-            <div className="space-y-2">
-              {isAppointmentsLoading ? (
-                <AppointmentsSkeleton />
-              ) : appointments.filter(a => a.status === 'pending').length > 0 ? (
-                appointments
-                  .filter(a => a.status === 'pending')
-                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                  .slice(0, 3)
-                  .map((appointment) => (
-                    <div key={`appointment-${appointment.id}`} className={`flex items-start bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-xl shadow p-2 hover:shadow-lg transition-all duration-150 min-h-[4.5rem]`}>
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full mr-2 mt-1 bg-yellow-50">
-                        <Clock className="text-yellow-500" size={22} />
-                      </div>
-                      <div className="flex-1 min-w-0 flex flex-col">
-                        <div className="font-semibold text-[0.9rem] text-neutral-900 truncate leading-tight mb-0.5">{appointment.serviceName}</div>
-                        <div className="text-xs text-cyan-700 font-medium leading-tight mb-0.5">
-                          {appointment.startTime} - {appointment.endTime}
-                          {(() => {
-                            const today = new Date().toISOString().split('T')[0];
-                            const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-                            if (appointment.date === today) {
-                              return ' • Hoje';
-                            } else if (appointment.date === tomorrow) {
-                              return ' • Amanhã';
-                            }
-                            return '';
-                          })()}
-                        </div>
-                        <div className="text-xs text-neutral-400 truncate leading-tight mb-0.5">{appointment.providerName}</div>
-                        <div className="flex flex-col gap-1 mt-1">
-                          <StatusBadge status={appointment.status} />
-                          {appointment.status !== 'canceled' && <PaymentStatusBadge status={appointment.paymentStatus} />}
-                        </div>
-                        {typeof appointment.totalPrice === 'number' && appointment.totalPrice > 0 && (
-                          <div className="text-xs text-neutral-600 font-medium leading-tight mt-1">
-                            R$ {(appointment.totalPrice / 100).toFixed(2).replace('.', ',')}
-                          </div>
-                        )}
-                        {/* Botões de ação */}
-                        <div className="flex flex-row gap-2 mt-3 justify-end">
-                          {['pending', 'aguardando_pagamento'].includes(appointment.paymentStatus) && ['pix', 'credit_card', 'boleto'].includes(appointment.paymentMethod) ? (
-                            <button
-                              className="px-4 py-1.5 text-xs rounded-full bg-[#58c9d1] text-white font-semibold shadow-sm hover:bg-[#3eb9aa] hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#58c9d1]/40 order-first mr-auto"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setLocation(`/client/appointments/${appointment.id}/pay`);
-                              }}
-                            >
-                              Pagar
-                            </button>
-                          ) : appointment.paymentMethod === 'money' ? (
-                            <span className="px-4 py-1.5 text-xs rounded-full bg-gray-100 text-gray-600 font-semibold shadow-sm border border-gray-200">Pagamento no local</span>
-                          ) : appointment.paymentStatus === 'paid' ? (
-                            <span className="px-4 py-1.5 text-xs rounded-full bg-green-100 text-green-700 font-semibold shadow-sm border border-green-200">Pago</span>
-                          ) : null}
-                          <button
-                            className="px-4 py-1.5 text-xs rounded-full bg-gray-100 text-cyan-700 font-semibold shadow-sm hover:bg-cyan-100 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-200"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setLocation(`/client/appointments/${appointment.id}`);
-                            }}
-                          >
-                            Ver
-                          </button>
-                          {(appointment.status === 'pending' || appointment.status === 'confirmed' || appointment.status === 'confirmado') && (
-                            <button
-                              className="px-4 py-1.5 text-xs rounded-full bg-red-100 text-red-700 font-semibold shadow-sm hover:bg-red-200 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-red-200"
-                              onClick={e => {
-                                e.stopPropagation();
-                                cancelAppointmentMutation.mutate(appointment.id);
-                              }}
-                              disabled={cancelAppointmentMutation.isPending}
-                            >
-                              {cancelAppointmentMutation.isPending ? 'Cancelando...' : 'Cancelar'}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  ))
-              ) : (
-                <div className="flex flex-col items-center py-4 text-neutral-400 text-sm">
-                  {appointments.filter(a => a.status === 'pending').length > 0 ? (
-                    <div className="text-center">
-                      <div className="text-yellow-600 font-medium mb-1">Você tem agendamentos pendentes</div>
-                      <div className="text-xs">Clique em "Ver todos" para visualizar</div>
-                    </div>
-                  ) : (
-                    "Nenhum agendamento."
-                  )}
-                </div>
-              )}
-            </div>
+                                                   <div className="space-y-2 max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+               {isAppointmentsLoading ? (
+                 <AppointmentsSkeleton />
+               ) : appointments.length > 0 ? (
+                 appointments
+                   .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                   .map((appointment) => (
+                     <div key={`appointment-${appointment.id}`} className={`flex items-start bg-gradient-to-br from-white to-gray-50 border border-gray-100 rounded-lg shadow-sm p-2 hover:shadow-md transition-all duration-150 min-h-[3.5rem] sm:min-h-[4rem]`}>
+                       <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full mr-2 mt-1 bg-yellow-50 flex-shrink-0">
+                         <Clock className="text-yellow-500" size={18} />
+                       </div>
+                       <div className="flex-1 min-w-0 flex flex-col">
+                         <div className="font-semibold text-[0.8rem] sm:text-[0.9rem] text-neutral-900 truncate leading-tight mb-0.5">{appointment.serviceName}</div>
+                         <div className="text-[10px] sm:text-xs text-cyan-700 font-medium leading-tight mb-0.5">
+                           {appointment.startTime} - {appointment.endTime}
+                           {(() => {
+                             const today = new Date().toISOString().split('T')[0];
+                             const tomorrow = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+                             if (appointment.date === today) {
+                               return ' • Hoje';
+                             } else if (appointment.date === tomorrow) {
+                               return ' • Amanhã';
+                             }
+                             return '';
+                           })()}
+                         </div>
+                         <div className="text-[10px] sm:text-xs text-neutral-400 truncate leading-tight mb-0.5">{appointment.providerName}</div>
+                         <div className="flex flex-col gap-1 mt-1">
+                           <StatusBadge status={appointment.status} />
+                           {appointment.status !== 'canceled' && <PaymentStatusBadge status={appointment.paymentStatus} />}
+                         </div>
+                         {typeof appointment.totalPrice === 'number' && appointment.totalPrice > 0 && (
+                           <div className="text-[10px] sm:text-xs text-neutral-600 font-medium leading-tight mt-1">
+                             R$ {(appointment.totalPrice / 100).toFixed(2).replace('.', ',')}
+                           </div>
+                         )}
+                         {/* Botões de ação */}
+                         <div className="flex flex-row gap-1 sm:gap-2 mt-2 sm:mt-3 justify-end">
+                           {['pending', 'aguardando_pagamento'].includes(appointment.paymentStatus) && ['pix', 'credit_card', 'boleto'].includes(appointment.paymentMethod) ? (
+                             <button
+                               className="px-2 py-1 sm:px-4 sm:py-1.5 text-[10px] sm:text-xs rounded-full bg-[#58c9d1] text-white font-semibold shadow-sm hover:bg-[#3eb9aa] hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-[#58c9d1]/40 order-first mr-auto"
+                               onClick={(e) => {
+                                 e.stopPropagation();
+                                 setLocation(`/client/appointments/${appointment.id}/pay`);
+                               }}
+                             >
+                               Pagar
+                             </button>
+                           ) : appointment.paymentMethod === 'money' ? (
+                             <span className="px-2 py-1 sm:px-4 sm:py-1.5 text-[10px] sm:text-xs rounded-full bg-gray-100 text-gray-600 font-semibold shadow-sm border border-gray-200">Pagamento no local</span>
+                           ) : appointment.paymentStatus === 'paid' ? (
+                             <span className="px-2 py-1 sm:px-4 sm:py-1.5 text-[10px] sm:text-xs rounded-full bg-green-100 text-green-700 font-semibold shadow-sm border border-green-200">Pago</span>
+                           ) : null}
+                           <button
+                             className="px-2 py-1 sm:px-4 sm:py-1.5 text-[10px] sm:text-xs rounded-full bg-gray-100 text-cyan-700 font-semibold shadow-sm hover:bg-cyan-100 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-200"
+                             onClick={(e) => {
+                               e.stopPropagation();
+                               setLocation(`/client/appointments/${appointment.id}`);
+                             }}
+                           >
+                             Ver
+                           </button>
+                           {(appointment.status === 'pending' || appointment.status === 'confirmed' || appointment.status === 'confirmado') && (
+                             <button
+                               className="px-2 py-1 sm:px-4 sm:py-1.5 text-[10px] sm:text-xs rounded-full bg-red-100 text-red-700 font-semibold shadow-sm hover:bg-red-200 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-red-200"
+                               onClick={e => {
+                                 e.stopPropagation();
+                                 cancelAppointmentMutation.mutate(appointment.id);
+                               }}
+                               disabled={cancelAppointmentMutation.isPending}
+                             >
+                               {cancelAppointmentMutation.isPending ? 'Cancelando...' : 'Cancelar'}
+                             </button>
+                           )}
+                         </div>
+                       </div>
+                     </div>
+                   ))
+               ) : (
+                 <div className="flex flex-col items-center py-4 text-neutral-400 text-sm">
+                   "Nenhum agendamento."
+                 </div>
+               )}
+             </div>
           </div>
 
-          {/* Seção de agendamentos cancelados */}
-          {appointments.filter(a => a.status === 'canceled').length > 0 && (
-            <div className="mb-1 mt-6">
-              <h2 className="font-bold text-red-700 text-base tracking-wide">Agendamentos Cancelados</h2>
-              <div className="space-y-2">
-                {appointments
-                  .filter(a => a.status === 'canceled')
-                  .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                  .map((appointment) => (
-                    <div key={`appointment-canceled-${appointment.id}`} className="flex items-start bg-gradient-to-br from-white to-red-50 border border-red-200 rounded-xl shadow p-2 min-h-[4.5rem]">
-                      <div className="flex items-center justify-center w-10 h-10 rounded-full mr-2 mt-1 bg-red-100">
-                        <Clock className="text-red-500" size={22} />
-                      </div>
-                      <div className="flex-1 min-w-0 flex flex-col">
-                        <div className="font-semibold text-[0.9rem] text-neutral-900 truncate leading-tight mb-0.5">{appointment.serviceName}</div>
-                        <div className="text-xs text-cyan-700 font-medium leading-tight mb-0.5">
-                          {appointment.startTime} - {appointment.endTime}
-                        </div>
-                        <div className="text-xs text-neutral-400 truncate leading-tight mb-0.5">{appointment.providerName}</div>
-                        <div className="flex flex-col gap-1 mt-1">
-                          <StatusBadge status={appointment.status} />
-                        </div>
-                        {typeof appointment.totalPrice === 'number' && appointment.totalPrice > 0 && (
-                          <div className="text-xs text-neutral-600 font-medium leading-tight mt-1">
-                            R$ {(appointment.totalPrice / 100).toFixed(2).replace('.', ',')}
-                          </div>
-                        )}
-                        <div className="flex flex-row gap-2 mt-3 justify-end">
-                          <button
-                            className="px-4 py-1.5 text-xs rounded-full bg-gray-100 text-cyan-700 font-semibold shadow-sm hover:bg-cyan-100 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-200"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setLocation(`/client/appointments/${appointment.id}`);
-                            }}
-                          >
-                            Ver
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
+          {/* Seção de agendamentos por status */}
+          {(() => {
+            const executingAppointments = appointments.filter(a => a.status === 'executing');
+            const noShowAppointments = appointments.filter(a => a.status === 'no_show');
+            const canceledAppointments = appointments.filter(a => a.status === 'canceled');
+            
+            return (
+              <>
+                                 {/* Agendamentos Executando */}
+                 {executingAppointments.length > 0 && (
+                   <div className="mb-1 mt-6">
+                     <h2 className="font-bold text-blue-700 text-base tracking-wide">Em Execução</h2>
+                     <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                       {executingAppointments
+                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                         .map((appointment) => (
+                           <div key={`appointment-executing-${appointment.id}`} className="flex items-start bg-gradient-to-br from-white to-blue-50 border border-blue-200 rounded-lg shadow-sm p-2 min-h-[3.5rem] sm:min-h-[4rem]">
+                             <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full mr-2 mt-1 bg-blue-100 flex-shrink-0">
+                               <Clock className="text-blue-500" size={18} />
+                             </div>
+                             <div className="flex-1 min-w-0 flex flex-col">
+                               <div className="font-semibold text-[0.8rem] sm:text-[0.9rem] text-neutral-900 truncate leading-tight mb-0.5">{appointment.serviceName}</div>
+                               <div className="text-[10px] sm:text-xs text-cyan-700 font-medium leading-tight mb-0.5">
+                                 {appointment.startTime} - {appointment.endTime}
+                               </div>
+                               <div className="text-[10px] sm:text-xs text-neutral-400 truncate leading-tight mb-0.5">{appointment.providerName}</div>
+                               <div className="flex flex-col gap-1 mt-1">
+                                 <StatusBadge status={appointment.status} />
+                               </div>
+                               {typeof appointment.totalPrice === 'number' && appointment.totalPrice > 0 && (
+                                 <div className="text-[10px] sm:text-xs text-neutral-600 font-medium leading-tight mt-1">
+                                   R$ {(appointment.totalPrice / 100).toFixed(2).replace('.', ',')}
+                                 </div>
+                               )}
+                               <div className="flex flex-row gap-1 sm:gap-2 mt-2 sm:mt-3 justify-end">
+                                 <button
+                                   className="px-2 py-1 sm:px-4 sm:py-1.5 text-[10px] sm:text-xs rounded-full bg-gray-100 text-cyan-700 font-semibold shadow-sm hover:bg-cyan-100 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-200"
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     setLocation(`/client/appointments/${appointment.id}`);
+                                   }}
+                                 >
+                                   Ver
+                                 </button>
+                               </div>
+                             </div>
+                           </div>
+                         ))}
+                     </div>
+                   </div>
+                 )}
+
+                 {/* Agendamentos Não Compareceu */}
+                 {noShowAppointments.length > 0 && (
+                   <div className="mb-1 mt-6">
+                     <h2 className="font-bold text-orange-700 text-base tracking-wide">Não Compareceu</h2>
+                     <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                       {noShowAppointments
+                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                         .map((appointment) => (
+                           <div key={`appointment-no-show-${appointment.id}`} className="flex items-start bg-gradient-to-br from-white to-orange-50 border border-orange-200 rounded-lg shadow-sm p-2 min-h-[3.5rem] sm:min-h-[4rem]">
+                             <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full mr-2 mt-1 bg-orange-100 flex-shrink-0">
+                               <Clock className="text-orange-500" size={18} />
+                             </div>
+                             <div className="flex-1 min-w-0 flex flex-col">
+                               <div className="font-semibold text-[0.8rem] sm:text-[0.9rem] text-neutral-900 truncate leading-tight mb-0.5">{appointment.serviceName}</div>
+                               <div className="text-[10px] sm:text-xs text-cyan-700 font-medium leading-tight mb-0.5">
+                                 {appointment.startTime} - {appointment.endTime}
+                               </div>
+                               <div className="text-[10px] sm:text-xs text-neutral-400 truncate leading-tight mb-0.5">{appointment.providerName}</div>
+                               <div className="flex flex-col gap-1 mt-1">
+                                 <StatusBadge status={appointment.status} />
+                               </div>
+                               {typeof appointment.totalPrice === 'number' && appointment.totalPrice > 0 && (
+                                 <div className="text-[10px] sm:text-xs text-neutral-600 font-medium leading-tight mt-1">
+                                   R$ {(appointment.totalPrice / 100).toFixed(2).replace('.', ',')}
+                                 </div>
+                               )}
+                               <div className="flex flex-row gap-1 sm:gap-2 mt-2 sm:mt-3 justify-end">
+                                 <button
+                                   className="px-2 py-1 sm:px-4 sm:py-1.5 text-[10px] sm:text-xs rounded-full bg-gray-100 text-cyan-700 font-semibold shadow-sm hover:bg-cyan-100 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-200"
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     setLocation(`/client/appointments/${appointment.id}`);
+                                   }}
+                                 >
+                                   Ver
+                                 </button>
+                               </div>
+                             </div>
+                           </div>
+                         ))}
+                     </div>
+                   </div>
+                 )}
+
+                 {/* Agendamentos Cancelados */}
+                 {canceledAppointments.length > 0 && (
+                   <div className="mb-1 mt-6">
+                     <h2 className="font-bold text-red-700 text-base tracking-wide">Agendamentos Cancelados</h2>
+                     <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                       {canceledAppointments
+                         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                         .map((appointment) => (
+                           <div key={`appointment-canceled-${appointment.id}`} className="flex items-start bg-gradient-to-br from-white to-red-50 border border-red-200 rounded-lg shadow-sm p-2 min-h-[3.5rem] sm:min-h-[4rem]">
+                             <div className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full mr-2 mt-1 bg-red-100 flex-shrink-0">
+                               <Clock className="text-red-500" size={18} />
+                             </div>
+                             <div className="flex-1 min-w-0 flex flex-col">
+                               <div className="font-semibold text-[0.8rem] sm:text-[0.9rem] text-neutral-900 truncate leading-tight mb-0.5">{appointment.serviceName}</div>
+                               <div className="text-[10px] sm:text-xs text-cyan-700 font-medium leading-tight mb-0.5">
+                                 {appointment.startTime} - {appointment.endTime}
+                               </div>
+                               <div className="text-[10px] sm:text-xs text-neutral-400 truncate leading-tight mb-0.5">{appointment.providerName}</div>
+                               <div className="flex flex-col gap-1 mt-1">
+                                 <StatusBadge status={appointment.status} />
+                               </div>
+                               {typeof appointment.totalPrice === 'number' && appointment.totalPrice > 0 && (
+                                 <div className="text-[10px] sm:text-xs text-neutral-600 font-medium leading-tight mt-1">
+                                   R$ {(appointment.totalPrice / 100).toFixed(2).replace('.', ',')}
+                                 </div>
+                               )}
+                               <div className="flex flex-row gap-1 sm:gap-2 mt-2 sm:mt-3 justify-end">
+                                 <button
+                                   className="px-2 py-1 sm:px-4 sm:py-1.5 text-[10px] sm:text-xs rounded-full bg-gray-100 text-cyan-700 font-semibold shadow-sm hover:bg-cyan-100 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-200"
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     setLocation(`/client/appointments/${appointment.id}`);
+                                   }}
+                                 >
+                                   Ver
+                                 </button>
+                               </div>
+                             </div>
+                           </div>
+                         ))}
+                     </div>
+                   </div>
+                 )}
+              </>
+            );
+          })()}
 
           <div className="mb-1">
             <h2 className="text-[1.1rem] font-bold mb-2 text-neutral-900 border-l-4 border-cyan-400 pl-2 tracking-wide">Serviços em Destaque</h2>

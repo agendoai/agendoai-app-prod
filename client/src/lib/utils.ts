@@ -67,11 +67,11 @@ export function getStatusBadgeProps(status: string): { bg: string, text: string 
 // Função para formatação de valores monetários
 export function formatCurrency(value: number | null): string {
   if (value === null) return 'R$ 0,00';
-  // O valor já está em reais, não dividir por 100
+  // O valor está em centavos, dividir por 100 para converter para reais
   return new Intl.NumberFormat('pt-BR', { 
     style: 'currency', 
     currency: 'BRL' 
-  }).format(value);
+  }).format(value / 100);
 }
 
 // Alias para formatCurrency para manter compatibilidade com outros componentes

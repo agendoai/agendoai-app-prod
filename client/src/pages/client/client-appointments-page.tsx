@@ -55,6 +55,10 @@ const groupAppointmentsByStatus = (appointments: Appointment[]) => {
     (a) => a.status === "pending"
   );
 
+  const executing = appointments.filter(
+    (a) => a.status === "executing"
+  );
+
   const completed = appointments.filter(
     (a) => a.status === "confirmed" || a.status === "confirmado"
   );
@@ -63,10 +67,14 @@ const groupAppointmentsByStatus = (appointments: Appointment[]) => {
     (a) => a.status === "canceled"
   );
 
+  const noShow = appointments.filter(
+    (a) => a.status === "no-show"
+  );
+
   // "Próximos" agora é igual aos pendentes
   const upcoming = pending;
 
-  return { upcoming, pending, completed, canceled };
+  return { upcoming, pending, executing, completed, canceled, noShow };
 };
 
 // Função para formatar data em formato legível
@@ -111,6 +119,11 @@ const StatusBadge = ({ status }: { status: string | null }) => {
       label = "Pendente";
       className = "bg-yellow-100 text-yellow-800 border-yellow-200";
       break;
+    case "executing":
+      variant = "outline";
+      label = "Executando";
+      className = "bg-blue-100 text-blue-800 border-blue-200";
+      break;
     case "completed":
       variant = "outline";
       label = "Concluído";
@@ -120,6 +133,11 @@ const StatusBadge = ({ status }: { status: string | null }) => {
       variant = "destructive";
       label = "Cancelado";
       className = "bg-red-100 text-red-800 border-red-200";
+      break;
+    case "no-show":
+      variant = "outline";
+      label = "Não Compareceu";
+      className = "bg-orange-100 text-orange-800 border-orange-200";
       break;
     default:
       variant = "outline";
@@ -227,6 +245,10 @@ export default function ClientAppointmentsPage() {
         badgeClass = "bg-green-100 text-green-800 hover:bg-green-100";
         statusText = "Confirmado";
         break;
+      case "executing":
+        badgeClass = "bg-blue-100 text-blue-800 hover:bg-blue-100";
+        statusText = "Executando";
+        break;
       case "canceled":
         badgeClass = "bg-red-100 text-red-800 hover:bg-red-100";
         statusText = "Cancelado";
@@ -234,6 +256,10 @@ export default function ClientAppointmentsPage() {
       case "pending":
         badgeClass = "bg-yellow-100 text-yellow-800 hover:bg-yellow-100";
         statusText = "Pendente";
+        break;
+      case "no-show":
+        badgeClass = "bg-orange-100 text-orange-800 hover:bg-orange-100";
+        statusText = "Não Compareceu";
         break;
       default:
         badgeClass = "bg-gray-100 text-gray-800 hover:bg-gray-100";
@@ -289,8 +315,8 @@ export default function ClientAppointmentsPage() {
   });
 
   // NOVO: Filtrados para overview
-  const filteredOverviewAppointments = filteredAppointments.filter(a => a.status === 'pending' || a.status === 'confirmed' || a.status === 'confirmado');
-  const filteredOverviewCanceled = filteredAppointments.filter(a => a.status === 'canceled');
+  const filteredOverviewAppointments = filteredAppointments.filter(a => a.status === 'pending' || a.status === 'confirmed' || a.status === 'confirmado' || a.status === 'executing');
+  const filteredOverviewCanceled = filteredAppointments.filter(a => a.status === 'canceled' || a.status === 'no-show');
 
   return (
     <div className="min-h-screen w-full bg-white pb-24 flex justify-center items-start">
@@ -303,39 +329,38 @@ export default function ClientAppointmentsPage() {
           </h1>
         </header>
 
-        {/* Botão de agendar fixo no topo */}
-        <div className="flex justify-center sticky top-0 z-30 bg-white pb-2 pt-2">
-          <button
-            className="w-[92%] h-11 rounded-lg bg-gradient-to-r from-cyan-400 via-teal-400 to-emerald-400 text-white text-base font-bold shadow flex flex-row items-center justify-center px-6 border-0 hover:brightness-105 hover:scale-[1.02] transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-cyan-300/40 gap-2"
-            onClick={() => setLocation('/client/new-booking')}
-          >
-            <PlusCircle className="h-5 w-5 text-white mr-2" />
-            Novo Agendamento
-          </button>
-        </div>
+
 
         <div className="pt-1 pb-4 space-y-5">
           {/* Cards de estatísticas */}
           <div className="mb-1">
             <h2 className="text-[1.1rem] font-bold mb-2 text-neutral-900 border-l-4 border-cyan-400 pl-2 tracking-wide">Resumo</h2>
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-gradient-to-br from-cyan-50 to-white border border-cyan-200 rounded-xl p-3 text-center">
-                <div className="text-2xl font-bold text-cyan-700">{groupedAppointments.upcoming.length}</div>
-                <div className="text-xs text-cyan-600 font-medium">Próximos</div>
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-1">
+              <div className="bg-gradient-to-br from-cyan-50 to-white border border-cyan-200 rounded-lg p-2 text-center">
+                <div className="text-sm sm:text-lg font-bold text-cyan-700">{groupedAppointments.upcoming.length}</div>
+                <div className="text-[8px] sm:text-[10px] text-cyan-600 font-medium">Próximos</div>
               </div>
-              <div className="bg-gradient-to-br from-green-50 to-white border border-green-200 rounded-xl p-3 text-center">
-                <div className="text-2xl font-bold text-green-700">{groupedAppointments.completed.length}</div>
-                <div className="text-xs text-green-600 font-medium">Concluídos</div>
+              <div className="bg-gradient-to-br from-blue-50 to-white border border-blue-200 rounded-lg p-2 text-center">
+                <div className="text-sm sm:text-lg font-bold text-blue-700">{groupedAppointments.executing.length}</div>
+                <div className="text-[8px] sm:text-[10px] text-blue-600 font-medium">Executando</div>
               </div>
-              <div className="bg-gradient-to-br from-yellow-50 to-white border border-yellow-200 rounded-xl p-3 text-center">
-                <div className="text-2xl font-bold text-yellow-700">
+              <div className="bg-gradient-to-br from-green-50 to-white border border-green-200 rounded-lg p-2 text-center">
+                <div className="text-sm sm:text-lg font-bold text-green-700">{groupedAppointments.completed.length}</div>
+                <div className="text-[8px] sm:text-[10px] text-green-600 font-medium">Concluídos</div>
+              </div>
+              <div className="bg-gradient-to-br from-yellow-50 to-white border border-yellow-200 rounded-lg p-2 text-center">
+                <div className="text-sm sm:text-lg font-bold text-yellow-700">
                   {groupedAppointments.pending.length}
                 </div>
-                <div className="text-xs text-yellow-600 font-medium">Pendentes</div>
+                <div className="text-[8px] sm:text-[10px] text-yellow-600 font-medium">Pendentes</div>
               </div>
-              <div className="bg-gradient-to-br from-red-50 to-white border border-red-200 rounded-xl p-3 text-center">
-                <div className="text-2xl font-bold text-red-700">{groupedAppointments.canceled.length}</div>
-                <div className="text-xs text-red-600 font-medium">Cancelados</div>
+              <div className="bg-gradient-to-br from-red-50 to-white border border-red-200 rounded-lg p-2 text-center">
+                <div className="text-sm sm:text-lg font-bold text-red-700">{groupedAppointments.canceled.length}</div>
+                <div className="text-[8px] sm:text-[10px] text-red-600 font-medium">Cancelados</div>
+              </div>
+              <div className="bg-gradient-to-br from-orange-50 to-white border border-orange-200 rounded-lg p-2 text-center">
+                <div className="text-sm sm:text-lg font-bold text-orange-700">{groupedAppointments.noShow.length}</div>
+                <div className="text-[8px] sm:text-[10px] text-orange-600 font-medium">Não Compareceu</div>
               </div>
             </div>
           </div>
@@ -360,13 +385,15 @@ export default function ClientAppointmentsPage() {
                   <SelectTrigger className="flex-1 rounded-full bg-gray-50 border border-gray-200 shadow-sm focus:border-cyan-400 focus:ring-2 focus:ring-cyan-100 text-sm">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white">
-                    <SelectItem value="todos">Todos</SelectItem>
-                    <SelectItem value="pending">Pendentes</SelectItem>
-                    <SelectItem value="confirmed">Confirmados</SelectItem>
-                    <SelectItem value="completed">Concluídos</SelectItem>
-                    <SelectItem value="canceled">Cancelados</SelectItem>
-                  </SelectContent>
+                                     <SelectContent className="bg-white">
+                     <SelectItem value="todos">Todos</SelectItem>
+                     <SelectItem value="pending">Pendentes</SelectItem>
+                     <SelectItem value="executing">Executando</SelectItem>
+                     <SelectItem value="confirmed">Confirmados</SelectItem>
+                     <SelectItem value="completed">Concluídos</SelectItem>
+                     <SelectItem value="canceled">Cancelados</SelectItem>
+                     <SelectItem value="no-show">Não Compareceu</SelectItem>
+                   </SelectContent>
                 </Select>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -508,10 +535,14 @@ function AppointmentCard({ appointment, hidePaymentStatus }: { appointment: Appo
         return 'bg-green-50';
       case 'pending':
         return 'bg-yellow-50';
+      case 'executing':
+        return 'bg-blue-50';
       case 'completed':
         return 'bg-cyan-50';
       case 'canceled':
         return 'bg-red-50';
+      case 'no-show':
+        return 'bg-orange-50';
       default:
         return 'bg-cyan-50';
     }
@@ -524,10 +555,14 @@ function AppointmentCard({ appointment, hidePaymentStatus }: { appointment: Appo
         return <CheckCircle2 className="text-green-400" size={22} />;
       case 'pending':
         return <Clock className="text-yellow-500" size={22} />;
+      case 'executing':
+        return <Clock className="text-blue-500" size={22} />;
       case 'completed':
         return <CheckCircle2 className="text-cyan-400" size={22} />;
       case 'canceled':
         return <X className="text-red-400" size={22} />;
+      case 'no-show':
+        return <X className="text-orange-400" size={22} />;
       default:
         return <CheckCircle2 className="text-cyan-400" size={22} />;
     }
@@ -546,9 +581,10 @@ function AppointmentCard({ appointment, hidePaymentStatus }: { appointment: Appo
   const getAppointmentStatusText = (status: string | null | undefined) => {
     if (!status || status === 'pending') return 'Pendente';
     if (status === 'confirmed' || status === 'confirmado') return 'Confirmado';
-    if (status === 'executando') return 'Executando';
+    if (status === 'executing' || status === 'executando') return 'Executando';
     if (status === 'completed' || status === 'concluído') return 'Concluído';
     if (status === 'canceled' || status === 'cancelado') return 'Cancelado';
+    if (status === 'no-show') return 'Não Compareceu';
     return status;
   };
 

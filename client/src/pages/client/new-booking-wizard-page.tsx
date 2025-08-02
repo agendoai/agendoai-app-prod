@@ -1,4 +1,4 @@
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 import ClientLayout from '@/components/layout/client-layout';
 import { NewBookingWizard } from '@/components/new-booking-wizard-fixed';
 import { useLocation } from 'wouter';

@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import InteractiveCalendar from "@/components/calendar/interactive-calendar";
-import { Helmet } from "react-helmet";
+import { Helmet } from "react-helmet-async";
 
 const ProviderCalendarPage = () => {
   const { user } = useAuth();
