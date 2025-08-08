@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { Service } from "@shared/schema";
+import type { Service } from "@shared/schema";
 import AppHeader from "@/components/layout/app-header";
 import Navbar from "@/components/layout/navbar";
 import { Card, CardContent } from "@/components/ui/card";

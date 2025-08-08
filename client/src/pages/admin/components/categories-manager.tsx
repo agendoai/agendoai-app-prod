@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
-import { Category } from "@shared/schema";
+import type { Category } from "@shared/schema";
 import { 
   Table, 
   TableBody, 

@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { MapPin, Search, UserCheck, Star } from "lucide-react";
-import { User, ProviderSettings } from '@shared/schema.ts';
+import type { User, ProviderSettings } from '@shared/schema';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'wouter';
 

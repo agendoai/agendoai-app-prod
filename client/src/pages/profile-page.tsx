@@ -270,7 +270,7 @@ export default function ProfilePage() {
     try {
       const formData = new FormData();
       formData.append('profileImage', file);
-      const response = await fetch(`http://localhost:5000/api/users/${user?.id}/profile-image`, {
+      const response = await fetch(`/api/users/${user?.id}/profile-image`, {
         method: 'POST',
         body: formData,
         credentials: 'include',

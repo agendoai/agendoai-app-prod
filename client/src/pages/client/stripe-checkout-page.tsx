@@ -5,7 +5,7 @@ import { useLocation, useParams } from 'wouter';
 import { Loader2 } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { StripeCheckoutForm } from '@/components/checkout/stripe-checkout-form';
-import { Appointment } from '@shared/schema';
+import type { Appointment } from '@shared/schema';
 import { apiRequest } from '@/lib/queryClient';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';

@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { OnboardingStep, UserOnboardingProgress } from "@shared/schema.ts";
+import type { OnboardingStep, UserOnboardingProgress } from "@shared/schema";
 
 interface OnboardingProgressData {
   progress: UserOnboardingProgress[];
