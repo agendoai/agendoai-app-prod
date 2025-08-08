@@ -33,7 +33,9 @@ const app = express();
 // Configurar CORS para permitir requisições do frontend
 const isProd = process.env.NODE_ENV === 'production';
 const allowedOrigins = isProd
-  ? [process.env.FRONTEND_URL || 'https://app.tbsnet.com.br']
+  ? [
+      process.env.FRONTEND_URL || 'http://191.252.196.5:5000'
+    ]
   : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'https://6b39e5855edf.ngrok-free.app'];
 app.use(cors({
   origin: (origin, callback) => {
