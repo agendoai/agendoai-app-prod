@@ -36,16 +36,9 @@ const allowedOrigins = isProd
   ? [
       process.env.FRONTEND_URL || 'https://agendoai-app-prod.vercel.app'
     ]
-  : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'https://6b39e5855edf.ngrok-free.app'];
+  : ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'https://6b39e5855edf.ngrok-free.app', 'https://agendoai-app-prod.vercel.app'];
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.includes(origin)) return callback(null, true);
-    return callback(null, false);
-  },
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  origin: '*', // permite todos
 }));
 
 // Log para debugging
