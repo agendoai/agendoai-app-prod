@@ -64,12 +64,12 @@ export function setupAuth(app: Express): void {
     resave: true,
     saveUninitialized: true,
     cookie: {
-      secure: isHttpsFrontend,
+      secure: true, // Sempre true para HTTPS
       maxAge: 1000 * 60 * 60 * 24 * 7,
       httpOnly: true,
-      sameSite: isHttpsFrontend ? 'none' : 'lax',
+      sameSite: 'none', // Obrigatório para cross-domain
       path: '/',
-      domain: process.env.COOKIE_DOMAIN || undefined
+      // Removido o atributo domain para evitar conflito
     },
     name: 'agendoai.sid'
   };
