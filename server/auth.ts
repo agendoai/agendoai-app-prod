@@ -56,23 +56,30 @@ export async function comparePasswords(
  * Configura autenticação na aplicação Express
  */
 export function setupAuth(app: Express): void {
-  // Configuração de sessão melhorada para persistência
+  const frontendUrl = process.env.FRONTEND_URL || '';
+  const isHttpsFrontend = frontendUrl.startsWith('https://');
+
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "agendoai-secret-key",
     resave: true,
     saveUninitialized: true,
     cookie: {
-      secure: process.env.NODE_ENV === 'production',
+      secure: isHttpsFrontend,
       maxAge: 1000 * 60 * 60 * 24 * 7,
       httpOnly: true,
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      sameSite: isHttpsFrontend ? 'none' : 'lax',
       path: '/',
       domain: process.env.COOKIE_DOMAIN || undefined
     },
     name: 'agendoai.sid'
   };
   
-  console.log("Configuração de sessão inicializada com persistência melhorada");
+  console.log("Sessão: ", {
+    secure: sessionSettings.cookie?.secure,
+    sameSite: sessionSettings.cookie?.sameSite,
+    domain: sessionSettings.cookie?.domain,
+    frontendUrl
+  });
 
   app.set("trust proxy", 1);
   app.use(session(sessionSettings));
