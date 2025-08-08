@@ -8,7 +8,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Service, User } from "@shared/schema";
+import type { Service, User } from "@shared/schema";
 import { ScissorsIcon } from "@/components/ui/scissors-icon";
 import { PageTransition } from "@/components/ui/page-transition";
 import ProviderLayout from "@/components/layout/provider-layout";

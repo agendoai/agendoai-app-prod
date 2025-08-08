@@ -1,7 +1,7 @@
 import { memo, useCallback, useEffect, useState, Suspense } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Category } from "../../../../shared/schema";
+import type { Category } from "@shared/schema";
 
 // Estilos CSS personalizados para barra de rolagem fina
 const scrollbarStyles = `

@@ -1,6 +1,46 @@
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// Expose base URL and normalize all relative "/api" requests to use it
+declare global {
+  interface Window {
+    __API_BASE_URL__?: string;
+  }
+}
+
+if (typeof window !== 'undefined') {
+  // Store for debugging/inspection
+  window.__API_BASE_URL__ = API_BASE_URL;
+
+  const originalFetch = window.fetch.bind(window);
+  window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+    try {
+      let url: string;
+      if (typeof input === 'string') {
+        url = input;
+      } else if (input instanceof URL) {
+        url = input.toString();
+      } else {
+        url = (input as Request).url;
+      }
+
+      // Only rewrite calls that are clearly targeting our backend route prefix
+      if (url.startsWith('/api')) {
+        const rewritten = `${API_BASE_URL}${url}`;
+        // Ensure credentials are always included for API calls
+        const options = {
+          ...init,
+          credentials: 'include' as const,
+        };
+        return originalFetch(rewritten, options);
+      }
+    } catch (_) {
+      // fall through to original fetch on any parsing error
+    }
+    return originalFetch(input as any, init);
+  };
+}
+
 // Helper function to make API calls
 export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
@@ -227,6 +267,7 @@ export const createAsaasSubAccount = async (subAccountData: any) => {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify(subAccountData),
   });
   return response.json();
@@ -239,6 +280,7 @@ export const listAsaasSubAccounts = async () => {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
   });
   return response.json();
 };
@@ -250,6 +292,7 @@ export const getAsaasSubAccountBalance = async (subAccountId: string) => {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
   });
   return response.json();
 };
@@ -261,6 +304,7 @@ export const updateAsaasSubAccount = async (subAccountId: string, updates: any) 
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify(updates),
   });
   return response.json();
@@ -273,6 +317,7 @@ export const getAsaasMainBalance = async () => {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
   });
   return response.json();
 };
@@ -284,6 +329,7 @@ export const createAsaasCustomer = async (customerData: any) => {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify(customerData),
   });
   return response.json();
@@ -307,6 +353,7 @@ export const processAsaasBookingPayment = async (paymentData: {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify(paymentData),
   });
   return response.json();
@@ -319,6 +366,7 @@ export const releaseAsaasEscrowValue = async (subAccountId: string, amount: numb
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
     body: JSON.stringify({ amount }),
   });
   return response.json();
@@ -331,6 +379,7 @@ export const getAsaasSubAccountPayments = async (subAccountId: string) => {
     headers: {
       'Content-Type': 'application/json',
     },
+    credentials: 'include',
   });
   return response.json();
 }; 

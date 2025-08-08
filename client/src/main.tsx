@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import React, { StrictMode } from "react";
 import App from "./App";
 import "./index.css";
+import "./lib/api";
 
 // Optional: Error Boundary component
 class RootErrorBoundary extends React.Component {

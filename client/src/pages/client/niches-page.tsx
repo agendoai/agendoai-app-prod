@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Niche } from "@shared/schema";
+import type { Niche } from "@shared/schema";
 import ClientLayout from "@/components/layout/client-layout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";

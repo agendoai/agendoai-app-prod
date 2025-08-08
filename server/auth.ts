@@ -59,17 +59,17 @@ export function setupAuth(app: Express): void {
   // Configuração de sessão melhorada para persistência
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "agendoai-secret-key",
-    resave: true, // Força salvar a sessão mesmo se não foi modificada
-    saveUninitialized: true, // Salva sessões não inicializadas
+    resave: true,
+    saveUninitialized: true,
     cookie: {
-      secure: process.env.NODE_ENV === 'production', // true em produção, false em desenvolvimento
-      maxAge: 1000 * 60 * 60 * 24 * 7, // 1 week
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: 1000 * 60 * 60 * 24 * 7,
       httpOnly: true,
-      sameSite: 'lax', // Permite que o cookie seja enviado em requests cross-origin
-      path: '/', // Garantir que o cookie funcione em todo o site
-      domain: process.env.NODE_ENV === 'production' ? undefined : undefined // Em desenvolvimento, não definir domain
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/',
+      domain: process.env.COOKIE_DOMAIN || undefined
     },
-    name: 'agendoai.sid' // Nome personalizado do cookie para melhor identificação
+    name: 'agendoai.sid'
   };
   
   console.log("Configuração de sessão inicializada com persistência melhorada");
@@ -79,7 +79,6 @@ export function setupAuth(app: Express): void {
   app.use(passport.initialize());
   app.use(passport.session());
   
-  // Middleware para debug de sessão
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/')) {
       console.log(`🔍 Sessão para ${req.path}:`, {
@@ -95,7 +94,6 @@ export function setupAuth(app: Express): void {
     next();
   });
 
-  // Estratégia local de autenticação
   passport.use(
     new LocalStrategy(
       { usernameField: "email" },
@@ -103,7 +101,6 @@ export function setupAuth(app: Express): void {
         try {
           console.log(`Tentativa de login para ${email}`);
           
-          // Verificar usuários de emergência primeiro
           if (email === "admin@agendoai.com" && password === "admin123") {
             console.log("✅ Login admin de emergência");
             const adminUser = {
@@ -144,7 +141,6 @@ export function setupAuth(app: Express): void {
             return done(null, providerUser);
           }
           
-          // Se não for usuário de emergência, tentar banco de dados
           const user = await storage.getUserByEmail(email);
           
           if (!user) {
@@ -173,7 +169,6 @@ export function setupAuth(app: Express): void {
   });
   passport.deserializeUser(async (id: number, done) => {
     try {
-      // Acessar apenas o banco de dados
       try {
         const user = await storage.getUser(id);
         if (!user) {
@@ -183,8 +178,6 @@ export function setupAuth(app: Express): void {
         return done(null, user);
       } catch (dbError) {
         console.error("❌ Erro ao acessar banco de dados na deserialização:", dbError);
-        
-        // Modo de emergência: retornar usuários fixos se o banco falhar
         console.log("Modo de emergência: deserialização do usuário admin (ID: 1)");
         
         if (id === 1) {
@@ -231,7 +224,6 @@ export function setupAuth(app: Express): void {
     }
   });
 
-  // Função para remover dados sensíveis do objeto de usuário
   function sanitizeUser(user: Express.User) {
     if (!user) return null;
     
@@ -244,7 +236,6 @@ export function setupAuth(app: Express): void {
     try {
       const { email, password, name, cpf, userType, phone } = req.body;
 
-      // Validação básica
       if (!email || !password || !name || !userType || (userType === "client" && (!cpf || !phone))) {
         return res.status(400).json({ message: "Todos os campos obrigatórios devem ser preenchidos" });
       }
@@ -258,11 +249,9 @@ export function setupAuth(app: Express): void {
       let asaasCustomerId = null;
 
       if (userType === "client") {
-        // Reinicializar Asaas para garantir que as configurações mais recentes sejam carregadas
         const { initializeAsaas } = await import("./asaas-service");
         await initializeAsaas();
         
-        // Cria cliente no Asaas
         const { createAsaasCustomer } = await import("./asaas-service");
         const asaasResult = await createAsaasCustomer({
           name,
@@ -276,7 +265,6 @@ export function setupAuth(app: Express): void {
         asaasCustomerId = asaasResult.customerId;
       }
 
-      // Cria usuário no banco
       const user = await storage.createUser({
         email,
         password: hashedPassword,
@@ -285,10 +273,8 @@ export function setupAuth(app: Express): void {
         phone,
         userType,
         asaasCustomerId,
-        // outros campos...
       });
 
-      // (restante do fluxo de login e resposta permanece igual)
       user.userType = userType;
       req.login(user, (err) => {
         if (err) {
@@ -303,11 +289,9 @@ export function setupAuth(app: Express): void {
         });
       });
     } catch (err) {
-      // Se o erro for do Asaas, tente mostrar a mensagem real
       if (err && typeof err === 'object' && 'error' in err && 'message' in err) {
         return res.status(500).json({ message: (err as any).error || (err as any).message || "Erro desconhecido" });
       }
-      // Se for erro padrão, tente mostrar o stack em dev
       return res.status(500).json({ 
         message: (err && typeof err === 'object' && 'message' in err) ? (err as any).message : "Ocorreu um erro ao processar sua solicitação.",
         stack: process.env.NODE_ENV === 'development' && err && typeof err === 'object' && 'stack' in err ? (err as any).stack : undefined
@@ -328,7 +312,9 @@ export function setupAuth(app: Express): void {
         if (err) {
           return next(err);
         }
-        return res.status(200).json(sanitizeUser(user));
+        req.session.save(() => {
+          return res.status(200).json(sanitizeUser(user));
+        });
       });
     })(req, res, next);
   });
@@ -346,7 +332,7 @@ export function setupAuth(app: Express): void {
         if (err) {
           return next(err);
         }
-        res.clearCookie('agendoai.sid'); // Usar o mesmo nome definido na configuração da sessão
+        res.clearCookie('agendoai.sid');
         res.status(200).json({ message: "Logout realizado com sucesso" });
       });
     });
@@ -360,7 +346,6 @@ export function setupAuth(app: Express): void {
     res.json(sanitizedUser);
   });
   
-  // Rota para solicitar redefinição de senha
   app.post("/api/request-password-reset", async (req, res) => {
     try {
       const { email } = req.body;
@@ -371,26 +356,21 @@ export function setupAuth(app: Express): void {
       
       const user = await storage.getUserByEmail(email);
       if (!user) {
-        // Por questões de segurança, não informamos se o email existe ou não
         return res.status(200).json({ 
           message: "Se o email estiver cadastrado, você receberá instruções para redefinir sua senha."
         });
       }
       
-      // Gerar token único
       const resetToken = randomBytes(32).toString('hex');
       const expiresAt = new Date();
-      expiresAt.setHours(expiresAt.getHours() + 1); // Token válido por 1 hora
+      expiresAt.setHours(expiresAt.getHours() + 1);
       
-      // Salvar token no banco de dados
       await storage.createPasswordResetToken({
         userId: user.id,
         token: resetToken,
         expiresAt
       });
       
-      // Aqui você enviaria um email com o link para redefinição
-      // usando SendGrid ou outro serviço de email
       console.log(`Token de redefinição para ${email}: ${resetToken}`);
       
       return res.status(200).json({ 
@@ -404,7 +384,6 @@ export function setupAuth(app: Express): void {
     }
   });
   
-  // Rota para validar token e redefinir senha
   app.post("/api/reset-password", async (req, res) => {
     try {
       const { token, newPassword } = req.body;
@@ -415,7 +394,6 @@ export function setupAuth(app: Express): void {
         });
       }
       
-      // Verificar se o token existe e é válido
       const resetRequest = await storage.getPasswordResetTokenByToken(token);
       
       if (!resetRequest || resetRequest.expiresAt < new Date()) {
@@ -424,11 +402,9 @@ export function setupAuth(app: Express): void {
         });
       }
       
-      // Atualizar a senha do usuário
       const hashedPassword = await hashPassword(newPassword);
       await storage.updateUserPassword(resetRequest.userId, hashedPassword);
       
-      // Invalidar o token após o uso
       await storage.deletePasswordResetToken(resetRequest.id);
       
       return res.status(200).json({ 

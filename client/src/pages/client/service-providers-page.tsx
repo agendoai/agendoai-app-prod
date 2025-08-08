@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { Service, User, ProviderSettings } from "@shared/schema";
+import type { Service, User, ProviderSettings } from "@shared/schema";
 import AppHeader from "@/components/layout/app-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Search, MapPin, Clock, Star } from "lucide-react";

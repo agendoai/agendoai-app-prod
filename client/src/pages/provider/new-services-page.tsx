@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useCallback, Fragment } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Service, ServiceTemplate, insertServiceSchema } from "@shared/schema";
+import type { Service, ServiceTemplate } from "@shared/schema";
+import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { formatCurrency, cn } from "@/lib/utils";
@@ -95,8 +95,16 @@ import { ExecutionTimeDialog } from "@/components/execution-time-dialog";
 import Navbar from "@/components/layout/navbar";
 import { Home, Calendar, ClipboardList, Users, Scissors, User } from "lucide-react";
 
-// Service form schema
-const serviceFormSchema = insertServiceSchema.extend({
+// Service form schema (local) - apenas validação para o formulário do client
+const serviceFormSchema = z.object({
+  name: z.string().min(1).optional(),
+  description: z.string().optional(),
+  price: z.number().min(0),
+  duration: z.number().min(5),
+  isActive: z.boolean().optional(),
+  categoryId: z.number(),
+  providerId: z.number(),
+}).extend({
   id: z.number().optional(),
   nicheId: z.number().optional(), // Campo para selecionar nicho
   templateId: z.number().optional(), // Campo para selecionar serviço pré-cadastrado

@@ -1,5 +1,5 @@
 import { StarIcon } from "lucide-react";
-import { ProviderSettings } from "@shared/schema.ts";
+import type { ProviderSettings } from "@shared/schema";
 import { Badge } from "@/components/ui/badge";
 
 interface ProviderRatingProps {

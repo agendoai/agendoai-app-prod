@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation, useParams } from "wouter";
-import { Category, Service } from "@shared/schema";
+import type { Category, Service } from "@shared/schema";
 import { ScissorsIcon } from "@/components/ui/scissors-icon";
 import AppHeader from "@/components/layout/app-header";
 import Navbar from "@/components/layout/navbar";

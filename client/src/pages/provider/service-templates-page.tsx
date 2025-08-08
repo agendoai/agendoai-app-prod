@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import ProviderLayout from "@/components/layout/provider-layout";
-import type { ServiceTemplate, Category } from "../../../../shared/schema";
+import type { ServiceTemplate, Category } from "@shared/schema";
 
 export default function ProviderServiceTemplatesPage() {
   const queryClient = useQueryClient();

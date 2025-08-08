@@ -2,7 +2,7 @@ import { useState } from "react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Star, Edit, Trash2, MessageSquare, Send } from "lucide-react";
-import { Review } from "@shared/schema.ts";
+import type { Review } from "@shared/schema";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { 

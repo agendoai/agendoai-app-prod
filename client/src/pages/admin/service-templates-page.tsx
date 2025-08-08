@@ -11,17 +11,21 @@ import { AlertCircle, Plus, Pencil, Trash2, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import AdminLayout from "@/components/layout/admin-layout";
-import { insertServiceTemplateSchema } from "@shared/schema";
+import type { ServiceTemplate, Category } from "@shared/schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import type { ServiceTemplate, Category } from "@shared/schema";
+// Mantemos os tipos vindos do shared apenas como tipos; o schema do formulário é local
 import { z } from "zod";
 
-// Assegurando que o schema seja correto para o formulário
-const formSchema = insertServiceTemplateSchema.extend({
+// Schema local para o formulário (evita importar schema de runtime do backend)
+const formSchema = z.object({
+  name: z.string().min(1),
+  description: z.string().optional(),
   categoryId: z.union([z.string(), z.number()]).transform(val => Number(val)),
-  duration: z.union([z.string(), z.number()]).transform(val => Number(val))
+  icon: z.string().optional(),
+  duration: z.union([z.string(), z.number()]).transform(val => Number(val)),
+  isActive: z.boolean().optional()
 });
 
 export default function ServiceTemplatesPage() {

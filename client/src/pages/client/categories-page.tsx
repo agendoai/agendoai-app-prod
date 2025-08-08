@@ -1,7 +1,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { Category, Service, Niche } from "@shared/schema";
+import type { Category, Service, Niche } from "@shared/schema";
 import { ScissorsIcon } from "@/components/ui/scissors-icon";
 import AppHeader from "@/components/layout/app-header";
 import { Card, CardContent } from "@/components/ui/card";

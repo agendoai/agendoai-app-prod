@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Review } from "@shared/schema.ts";
+import type { Review } from "@shared/schema";
 import {
   Dialog,
   DialogContent,

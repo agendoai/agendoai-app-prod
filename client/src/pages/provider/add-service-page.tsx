@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Search, ArrowLeft, Sparkles, Clock, DollarSign, FileText, Filter, X } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import type { ServiceTemplate, Category } from "../../../../shared/schema";
+import type { ServiceTemplate, Category } from "@shared/schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ProviderLayout from "@/components/layout/provider-layout";
 

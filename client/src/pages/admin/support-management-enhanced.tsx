@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { SupportTicket, SupportMessage, User } from "@shared/schema";
+import type { SupportTicket, SupportMessage, User } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { formatDistanceToNow } from 'date-fns';

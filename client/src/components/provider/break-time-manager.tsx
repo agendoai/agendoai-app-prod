@@ -32,7 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Clock, Plus, Trash2 } from "lucide-react";
-import { ProviderBreak } from "@shared/schema.ts";
+import type { ProviderBreak } from "@shared/schema";
 
 // Dias da semana
 const weekDays = [
