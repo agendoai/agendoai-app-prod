@@ -65,10 +65,10 @@ export function setupAuth(app: Express): void {
     resave: true,
     saveUninitialized: true,
     cookie: {
-      secure: true, // Só true se for HTTPS
+      secure: false, // Só true se for HTTPS
       maxAge: 1000 * 60 * 60 * 24 * 7,
       httpOnly: true,
-      sameSite:'none', // 'lax' para HTTP, 'none' para HTTPS
+      sameSite:'lax', // 'lax' para HTTP, 'none' para HTTPS
       path: '/',
       // Removido o atributo domain para evitar conflito
     },
