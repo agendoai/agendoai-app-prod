@@ -99,6 +99,10 @@ export function setupAuth(app: Express): void {
       maxAge: 1000 * 60 * 60 * 24 * 7,
       httpOnly: true,
       sameSite: 'lax',
+      secure: true, // Só true se for HTTPS
+      maxAge: 1000 * 60 * 60 * 24 * 7,
+      httpOnly: true,
+      sameSite:'none', // 'lax' para HTTP, 'none' para HTTPS
       path: '/',
     },
     name: 'agendoai.sid'
@@ -352,6 +356,7 @@ export function setupAuth(app: Express): void {
         if (err) {
           return next(err);
         }
+<<<<<<< HEAD
         // Gerar JWT token
         const payload: JWTPayload = {
           id: user.id,
@@ -370,6 +375,24 @@ export function setupAuth(app: Express): void {
         return res.status(200).json({
           user: sanitizeUser(user),
           token: token
+=======
+        req.session.save(() => {
+          // Garantir que o cookie seja enviado corretamente
+          const userAgent = req.headers['user-agent'] || '';
+          
+          if (isIOSDevice(userAgent)) {
+            // Para iOS, usar configurações específicas
+            res.cookie('agendoai.sid', req.sessionID, {
+              secure: true, // iOS Safari tem problemas com secure cookies em desenvolvimento
+              sameSite: 'none', // Mais permissivo para iOS
+              httpOnly: true,
+              maxAge: 1000 * 60 * 60 * 24 * 7,
+              path: '/'
+            });
+          }
+          
+          return res.status(200).json(sanitizeUser(user));
+>>>>>>> 3a7227e989f18e083bc1160b03a82b3accf79127
         });
       });
     })(req, res, next);
