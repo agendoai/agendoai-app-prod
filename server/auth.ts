@@ -65,10 +65,10 @@ export function setupAuth(app: Express): void {
     resave: true,
     saveUninitialized: true,
     cookie: {
-      secure: isHttpsFrontend, // Só true se for HTTPS
+      secure: true, // Só true se for HTTPS
       maxAge: 1000 * 60 * 60 * 24 * 7,
       httpOnly: true,
-      sameSite: isHttpsFrontend ? 'none' : 'lax', // 'lax' para HTTP, 'none' para HTTPS
+      sameSite:'none', // 'lax' para HTTP, 'none' para HTTPS
       path: '/',
       // Removido o atributo domain para evitar conflito
     },
@@ -330,7 +330,7 @@ export function setupAuth(app: Express): void {
           if (isIOSDevice(userAgent)) {
             // Para iOS, usar configurações específicas
             res.cookie('agendoai.sid', req.sessionID, {
-              secure: false, // iOS Safari tem problemas com secure cookies em desenvolvimento
+              secure: true, // iOS Safari tem problemas com secure cookies em desenvolvimento
               sameSite: 'lax', // Mais permissivo para iOS
               httpOnly: true,
               maxAge: 1000 * 60 * 60 * 24 * 7,
