@@ -6,7 +6,8 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema.ts";
-import { isIOSDevice, applyIOSCompatibility } from "./ios-compatibility";
+import jwt from 'jsonwebtoken';
+import { JWT_CONFIG, JWTPayload } from './jwt-config';
 
 declare global {
   namespace Express {
@@ -15,6 +16,34 @@ declare global {
 }
 
 const scryptAsync = promisify(scrypt);
+
+/**
+ * Middleware para autenticação JWT
+ */
+export function authenticateJWT(req: Request, res: Response, next: NextFunction) {
+  // Pular autenticação para rotas de login e registro
+  if (req.path === '/api/login' || req.path === '/api/register') {
+    return next();
+  }
+  
+  const authHeader = req.headers.authorization;
+  
+  if (authHeader) {
+    const token = authHeader.split(' ')[1]; // Bearer TOKEN
+    
+    jwt.verify(token, JWT_CONFIG.secret, (err: any, decoded: any) => {
+      if (err) {
+        console.log('JWT inválido:', err.message);
+        return res.status(401).json({ message: 'Token inválido' });
+      }
+      
+      req.user = decoded;
+      next();
+    });
+  } else {
+    return res.status(401).json({ message: 'Token não fornecido' });
+  }
+}
 
 /**
  * Gera hash de senha usando scrypt
@@ -60,17 +89,17 @@ export function setupAuth(app: Express): void {
   const frontendUrl = process.env.FRONTEND_URL || '';
   const isHttpsFrontend = frontendUrl.startsWith('https://');
 
+  // Configuração de sessão simplificada (não usaremos cookies)
   const sessionSettings: session.SessionOptions = {
     secret: process.env.SESSION_SECRET || "agendoai-secret-key",
-    resave: true,
-    saveUninitialized: true,
+    resave: false,
+    saveUninitialized: false,
     cookie: {
-      secure: isHttpsFrontend, // Só true se for HTTPS
+      secure: false,
       maxAge: 1000 * 60 * 60 * 24 * 7,
       httpOnly: true,
-      sameSite: isHttpsFrontend ? 'none' : 'lax', // 'lax' para HTTP, 'none' para HTTPS
+      sameSite: 'lax',
       path: '/',
-      // Removido o atributo domain para evitar conflito
     },
     name: 'agendoai.sid'
   };
@@ -87,8 +116,8 @@ export function setupAuth(app: Express): void {
   app.use(passport.initialize());
   app.use(passport.session());
   
-  // Middleware específico para iOS Safari
-  app.use(applyIOSCompatibility);
+  // Middleware para autenticação JWT
+  app.use(authenticateJWT);
   
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/')) {
@@ -323,52 +352,49 @@ export function setupAuth(app: Express): void {
         if (err) {
           return next(err);
         }
-        req.session.save(() => {
-          // Garantir que o cookie seja enviado corretamente
-          const userAgent = req.headers['user-agent'] || '';
-          
-          if (isIOSDevice(userAgent)) {
-            // Para iOS, usar configurações específicas
-            res.cookie('agendoai.sid', req.sessionID, {
-              secure: false, // iOS Safari tem problemas com secure cookies em desenvolvimento
-              sameSite: 'lax', // Mais permissivo para iOS
-              httpOnly: true,
-              maxAge: 1000 * 60 * 60 * 24 * 7,
-              path: '/'
-            });
-          }
-          
-          return res.status(200).json(sanitizeUser(user));
+        // Gerar JWT token
+        const payload: JWTPayload = {
+          id: user.id,
+          email: user.email,
+          userType: user.userType,
+          name: user.name
+        };
+        
+        const token = jwt.sign(payload, JWT_CONFIG.secret, { 
+          expiresIn: JWT_CONFIG.expiresIn 
+        });
+        
+        console.log('🔑 JWT gerado para usuário:', user.email);
+        
+        // Retornar token no body (sem cookie)
+        return res.status(200).json({
+          user: sanitizeUser(user),
+          token: token
         });
       });
     })(req, res, next);
   });
 
-  app.post("/api/logout", (req, res, next) => {
-    if (!req.isAuthenticated()) {
-      return res.status(200).json({ message: "Não havia sessão ativa" });
-    }
-    
-    req.logout((err) => {
-      if (err) {
-        return next(err);
-      }
-      req.session.destroy((err) => {
-        if (err) {
-          return next(err);
-        }
-        res.clearCookie('agendoai.sid');
-        res.status(200).json({ message: "Logout realizado com sucesso" });
-      });
-    });
+  app.post("/api/logout", (req, res) => {
+    // Com JWT, o logout é feito no frontend removendo o token
+    // O backend só confirma o logout
+    res.status(200).json({ message: "Logout realizado com sucesso" });
   });
 
-  app.get("/api/user", (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    
-    const sanitizedUser = sanitizeUser(req.user);
-    
-    res.json(sanitizedUser);
+  app.get("/api/user", async (req, res) => {
+    try {
+      // req.user já vem do middleware authenticateJWT
+      const user = await storage.getUser(req.user.id);
+      
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+      
+      res.json(sanitizeUser(user));
+    } catch (error) {
+      console.error("Erro ao buscar usuário:", error);
+      res.status(500).json({ message: "Erro interno do servidor" });
+    }
   });
   
   app.post("/api/request-password-reset", async (req, res) => {

@@ -42,8 +42,8 @@ const allowedOrigins = [
   'https://6b39e5855edf.ngrok-free.app',
   'http://localhost:3000',
   'http://127.0.0.1:3000',
-  'http://app.tbsnet.com.br',
-  'https://app.tbsnet.com.br'
+  'https://app.tbsnet.com.br',
+  'http://app.tbsnet.com.br'
   // outros domínios confiáveis que você quer liberar
 ];
 

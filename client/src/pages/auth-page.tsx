@@ -105,7 +105,6 @@ export default function AuthPage() {
           "Accept": "application/json"
         },
         body: JSON.stringify(data),
-        credentials: "include",
       });
       
       if (!res.ok) {
@@ -113,12 +112,19 @@ export default function AuthPage() {
         throw new Error(errorText || "Erro no login");
       }
       
-      const userData = await res.json();
+      const response = await res.json();
       
-      toast({ title: "Login realizado!", description: `Bem-vindo(a), ${userData.name || userData.email}` });
+      // Salvar token no localStorage
+      if (response.token) {
+        localStorage.setItem('authToken', response.token);
+        console.log('🔑 Token salvo no localStorage');
+      }
       
-      // Aguardar um pouco antes de recarregar para garantir que o cookie seja processado
+      toast({ title: "Login realizado!", description: `Bem-vindo(a), ${response.user.name || response.user.email}` });
+      
+      // Recarregar página após login
       setTimeout(() => {
+        console.log('🔄 Recarregando página após login...');
         window.location.reload();
       }, 500);
       

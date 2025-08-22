@@ -1,5 +1,34 @@
 // API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const getApiBaseUrl = () => {
+  // Se a variável de ambiente estiver definida, use ela
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
+  // Se estiver em produção (HTTPS), FORÇAR HTTPS para a API
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
+    console.log('🚨 FORÇANDO HTTPS para API em produção');
+    return 'https://app.tbsnet.com.br';
+  }
+  
+  // Se estiver em produção mas não HTTPS, ainda usar HTTPS
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    console.log('🚨 FORÇANDO HTTPS para API em produção (não localhost)');
+    return 'https://app.tbsnet.com.br';
+  }
+  
+  // Em desenvolvimento, use localhost
+  return 'http://localhost:5000';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+
+// Log para debug
+if (typeof window !== 'undefined') {
+  console.log('🔧 API Base URL configurada:', API_BASE_URL);
+  console.log('🔧 Protocolo atual:', window.location.protocol);
+  console.log('🔧 VITE_API_URL:', import.meta.env.VITE_API_URL);
+}
 
 // Expose base URL and normalize all relative "/api" requests to use it
 declare global {
@@ -45,14 +74,24 @@ if (typeof window !== 'undefined') {
 export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
   
+  // Pegar token do localStorage
+  const token = localStorage.getItem('authToken');
+  
   const defaultOptions: RequestInit = {
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
     },
-    credentials: 'include', // Include cookies for session management
     ...options,
   };
+
+  // Adicionar token se existir e não for login/register
+  if (token && !endpoint.includes('/login') && !endpoint.includes('/register')) {
+    defaultOptions.headers = {
+      ...defaultOptions.headers,
+      'Authorization': `Bearer ${token}`,
+    };
+  }
 
   const response = await fetch(url, defaultOptions);
   

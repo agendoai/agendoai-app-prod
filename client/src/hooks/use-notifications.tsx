@@ -83,8 +83,17 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         }
         
         // Usar o novo endpoint /api/ws para evitar conflitos com o Vite
-        const wsUrl = `${import.meta.env.VITE_API_URL?.replace('http', 'ws') || 'ws://localhost:5000'}/api/ws`
-        console.log('Conectando ao WebSocket:', wsUrl);
+        let wsUrl;
+        if (import.meta.env.VITE_API_URL) {
+          wsUrl = `${import.meta.env.VITE_API_URL.replace('http', 'ws').replace('https', 'wss')}/api/ws`;
+        } else if (window.location.protocol === 'https:') {
+          wsUrl = 'wss://app.tbsnet.com.br/api/ws';
+        } else {
+          wsUrl = 'ws://localhost:5000/api/ws';
+        }
+        console.log('🔧 WebSocket URL configurada:', wsUrl);
+        console.log('🔧 VITE_API_URL:', import.meta.env.VITE_API_URL);
+        console.log('🔧 Protocolo atual:', window.location.protocol);
         
         let webSocket;
         try {

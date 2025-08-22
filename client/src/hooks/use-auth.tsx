@@ -64,14 +64,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log("useAuth - Executando queryFn para /api/user");
       try {
         console.log("useAuth - Fazendo requisição GET para", queryKey[0]);
-        console.log("useAuth - Estado de autenticação:", "Verificando...");
+        
+        // Pegar token do localStorage
+        const token = localStorage.getItem('authToken');
+        
+        if (!token) {
+          console.log("useAuth - Nenhum token encontrado");
+          return null;
+        }
         
         const response = await fetch(queryKey[0] as string, {
-          credentials: "include",
           headers: {
             "Accept": "application/json",
+            "Authorization": `Bearer ${token}`,
             "X-Requested-With": "XMLHttpRequest"
           }
+        });
+        
+        console.log('🔍 Verificando autenticação:', {
+          url: queryKey[0],
+          status: response.status,
+          hasToken: !!token
         });
         
         console.log("useAuth - Resposta recebida:", {
@@ -81,7 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         
         if (response.status === 401) {
-          console.log("useAuth - Usuário não autenticado (401)");
+          console.log("useAuth - Token inválido (401)");
+          localStorage.removeItem('authToken'); // Limpar token inválido
           return null;
         }
         
@@ -136,13 +150,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       try {
         // Usar a nova função de API
-        const data = await apiJson("/api/login", {
+        const response = await apiJson("/api/login", {
           method: "POST",
           body: JSON.stringify(credentials),
         });
         
-        console.log("Dados da resposta do login:", data);
-        return data;
+        console.log("Dados da resposta do login:", response);
+        
+        // Salvar token no localStorage
+        if (response.token) {
+          localStorage.setItem('authToken', response.token);
+          console.log('🔑 Token salvo no localStorage');
+        }
+        
+        return response.user;
       } catch (err) {
         console.error("Erro na requisição de login:", err);
         throw err;
@@ -231,7 +252,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: () => {
-      console.log("Logout bem-sucedido. Recarregando página.");
+      console.log("Logout bem-sucedido.");
+      
+      // Remover token do localStorage
+      localStorage.removeItem('authToken');
+      console.log('🔑 Token removido do localStorage');
       
       // Limpar cache imediatamente
       queryClient.setQueryData(["/api/user"], null);
@@ -248,6 +273,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     onError: (error: Error) => {
       console.error("Erro ao processar logout:", error);
+      
+      // Remover token mesmo com erro
+      localStorage.removeItem('authToken');
       
       // Limpar cache e recarregar página mesmo com erro
       queryClient.setQueryData(["/api/user"], null);

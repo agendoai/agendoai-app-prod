@@ -1,0 +1,1 @@
+import{j as r}from"./index-DOe1OCu1.js";import{N as e}from"./navbar-DlESdVVP.js";function i({children:s,hideNavbar:a=!1}){return r.jsxs("div",{className:"min-h-screen bg-neutral-50 pb-16",children:[s,!a&&r.jsx(e,{})]})}export{i as C};
