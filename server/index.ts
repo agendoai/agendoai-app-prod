@@ -33,7 +33,17 @@ const app = express();
 // Configurar CORS para permitir requisições do frontend
 const isProd = process.env.NODE_ENV === 'production';
 const allowedOrigins = [
-  'https://agendoai-app-prod.vercel.app','http://localhost:3000', 'http://127.0.0.1:3000', 'https://agendoai-app-prod-6qoh.vercel.app', 'http://191.252.196.5:5000','http://localhost:3001', 'https://6b39e5855edf.ngrok-free.app'
+  'https://agendoai-app-prod.vercel.app',
+  'http://localhost:3000', 
+  'http://127.0.0.1:3000', 
+  'https://agendoai-app-prod-6qoh.vercel.app', 
+  'http://191.252.196.5:5000',
+  'http://localhost:3001', 
+  'https://6b39e5855edf.ngrok-free.app',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://app.tbsnet.com.br',
+  'https://app.tbsnet.com.br'
   // outros domínios confiáveis que você quer liberar
 ];
 
@@ -43,12 +53,14 @@ app.use(cors({
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.log('CORS bloqueado para origem:', origin);
       callback(new Error('CORS not allowed from this origin'));
     }
   },
   credentials: true, // Habilita envio de cookies/autenticação
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  exposedHeaders: ['Set-Cookie']
 }));
 
 app.options('*', cors()); // para responder a pré-voo OPTIONS

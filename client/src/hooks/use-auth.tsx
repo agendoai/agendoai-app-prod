@@ -58,7 +58,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     cacheTime: 15 * 60 * 1000, // 15 minutos - cache mantido por 15 minutos
     refetchOnWindowFocus: false, // Não refazer query quando a janela ganhar foco
     refetchOnMount: true, // Refazer query quando o componente montar (importante para /auth)
-    retry: false, // Não tentar novamente em caso de erro
+    retry: 1, // Tentar uma vez em caso de erro (útil para iOS)
+    retryDelay: 1000, // Aguardar 1 segundo antes de tentar novamente
     queryFn: async ({ queryKey }) => {
       console.log("useAuth - Executando queryFn para /api/user");
       try {

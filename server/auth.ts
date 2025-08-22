@@ -6,6 +6,7 @@ import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import { storage } from "./storage";
 import { User as SelectUser } from "@shared/schema.ts";
+import { isIOSDevice, applyIOSCompatibility } from "./ios-compatibility";
 
 declare global {
   namespace Express {
@@ -64,10 +65,10 @@ export function setupAuth(app: Express): void {
     resave: true,
     saveUninitialized: true,
     cookie: {
-      secure: true, // Sempre true para HTTPS
+      secure: isHttpsFrontend, // Só true se for HTTPS
       maxAge: 1000 * 60 * 60 * 24 * 7,
       httpOnly: true,
-      sameSite: 'none', // Obrigatório para cross-domain
+      sameSite: isHttpsFrontend ? 'none' : 'lax', // 'lax' para HTTP, 'none' para HTTPS
       path: '/',
       // Removido o atributo domain para evitar conflito
     },
@@ -85,6 +86,9 @@ export function setupAuth(app: Express): void {
   app.use(session(sessionSettings));
   app.use(passport.initialize());
   app.use(passport.session());
+  
+  // Middleware específico para iOS Safari
+  app.use(applyIOSCompatibility);
   
   app.use((req, res, next) => {
     if (req.path.startsWith('/api/')) {
@@ -320,6 +324,20 @@ export function setupAuth(app: Express): void {
           return next(err);
         }
         req.session.save(() => {
+          // Garantir que o cookie seja enviado corretamente
+          const userAgent = req.headers['user-agent'] || '';
+          
+          if (isIOSDevice(userAgent)) {
+            // Para iOS, usar configurações específicas
+            res.cookie('agendoai.sid', req.sessionID, {
+              secure: false, // iOS Safari tem problemas com secure cookies em desenvolvimento
+              sameSite: 'lax', // Mais permissivo para iOS
+              httpOnly: true,
+              maxAge: 1000 * 60 * 60 * 24 * 7,
+              path: '/'
+            });
+          }
+          
           return res.status(200).json(sanitizeUser(user));
         });
       });

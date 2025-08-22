@@ -100,17 +100,27 @@ export default function AuthPage() {
     try {
       const res = await fetch("/api/login", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        },
         body: JSON.stringify(data),
         credentials: "include",
       });
-      if (!res.ok) throw new Error(await res.text());
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(errorText || "Erro no login");
+      }
+      
       const userData = await res.json();
       
       toast({ title: "Login realizado!", description: `Bem-vindo(a), ${userData.name || userData.email}` });
       
-      // Forçar atualização da página após login
-      window.location.reload();
+      // Aguardar um pouco antes de recarregar para garantir que o cookie seja processado
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
       
     } catch (e: any) {
       toast({ title: "Erro ao entrar", description: e.message || "Verifique seus dados.", variant: "destructive" });
