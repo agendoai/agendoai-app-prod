@@ -82,7 +82,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           return;
         }
         
-        // Usar o novo endpoint /api/ws para evitar conflitos com o Vite
+        // Usar a mesma lógica da API para WebSocket
         let wsUrl;
         if (import.meta.env.VITE_API_URL) {
           wsUrl = `${import.meta.env.VITE_API_URL.replace('http', 'ws').replace('https', 'wss')}/api/ws`;

@@ -49,11 +49,17 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function(origin, callback) {
-    if (!origin) return callback(null, true); // permitir requests sem origin (ex: Postman)
+    console.log('🔍 CORS - Origin recebida:', origin);
+    if (!origin) {
+      console.log('🔍 CORS - Permitindo request sem origin');
+      return callback(null, true); // permitir requests sem origin (ex: Postman)
+    }
     if (allowedOrigins.indexOf(origin) !== -1) {
+      console.log('🔍 CORS - Origin permitida:', origin);
       callback(null, true);
     } else {
-      console.log('CORS bloqueado para origem:', origin);
+      console.log('❌ CORS bloqueado para origem:', origin);
+      console.log('🔍 CORS - Origens permitidas:', allowedOrigins);
       callback(new Error('CORS not allowed from this origin'));
     }
   },

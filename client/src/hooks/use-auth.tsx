@@ -43,8 +43,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Efeito para verificar sessão quando a página carrega
   React.useEffect(() => {
     console.log("AuthProvider - Verificando sessão na inicialização...");
-    refetchUser();
+    // Removido refetchUser() para evitar loop infinito
   }, []);
+  
+  // Verificar token uma vez só
+  const hasToken = React.useMemo(() => !!localStorage.getItem('authToken'), []);
   
   const {
     data: user,
@@ -53,11 +56,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refetch: refetchUser
   } = useQuery<User | undefined, Error>({
     queryKey: ["/api/user"],
-    enabled: true, // Forçar execução da query
+    enabled: hasToken, // Só executar se tiver token
     staleTime: 10 * 60 * 1000, // 10 minutos - dados ficam "frescos" por 10 minutos
-    cacheTime: 15 * 60 * 1000, // 15 minutos - cache mantido por 15 minutos
+    gcTime: 15 * 60 * 1000, // 15 minutos - cache mantido por 15 minutos
     refetchOnWindowFocus: false, // Não refazer query quando a janela ganhar foco
-    refetchOnMount: true, // Refazer query quando o componente montar (importante para /auth)
+    refetchOnMount: false, // Não refazer automaticamente
     retry: 1, // Tentar uma vez em caso de erro (útil para iOS)
     retryDelay: 1000, // Aguardar 1 segundo antes de tentar novamente
     queryFn: async ({ queryKey }) => {
@@ -73,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           return null;
         }
         
-        const response = await fetch(queryKey[0] as string, {
+        const response = await apiJson(queryKey[0] as string, {
           headers: {
             "Accept": "application/json",
             "Authorization": `Bearer ${token}`,
@@ -83,35 +86,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         console.log('🔍 Verificando autenticação:', {
           url: queryKey[0],
-          status: response.status,
           hasToken: !!token
         });
         
-        console.log("useAuth - Resposta recebida:", {
-          status: response.status,
-          statusText: response.statusText,
-          url: response.url
-        });
-        
-        if (response.status === 401) {
-          console.log("useAuth - Token inválido (401)");
-          localStorage.removeItem('authToken'); // Limpar token inválido
-          return null;
-        }
-        
-        if (!response.ok) {
-          console.log("useAuth - Erro na resposta:", response.status, response.statusText);
-          throw new Error("Erro ao buscar dados do usuário");
-        }
-        
-        const userData = await response.json();
+        // Se chegou aqui, a resposta foi bem-sucedida
         console.log("useAuth - Dados do usuário obtidos:", {
-          id: userData?.id,
-          email: userData?.email,
-          userType: userData?.userType,
-          name: userData?.name
+          id: response?.id,
+          email: response?.email,
+          userType: response?.userType,
+          name: response?.name
         });
-        return userData;
+        return response;
+        
+
       } catch (error) {
         console.error("useAuth - Erro ao buscar usuário:", error);
         return null;

@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { apiJson } from "@/lib/api";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -98,21 +99,11 @@ export default function AuthPage() {
   async function onLoginSubmit(data: any) {
     setLoading(true);
     try {
-      const res = await fetch("/api/login", {
+      // Usar a função apiJson que usa a configuração correta da API
+      const response = await apiJson("/api/login", {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
         body: JSON.stringify(data),
       });
-      
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(errorText || "Erro no login");
-      }
-      
-      const response = await res.json();
       
       // Salvar token no localStorage
       if (response.token) {
@@ -140,14 +131,11 @@ export default function AuthPage() {
     setLoading(true);
     try {
       const { confirmPassword, ...registerData } = data;
-      const res = await fetch("/api/register", {
+      // Usar a função apiJson que usa a configuração correta da API
+      const userData = await apiJson("/api/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(registerData),
-        credentials: "include",
       });
-      if (!res.ok) throw new Error(await res.text());
-      const userData = await res.json();
       toast({ title: "Conta criada!", description: "Bem-vindo(a) ao AgendoAI!" });
       
       // Forçar atualização da página após registro

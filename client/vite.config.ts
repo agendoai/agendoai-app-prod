@@ -21,12 +21,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3000,
-      proxy: {
-        '/api': {
-          target,
-          changeOrigin: true,
-        }
-      }
+      https: true, // Forçar HTTPS em desenvolvimento
     },
     build: {
       outDir: "dist",

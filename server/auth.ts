@@ -21,8 +21,8 @@ const scryptAsync = promisify(scrypt);
  * Middleware para autenticação JWT
  */
 export function authenticateJWT(req: Request, res: Response, next: NextFunction) {
-  // Pular autenticação para rotas de login e registro
-  if (req.path === '/api/login' || req.path === '/api/register') {
+  // Pular autenticação para rotas de login, registro e OPTIONS
+  if (req.path === '/api/login' || req.path === '/api/register' || req.method === 'OPTIONS') {
     return next();
   }
   
@@ -99,10 +99,6 @@ export function setupAuth(app: Express): void {
       maxAge: 1000 * 60 * 60 * 24 * 7,
       httpOnly: true,
       sameSite: 'lax',
-      secure: true, // Só true se for HTTPS
-      maxAge: 1000 * 60 * 60 * 24 * 7,
-      httpOnly: true,
-      sameSite:'none', // 'lax' para HTTP, 'none' para HTTPS
       path: '/',
     },
     name: 'agendoai.sid'
@@ -356,7 +352,6 @@ export function setupAuth(app: Express): void {
         if (err) {
           return next(err);
         }
-<<<<<<< HEAD
         // Gerar JWT token
         const payload: JWTPayload = {
           id: user.id,
@@ -366,7 +361,7 @@ export function setupAuth(app: Express): void {
         };
         
         const token = jwt.sign(payload, JWT_CONFIG.secret, { 
-          expiresIn: JWT_CONFIG.expiresIn 
+          expiresIn: JWT_CONFIG.expiresIn as string
         });
         
         console.log('🔑 JWT gerado para usuário:', user.email);
@@ -375,24 +370,6 @@ export function setupAuth(app: Express): void {
         return res.status(200).json({
           user: sanitizeUser(user),
           token: token
-=======
-        req.session.save(() => {
-          // Garantir que o cookie seja enviado corretamente
-          const userAgent = req.headers['user-agent'] || '';
-          
-          if (isIOSDevice(userAgent)) {
-            // Para iOS, usar configurações específicas
-            res.cookie('agendoai.sid', req.sessionID, {
-              secure: true, // iOS Safari tem problemas com secure cookies em desenvolvimento
-              sameSite: 'none', // Mais permissivo para iOS
-              httpOnly: true,
-              maxAge: 1000 * 60 * 60 * 24 * 7,
-              path: '/'
-            });
-          }
-          
-          return res.status(200).json(sanitizeUser(user));
->>>>>>> 3a7227e989f18e083bc1160b03a82b3accf79127
         });
       });
     })(req, res, next);
@@ -407,6 +384,10 @@ export function setupAuth(app: Express): void {
   app.get("/api/user", async (req, res) => {
     try {
       // req.user já vem do middleware authenticateJWT
+      if (!req.user) {
+        return res.status(401).json({ message: "Usuário não autenticado" });
+      }
+      
       const user = await storage.getUser(req.user.id);
       
       if (!user) {

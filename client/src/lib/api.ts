@@ -1,19 +1,14 @@
 // API Configuration
 const getApiBaseUrl = () => {
-  // Se a variável de ambiente estiver definida, use ela
+  // Se a variável de ambiente estiver definida, use ela (sempre HTTPS)
   if (import.meta.env.VITE_API_URL) {
+    console.log('🔧 Usando VITE_API_URL:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
   }
   
-  // Se estiver em produção (HTTPS), FORÇAR HTTPS para a API
+  // Se estiver em produção (HTTPS), usar HTTPS para a API
   if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-    console.log('🚨 FORÇANDO HTTPS para API em produção');
-    return 'https://app.tbsnet.com.br';
-  }
-  
-  // Se estiver em produção mas não HTTPS, ainda usar HTTPS
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    console.log('🚨 FORÇANDO HTTPS para API em produção (não localhost)');
+    console.log('🔧 Usando HTTPS para API em produção');
     return 'https://app.tbsnet.com.br';
   }
   
@@ -40,39 +35,21 @@ declare global {
 if (typeof window !== 'undefined') {
   // Store for debugging/inspection
   window.__API_BASE_URL__ = API_BASE_URL;
-
-  const originalFetch = window.fetch.bind(window);
-  window.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
-    try {
-      let url: string;
-      if (typeof input === 'string') {
-        url = input;
-      } else if (input instanceof URL) {
-        url = input.toString();
-      } else {
-        url = (input as Request).url;
-      }
-
-      // Only rewrite calls that are clearly targeting our backend route prefix
-      if (url.startsWith('/api')) {
-        const rewritten = `${API_BASE_URL}${url}`;
-        // Ensure credentials are always included for API calls
-        const options = {
-          ...init,
-          credentials: 'include' as const,
-        };
-        return originalFetch(rewritten, options);
-      }
-    } catch (_) {
-      // fall through to original fetch on any parsing error
-    }
-    return originalFetch(input as any, init);
-  };
 }
 
 // Helper function to make API calls
 export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
-  const url = endpoint.startsWith('http') ? endpoint : `${API_BASE_URL}${endpoint}`;
+  // Construir URL corretamente
+  let url: string;
+  if (endpoint.startsWith('http')) {
+    url = endpoint;
+  } else if (endpoint.startsWith('/api')) {
+    url = `${API_BASE_URL}${endpoint}`;
+  } else {
+    url = `${API_BASE_URL}/api${endpoint}`;
+  }
+  
+  console.log('🔧 API Call URL:', url);
   
   // Pegar token do localStorage
   const token = localStorage.getItem('authToken');
