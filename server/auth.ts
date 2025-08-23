@@ -90,8 +90,8 @@ export function setupAuth(app: Express): void {
   // Configuração simplificada - apenas JWT, sem sessões
   app.use(passport.initialize());
   
-  // Middleware para autenticação JWT
-  app.use(authenticateJWT);
+  // Middleware para autenticação JWT - aplicar apenas nas rotas que precisam
+  app.use('/api', authenticateJWT);
 
   passport.use(
     new LocalStrategy(
