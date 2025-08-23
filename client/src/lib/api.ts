@@ -136,7 +136,6 @@ export async function createAsaasProvider(providerData: {
  */
 export async function getAsaasProvider(providerId: number) {
   const response = await fetch(`/api/asaas-marketplace/providers/${providerId}`, {
-    credentials: 'include',
   });
 
   if (!response.ok) {
@@ -152,7 +151,7 @@ export async function getAsaasProvider(providerId: number) {
  */
 export async function getAsaasProviderBalance(providerId: number) {
   const response = await fetch(`/api/asaas-marketplace/providers/${providerId}/balance`, {
-    credentials: 'include',
+    
   });
 
   if (!response.ok) {
@@ -168,7 +167,7 @@ export async function getAsaasProviderBalance(providerId: number) {
  */
 export async function getAsaasPlatformBalance() {
   const response = await fetch('/api/asaas-marketplace/admin/balance', {
-    credentials: 'include',
+    
   });
 
   if (!response.ok) {
@@ -195,7 +194,7 @@ export async function createAsaasPayment(paymentData: {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
+    
     body: JSON.stringify(paymentData),
   });
 
@@ -213,7 +212,7 @@ export async function createAsaasPayment(paymentData: {
 export async function releaseAsaasPayment(paymentId: string) {
   const response = await fetch(`/api/asaas-marketplace/payments/${paymentId}/release`, {
     method: 'POST',
-    credentials: 'include',
+    
   });
 
   if (!response.ok) {
@@ -229,7 +228,7 @@ export async function releaseAsaasPayment(paymentId: string) {
  */
 export async function getAsaasPaymentStatus(paymentId: string) {
   const response = await fetch(`/api/asaas-marketplace/payments/${paymentId}/status`, {
-    credentials: 'include',
+    
   });
 
   if (!response.ok) {
@@ -246,7 +245,7 @@ export async function getAsaasPaymentStatus(paymentId: string) {
 export async function cancelAsaasPayment(paymentId: string) {
   const response = await fetch(`/api/asaas-marketplace/payments/${paymentId}/cancel`, {
     method: 'POST',
-    credentials: 'include',
+    
   });
 
   if (!response.ok) {
@@ -262,7 +261,7 @@ export async function cancelAsaasPayment(paymentId: string) {
  */
 export async function listAsaasWallets() {
   const response = await fetch('/api/asaas-marketplace/admin/wallets', {
-    credentials: 'include',
+    
   });
 
   if (!response.ok) {
@@ -282,7 +281,7 @@ export const createAsaasSubAccount = async (subAccountData: any) => {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
+    
     body: JSON.stringify(subAccountData),
   });
   return response.json();
@@ -295,7 +294,7 @@ export const listAsaasSubAccounts = async () => {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
+    
   });
   return response.json();
 };
@@ -307,7 +306,7 @@ export const getAsaasSubAccountBalance = async (subAccountId: string) => {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
+    
   });
   return response.json();
 };
@@ -319,7 +318,7 @@ export const updateAsaasSubAccount = async (subAccountId: string, updates: any) 
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
+    
     body: JSON.stringify(updates),
   });
   return response.json();
@@ -332,7 +331,7 @@ export const getAsaasMainBalance = async () => {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
+    
   });
   return response.json();
 };
@@ -344,7 +343,7 @@ export const createAsaasCustomer = async (customerData: any) => {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
+    
     body: JSON.stringify(customerData),
   });
   return response.json();
@@ -368,7 +367,7 @@ export const processAsaasBookingPayment = async (paymentData: {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
+    
     body: JSON.stringify(paymentData),
   });
   return response.json();
@@ -381,7 +380,7 @@ export const releaseAsaasEscrowValue = async (subAccountId: string, amount: numb
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
+    
     body: JSON.stringify({ amount }),
   });
   return response.json();
@@ -394,7 +393,7 @@ export const getAsaasSubAccountPayments = async (subAccountId: string) => {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
+    
   });
   return response.json();
 }; 
@@ -408,7 +407,7 @@ export const getAsaasProviderSubAccountBalance = async (providerId: number) => {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
+    
   });
   return response.json();
 };
@@ -420,7 +419,7 @@ export const getAsaasProviderPayments = async (providerId: number) => {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
+    
   });
   return response.json();
 };
@@ -432,7 +431,7 @@ export const releaseAsaasProviderEscrowValue = async (providerId: number, amount
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
+    
     body: JSON.stringify({ amount }),
   });
   return response.json();
