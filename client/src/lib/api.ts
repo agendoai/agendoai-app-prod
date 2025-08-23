@@ -1,25 +1,14 @@
 // API Configuration
 // API Configuration
 const getApiBaseUrl = () => {
-  // Se a variável de ambiente estiver definida, use ela
+  // SEMPRE usar a variável de ambiente VITE_API_URL
   if (import.meta.env.VITE_API_URL) {
     console.log('🔧 Usando VITE_API_URL:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
   }
   
-  // Em desenvolvimento, sempre usar HTTP para localhost
-  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-    console.log('🔧 Usando HTTP para API em desenvolvimento local');
-    return 'http://localhost:5000';
-  }
-  
-  // Se estiver em produção (HTTPS), usar HTTPS para a API
-  if (typeof window !== 'undefined' && window.location.protocol === 'https:') {
-    console.log('🔧 Usando HTTPS para API em produção');
-    return 'https://app.tbsnet.com.br';
-  }
-  
-  // Fallback para desenvolvimento
+  // Fallback apenas se VITE_API_URL não estiver definida
+  console.warn('⚠️ VITE_API_URL não definida, usando fallback');
   return 'http://localhost:5000';
 };
 
@@ -51,18 +40,20 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   if (endpoint.startsWith('http')) {
     url = endpoint;
   } else if (endpoint.startsWith('/api')) {
-    // Em desenvolvimento, usar o proxy do Vite
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-      url = endpoint; // Usar caminho relativo para o proxy
-    } else {
+    // Se VITE_API_URL estiver definida, usar URL completa
+    if (import.meta.env.VITE_API_URL) {
       url = `${API_BASE_URL}${endpoint}`;
+    } else {
+      // Fallback para desenvolvimento local (proxy do Vite)
+      url = endpoint;
     }
   } else {
-    // Em desenvolvimento, usar o proxy do Vite
-    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
-      url = `/api${endpoint}`; // Usar caminho relativo para o proxy
-    } else {
+    // Se VITE_API_URL estiver definida, usar URL completa
+    if (import.meta.env.VITE_API_URL) {
       url = `${API_BASE_URL}/api${endpoint}`;
+    } else {
+      // Fallback para desenvolvimento local (proxy do Vite)
+      url = `/api${endpoint}`;
     }
   }
   

@@ -32,15 +32,36 @@ const app = express();
 
 // Configurar CORS - Permitir origens específicas incluindo produção
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://localhost:3001',
-    'https://agendoai-app-prod-6qoh.vercel.app',
-    'https://app.tbsnet.com.br',
-    'https://*.tbsnet.com.br',
-    process.env.FRONTEND_URL || 'http://localhost:3000'
-  ],
+  origin: function (origin, callback) {
+    // Permitir requisições sem origem (como mobile apps ou Postman)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:3001',
+      'https://agendoai-app-prod-6qoh.vercel.app',
+      'https://app.tbsnet.com.br',
+      process.env.FRONTEND_URL || 'http://localhost:3000'
+    ];
+    
+    // Permitir qualquer subdomínio do tbsnet.com.br
+    if (origin.includes('tbsnet.com.br')) {
+      return callback(null, true);
+    }
+    
+    // Permitir qualquer subdomínio do vercel.app
+    if (origin.includes('vercel.app')) {
+      return callback(null, true);
+    }
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    console.log('🚫 CORS bloqueado para origem:', origin);
+    return callback(new Error('Not allowed by CORS'));
+  },
   credentials: true, // Aceitar credenciais para compatibilidade
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
