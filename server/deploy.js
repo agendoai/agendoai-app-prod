@@ -32,10 +32,41 @@ app.use(cors({
     'https://*.tbsnet.com.br',
     process.env.FRONTEND_URL || 'http://localhost:3000'
   ],
-  credentials: false, // Não precisamos de credenciais para JWT
+  credentials: true, // Aceitar credenciais para compatibilidade
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
+
+// Middleware CORS manual para garantir compatibilidade
+app.use((req, res, next) => {
+  // Sempre permitir credenciais
+  res.header('Access-Control-Allow-Credentials', 'true');
+  
+  // Permitir origens específicas
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'https://agendoai-app-prod-6qoh.vercel.app',
+    'https://app.tbsnet.com.br'
+  ];
+  
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  }
+  
+  // Headers necessários
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  
+  // Responder imediatamente para OPTIONS
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
 
 // Middlewares básicos
 app.use(express.json({ limit: '10mb' }));
