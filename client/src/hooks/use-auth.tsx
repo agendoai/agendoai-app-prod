@@ -107,17 +107,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       try {
         // Usar a nova função de API
+        console.log("📤 Enviando requisição de login...");
         const response = await apiJson("/api/login", {
           method: "POST",
           body: JSON.stringify(credentials),
         });
         
-        console.log("Dados da resposta do login:", response);
+        console.log("📥 Dados da resposta do login:", response);
+        console.log("📥 Tipo da resposta:", typeof response);
+        console.log("📥 Chaves da resposta:", Object.keys(response || {}));
+        console.log("🔍 Verificando se response.token existe:", !!response.token);
+        console.log("🔍 Tipo de response.token:", typeof response.token);
+        console.log("🔍 Tamanho do token:", response.token ? response.token.length : 'N/A');
         
         // Salvar token no localStorage
         if (response.token) {
           localStorage.setItem('authToken', response.token);
           console.log('🔑 Token salvo no localStorage');
+          console.log('🔍 Verificando se foi salvo:', localStorage.getItem('authToken') ? 'SIM' : 'NÃO');
+        } else {
+          console.log('❌ Nenhum token encontrado na resposta');
         }
         
         return response.user;
@@ -160,6 +169,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         
         console.log("Dados da resposta do registro:", data);
+        console.log("🔍 Verificando se data.token existe:", !!data.token);
+        console.log("🔍 Tipo de data.token:", typeof data.token);
+        console.log("🔍 Tamanho do token:", data.token ? data.token.length : 'N/A');
+        
+        // Salvar token no localStorage se existir
+        if (data.token) {
+          localStorage.setItem('authToken', data.token);
+          console.log('🔑 Token salvo no localStorage (registro)');
+          console.log('🔍 Verificando se foi salvo:', localStorage.getItem('authToken') ? 'SIM' : 'NÃO');
+        } else {
+          console.log('❌ Nenhum token encontrado na resposta do registro');
+        }
+        
         return data;
       } catch (err) {
         console.error("Erro na requisição de registro:", err);

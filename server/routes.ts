@@ -220,16 +220,10 @@ const isAdminOrSupport = (req: Request, res: Response, next: any) => {
 }
 
 export function registerRoutes(app: Express): Server {
-	// sets up /api/register, /api/login, /api/logout, /api/user
-	setupAuth(app)
+	// Registrar rotas de autenticação - SEM middleware de autenticação
+	app.use("/api", authRoutes)
 
 	// Registrar rotas de notificações push
-	// Rotas de autenticação - SEM middleware de autenticação
-app.use("/api", authRoutes)
-
-// Rotas protegidas com middleware de autenticação
-app.use("/api/user", authenticateJWT);
-app.use("/api/logout", authenticateJWT);
 
 app.use("/api/push", pushRouter)
 app.use('/api/webhook', asaasWebhookRoutes)

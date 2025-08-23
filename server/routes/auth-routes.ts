@@ -4,6 +4,7 @@ import { JWT_CONFIG, JWTPayload } from '../jwt-config';
 import { storage } from '../storage';
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
+import { authenticateJWT } from '../auth';
 
 const router = Router();
 const scryptAsync = promisify(scrypt);
@@ -63,11 +64,11 @@ router.post("/login", async (req, res) => {
     console.log(`Tentativa de login para ${email}`);
     
     // Verificar usuários de emergência
-    if (email === "admin@agendoai.com" && password === "admin123") {
+    if (email === "admin@agendoai.com.br" && password === "123456") {
       console.log("✅ Login admin de emergência");
       const adminUser = {
         id: 1,
-        email: "admin@agendoai.com",
+        email: "admin@agendoai.com.br",
         name: "Admin Demo",
         userType: "admin",
         phone: "+5511999999999",
@@ -264,9 +265,10 @@ router.post("/logout", (req, res) => {
   res.status(200).json({ message: "Logout realizado com sucesso" });
 });
 
-router.get("/user", async (req, res) => {
+router.get("/user", authenticateJWT, async (req, res) => {
   try {
-    // req.user já vem do middleware authenticateJWT
+    console.log('🔍 /api/user - req.user:', req.user);
+    
     if (!req.user) {
       return res.status(401).json({ message: "Usuário não autenticado" });
     }
@@ -277,6 +279,7 @@ router.get("/user", async (req, res) => {
       return res.status(404).json({ message: "Usuário não encontrado" });
     }
     
+    console.log('✅ /api/user - Usuário encontrado:', user.email);
     res.json(sanitizeUser(user));
   } catch (error) {
     console.error("Erro ao buscar usuário:", error);

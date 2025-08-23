@@ -130,8 +130,12 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 
 // Helper function for JSON responses
 export const apiJson = async (endpoint: string, options: RequestInit = {}) => {
+  console.log('🔄 apiJson chamada para:', endpoint);
   const response = await apiCall(endpoint, options);
-  return response.json();
+  console.log('📥 apiJson - Status da resposta:', response.status);
+  const jsonData = await response.json();
+  console.log('📥 apiJson - Dados JSON:', jsonData);
+  return jsonData;
 };
 
 // Helper function for text responses

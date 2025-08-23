@@ -101,11 +101,11 @@ export function setupAuth(app: Express): void {
         try {
           console.log(`Tentativa de login para ${email}`);
           
-          if (email === "admin@agendoai.com" && password === "admin123") {
+          if (email === "admin@agendoai.com.br" && password === "123456") {
             console.log("✅ Login admin de emergência");
             const adminUser = {
               id: 1,
-              email: "admin@agendoai.com",
+              email: "admin@agendoai.com.br",
               name: "Admin Demo",
               userType: "admin",
               phone: "+5511999999999",
