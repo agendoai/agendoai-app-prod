@@ -14,6 +14,13 @@ VITE_API_URL=https://app.tbsnet.com.br
 # Frontend URL - PRODUÇÃO
 VITE_FRONTEND_URL=https://agendoai-app-prod-6qoh.vercel.app
 
+# Ambiente
+NODE_ENV=production
+
+# Configurações de segurança para HTTPS
+VITE_SECURE_COOKIES=true
+VITE_HTTPS_ONLY=true
+
 # Stripe Configuration (opcional)
 # VITE_STRIPE_PUBLIC_KEY=pk_test_your_stripe_public_key_here
 
@@ -40,6 +47,8 @@ try {
   console.log('🔧 Configurações de PRODUÇÃO:');
   console.log('   - VITE_API_URL=https://app.tbsnet.com.br (backend)');
   console.log('   - VITE_FRONTEND_URL=https://agendoai-app-prod-6qoh.vercel.app (frontend)');
+  console.log('   - VITE_SECURE_COOKIES=true (cookies seguros para HTTPS)');
+  console.log('   - VITE_HTTPS_ONLY=true (força HTTPS)');
   console.log('');
   console.log('🚀 Para fazer deploy:');
   console.log('   1. Commit as mudanças');
@@ -48,7 +57,8 @@ try {
   console.log('');
   console.log('⚠️  IMPORTANTE:');
   console.log('   - Todas as chamadas API serão feitas para https://app.tbsnet.com.br');
-  console.log('   - O frontend será servido pelo Vercel');
+  console.log('   - O frontend será servido pelo Vercel com HTTPS');
+  console.log('   - Cookies e localStorage serão configurados para HTTPS');
   console.log('   - Certifique-se de que o backend está rodando em produção');
 
 } catch (error) {

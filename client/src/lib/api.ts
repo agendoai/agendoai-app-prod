@@ -1,3 +1,10 @@
+// Declaração de tipo para window.authToken
+declare global {
+  interface Window {
+    authToken?: string;
+  }
+}
+
 // API Configuration
 // API Configuration
 const getApiBaseUrl = () => {
@@ -59,14 +66,33 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   
   console.log('🔧 API Call URL:', url);
   
-  // Pegar token do localStorage
-  const token = localStorage.getItem('authToken');
+  // Função para obter token de múltiplas fontes
+  const getToken = () => {
+    // 1. Tentar localStorage primeiro
+    let token = localStorage.getItem('authToken');
+    
+    // 2. Se não encontrou no localStorage, tentar sessionStorage
+    if (!token) {
+      token = sessionStorage.getItem('authToken');
+    }
+    
+    // 3. Se não encontrou, tentar variável global
+    if (!token && window.authToken) {
+      token = window.authToken;
+    }
+    
+    return token;
+  };
+  
+  const token = getToken();
   
   console.log('🔵 ===== TOKEN RETRIEVAL DEBUG =====');
   console.log('🔍 Endpoint:', endpoint);
-  console.log('🔍 LocalStorage authToken:', token ? `EXISTS (${token.length} chars)` : 'NOT FOUND');
+  console.log('🔍 Token encontrado:', token ? `EXISTS (${token.length} chars)` : 'NOT FOUND');
   console.log('🔍 Token preview:', token ? token.substring(0, 50) + '...' : 'null');
-  console.log('🔍 All localStorage keys:', Object.keys(localStorage));
+  console.log('🔍 localStorage:', localStorage.getItem('authToken') ? 'HAS TOKEN' : 'NO TOKEN');
+  console.log('🔍 sessionStorage:', sessionStorage.getItem('authToken') ? 'HAS TOKEN' : 'NO TOKEN');
+  console.log('🔍 global:', window.authToken ? 'HAS TOKEN' : 'NO TOKEN');
   console.log('🔵 ==================================');
   
   const defaultOptions: RequestInit = {

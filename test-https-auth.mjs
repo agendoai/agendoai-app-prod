@@ -1,99 +1,127 @@
 #!/usr/bin/env node
 
-/**
- * Script para testar autenticação HTTPS
- */
+import fetch from 'node-fetch';
 
-const API_BASE_URL = 'https://app.tbsnet.com.br';
-
-async function testHTTPSAuth() {
-  console.log('🔍 Testando autenticação HTTPS...');
-  console.log('🌐 API URL:', API_BASE_URL);
+const testHttpsAuth = async () => {
+  console.log('🔒 Testando autenticação em HTTPS...\n');
   
+  // Testar login
   try {
-    // 1. Testar login HTTPS
-    console.log('\n📤 1. Testando login HTTPS...');
-    const loginResponse = await fetch(`${API_BASE_URL}/api/login`, {
+    console.log('📤 Fazendo login...');
+    const loginResponse = await fetch('https://app.tbsnet.com.br/api/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Origin': 'https://agendoai-app-prod-6qoh.vercel.app'
       },
       body: JSON.stringify({
-        email: 'admin@agendoai.com.br',
+        email: 'rauanconceicao75@gmail.com',
         password: '123456'
       })
     });
     
-    console.log('📥 Status do login HTTPS:', loginResponse.status);
-    console.log('📥 Headers do login HTTPS:', Object.fromEntries(loginResponse.headers.entries()));
+    console.log(`📡 Status do login: ${loginResponse.status}`);
     
-    if (!loginResponse.ok) {
-      const errorText = await loginResponse.text();
-      console.error('❌ Erro no login HTTPS:', errorText);
-      return;
-    }
-    
-    const loginData = await loginResponse.json();
-    console.log('✅ Login HTTPS bem-sucedido');
-    console.log('🔑 Token recebido:', loginData.token ? 'SIM' : 'NÃO');
-    
-    if (!loginData.token) {
-      console.error('❌ Nenhum token recebido no login HTTPS');
-      return;
-    }
-    
-    // 2. Testar /api/user com token HTTPS
-    console.log('\n📤 2. Testando /api/user com token HTTPS...');
-    const userResponse = await fetch(`${API_BASE_URL}/api/user`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${loginData.token}`,
-        'Origin': 'https://agendoai-app-prod-6qoh.vercel.app'
+    if (loginResponse.ok) {
+      const loginData = await loginResponse.json();
+      console.log('✅ Login bem-sucedido!');
+      console.log(`   User ID: ${loginData.user?.id}`);
+      console.log(`   User Type: ${loginData.user?.userType}`);
+      console.log(`   Token: ${loginData.token ? 'PRESENTE' : 'AUSENTE'}`);
+      console.log(`   Token length: ${loginData.token ? loginData.token.length : 0}`);
+      
+      if (loginData.token) {
+        // Testar requisição autenticada
+        console.log('\n🔐 Testando requisição autenticada...');
+        const authResponse = await fetch('https://app.tbsnet.com.br/api/user', {
+          headers: {
+            'Authorization': `Bearer ${loginData.token}`,
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        console.log(`📡 Status da requisição autenticada: ${authResponse.status}`);
+        
+        if (authResponse.ok) {
+          const userData = await authResponse.json();
+          console.log('✅ Requisição autenticada bem-sucedida!');
+          console.log(`   User ID: ${userData.id}`);
+          console.log(`   Email: ${userData.email}`);
+        } else {
+          console.log('❌ Requisição autenticada falhou');
+          const errorData = await authResponse.text();
+          console.log(`   Erro: ${errorData}`);
+        }
       }
-    });
-    
-    console.log('📥 Status do /api/user HTTPS:', userResponse.status);
-    console.log('📥 Headers do /api/user HTTPS:', Object.fromEntries(userResponse.headers.entries()));
-    
-    if (!userResponse.ok) {
-      const errorText = await userResponse.text();
-      console.error('❌ Erro no /api/user HTTPS:', errorText);
-      return;
-    }
-    
-    const userData = await userResponse.json();
-    console.log('✅ /api/user HTTPS bem-sucedido');
-    console.log('👤 Dados do usuário:', userData.email);
-    
-    // 3. Comparar com HTTP local
-    console.log('\n📤 3. Comparando com HTTP local...');
-    const localResponse = await fetch('http://localhost:5000/api/user', {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Authorization': `Bearer ${loginData.token}`,
-        'Origin': 'http://localhost:3000'
-      }
-    });
-    
-    console.log('📥 Status do /api/user local:', localResponse.status);
-    
-    if (localResponse.ok) {
-      console.log('✅ /api/user local funciona');
+      
+      return loginData;
     } else {
-      console.log('❌ /api/user local não funciona');
+      const errorData = await loginResponse.json().catch(() => ({}));
+      console.log('❌ Login falhou');
+      console.log(`   Erro: ${errorData.message || loginResponse.statusText}`);
+      return null;
     }
+  } catch (error) {
+    console.log('❌ Erro na requisição:', error.message);
+    return null;
+  }
+};
+
+const testCorsHeaders = async () => {
+  console.log('\n🌐 Testando headers CORS...');
+  
+  try {
+    const response = await fetch('https://app.tbsnet.com.br/api/login', {
+      method: 'OPTIONS',
+      headers: {
+        'Origin': 'https://agendoai-app-prod-6qoh.vercel.app',
+        'Access-Control-Request-Method': 'POST',
+        'Access-Control-Request-Headers': 'Content-Type, Authorization',
+      }
+    });
     
-    console.log('\n✅ Teste HTTPS concluído!');
+    console.log(`📡 Status OPTIONS: ${response.status}`);
+    console.log('📋 Headers CORS:');
+    console.log(`   Access-Control-Allow-Origin: ${response.headers.get('Access-Control-Allow-Origin')}`);
+    console.log(`   Access-Control-Allow-Methods: ${response.headers.get('Access-Control-Allow-Methods')}`);
+    console.log(`   Access-Control-Allow-Headers: ${response.headers.get('Access-Control-Allow-Headers')}`);
+    console.log(`   Access-Control-Allow-Credentials: ${response.headers.get('Access-Control-Allow-Credentials')}`);
     
   } catch (error) {
-    console.error('❌ Erro durante o teste HTTPS:', error);
+    console.log('❌ Erro no teste CORS:', error.message);
   }
-}
+};
 
-testHTTPSAuth();
+const main = async () => {
+  console.log('🚀 Iniciando teste de autenticação HTTPS...\n');
+  
+  // 1. Testar CORS
+  await testCorsHeaders();
+  
+  // 2. Testar login
+  const loginResult = await testHttpsAuth();
+  
+  console.log('\n📋 Resumo do teste HTTPS:');
+  
+  if (loginResult && loginResult.token) {
+    console.log('✅ LOGIN FUNCIONOU EM HTTPS');
+    console.log('🔍 O problema está no frontend:');
+    console.log('   1. localStorage não disponível em HTTPS');
+    console.log('   2. Política de segurança do navegador');
+    console.log('   3. Service Worker interferindo');
+    console.log('   4. CORS mal configurado');
+    
+    console.log('\n💡 SOLUÇÕES IMPLEMENTADAS:');
+    console.log('   1. Fallback para sessionStorage');
+    console.log('   2. Fallback para cookies');
+    console.log('   3. Logs detalhados para debug');
+    console.log('   4. Verificação de protocolo HTTPS');
+  } else {
+    console.log('❌ LOGIN NÃO FUNCIONOU EM HTTPS');
+    console.log('🔍 O problema está no backend:');
+    console.log('   1. CORS mal configurado');
+    console.log('   2. SSL/TLS mal configurado');
+    console.log('   3. Headers de segurança');
+  }
+};
+
+main().catch(console.error);

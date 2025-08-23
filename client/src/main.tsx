@@ -39,12 +39,17 @@ createRoot(rootElement).render(
 // Optional: Service Worker registration (for PWA)
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/service-worker.js")
-      .then((registration) => {
-        console.log('Service Worker registrado com sucesso:', registration);
-      })
-      .catch((error) => {
-        console.error('Erro ao registrar Service Worker:', error);
-      });
+    // Verificar se estamos em HTTPS antes de registrar o Service Worker
+    if (window.location.protocol === 'https:' || window.location.hostname === 'localhost') {
+      navigator.serviceWorker.register("/service-worker.js")
+        .then((registration) => {
+          console.log('Service Worker registrado com sucesso:', registration);
+        })
+        .catch((error) => {
+          console.error('Erro ao registrar Service Worker:', error);
+        });
+    } else {
+      console.log('Service Worker não registrado - HTTPS necessário para produção');
+    }
   });
 }

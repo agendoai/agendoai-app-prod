@@ -8,6 +8,13 @@ import type { InsertUser, User } from "../../../shared/schema";
 import { useToast } from "./use-toast";
 import { apiJson } from "../lib/api";
 
+// Declaração de tipo para window.authToken
+declare global {
+  interface Window {
+    authToken?: string;
+  }
+}
+
 type AuthContextType = {
   user: User | null;
   isLoading: boolean;
@@ -43,10 +50,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState<Error | null>(null);
   
-  // Verificar se há token no localStorage e buscar dados do usuário
+  // Verificar se há token e buscar dados do usuário
   React.useEffect(() => {
-    const token = localStorage.getItem('authToken');
-    console.log("🔍 Verificação inicial de token:", token ? "ENCONTRADO" : "NÃO ENCONTRADO");
+    // Função para obter token de múltiplas fontes
+    const getToken = () => {
+      // 1. Tentar localStorage primeiro
+      let token = localStorage.getItem('authToken');
+      console.log("🔍 Verificação inicial de token (localStorage):", token ? "ENCONTRADO" : "NÃO ENCONTRADO");
+      
+      // 2. Se não encontrou no localStorage, tentar sessionStorage
+      if (!token) {
+        token = sessionStorage.getItem('authToken');
+        console.log("🔍 Verificação de token (sessionStorage):", token ? "ENCONTRADO" : "NÃO ENCONTRADO");
+      }
+      
+      // 3. Se não encontrou, tentar variável global
+      if (!token && window.authToken) {
+        token = window.authToken;
+        console.log("🔍 Verificação de token (global):", token ? "ENCONTRADO" : "NÃO ENCONTRADO");
+      }
+      
+      return token;
+    };
+    
+    const token = getToken();
     
     if (token && !user) {
       console.log("Token encontrado, buscando dados do usuário...");
@@ -60,8 +87,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         })
         .catch((err) => {
           console.error("❌ Erro ao buscar dados do usuário:", err);
-          // Se der erro, remover token inválido
+          // Se der erro, remover token inválido de todas as fontes
           localStorage.removeItem('authToken');
+          sessionStorage.removeItem('authToken');
+          document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
           setUser(null);
         })
         .finally(() => {
@@ -121,24 +150,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("🔍 Tamanho do token:", response.token ? response.token.length : 'N/A');
         console.log("🔍 Response completo:", JSON.stringify(response, null, 2));
         
-        // Salvar token no localStorage
+        // Salvar token de forma simples e direta
         if (response && response.token) {
+          console.log('🔑 Salvando token...');
+          
+          // Método 1: localStorage (padrão)
           try {
             localStorage.setItem('authToken', response.token);
-            console.log('🔑 Token salvo no localStorage');
-            console.log('🔍 Verificando se foi salvo:', localStorage.getItem('authToken') ? 'SIM' : 'NÃO');
-            console.log('🔍 Token salvo:', response.token.substring(0, 50) + '...');
-            
-            // Verificação adicional
-            const savedToken = localStorage.getItem('authToken');
-            if (savedToken) {
-              console.log('✅ Token confirmado no localStorage');
-            } else {
-              console.log('❌ Token não foi salvo no localStorage');
-            }
+            console.log('✅ Token salvo no localStorage');
           } catch (error) {
-            console.error('❌ Erro ao salvar token:', error);
-            console.error('❌ Detalhes do erro:', error.message);
+            console.error('❌ Erro ao salvar no localStorage:', error);
+          }
+          
+          // Método 2: sessionStorage (fallback)
+          try {
+            sessionStorage.setItem('authToken', response.token);
+            console.log('✅ Token salvo no sessionStorage');
+          } catch (error) {
+            console.error('❌ Erro ao salvar no sessionStorage:', error);
+          }
+          
+          // Método 3: Variável global (último recurso)
+          try {
+            window.authToken = response.token;
+            console.log('✅ Token salvo em variável global');
+          } catch (error) {
+            console.error('❌ Erro ao salvar em variável global:', error);
+          }
+          
+          // Verificar se pelo menos um método funcionou
+          const hasLocalStorage = localStorage.getItem('authToken');
+          const hasSessionStorage = sessionStorage.getItem('authToken');
+          const hasGlobal = window.authToken;
+          
+          console.log('🔍 Verificação de salvamento:');
+          console.log('   localStorage:', hasLocalStorage ? '✅' : '❌');
+          console.log('   sessionStorage:', hasSessionStorage ? '✅' : '❌');
+          console.log('   global:', hasGlobal ? '✅' : '❌');
+          
+          if (!hasLocalStorage && !hasSessionStorage && !hasGlobal) {
+            console.error('❌ CRÍTICO: Token não foi salvo em nenhum local!');
           }
         } else {
           console.log('❌ Nenhum token encontrado na resposta');
@@ -239,9 +290,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: () => {
       console.log("Logout bem-sucedido.");
       
-      // Remover token do localStorage
+      // Remover token de todas as fontes
       localStorage.removeItem('authToken');
-      console.log('🔑 Token removido do localStorage');
+      sessionStorage.removeItem('authToken');
+      window.authToken = undefined;
+      console.log('🔑 Token removido de todas as fontes');
       
       // Limpar estado do usuário
       setUser(null);
@@ -257,8 +310,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onError: (error: Error) => {
       console.error("Erro ao processar logout:", error);
       
-      // Remover token mesmo com erro
+      // Remover token de todas as fontes mesmo com erro
       localStorage.removeItem('authToken');
+      sessionStorage.removeItem('authToken');
+      window.authToken = undefined;
       
       // Limpar estado do usuário
       setUser(null);
