@@ -86,53 +86,11 @@ export async function comparePasswords(
  * Configura autenticação na aplicação Express
  */
 export function setupAuth(app: Express): void {
-  const frontendUrl = process.env.FRONTEND_URL || '';
-  const isHttpsFrontend = frontendUrl.startsWith('https://');
-
-  // Configuração de sessão simplificada (não usaremos cookies)
-  const sessionSettings: session.SessionOptions = {
-    secret: process.env.SESSION_SECRET || "agendoai-secret-key",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: false,
-      maxAge: 1000 * 60 * 60 * 24 * 7,
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-    },
-    name: 'agendoai.sid'
-  };
-  
-  console.log("Sessão: ", {
-    secure: sessionSettings.cookie?.secure,
-    sameSite: sessionSettings.cookie?.sameSite,
-    domain: sessionSettings.cookie?.domain,
-    frontendUrl
-  });
-
-  app.set("trust proxy", 1);
-  app.use(session(sessionSettings));
+  // Configuração simplificada - apenas JWT, sem sessões
   app.use(passport.initialize());
-  app.use(passport.session());
   
   // Middleware para autenticação JWT
   app.use(authenticateJWT);
-  
-  app.use((req, res, next) => {
-    if (req.path.startsWith('/api/')) {
-      console.log(`🔍 Sessão para ${req.path}:`, {
-        sessionID: req.sessionID,
-        isAuthenticated: req.isAuthenticated(),
-        user: req.user ? {
-          id: req.user.id,
-          email: req.user.email,
-          userType: req.user.userType
-        } : null
-      });
-    }
-    next();
-  });
 
   passport.use(
     new LocalStrategy(
