@@ -1,4 +1,4 @@
-import { apiCall } from '@/lib/api';
+// API Configuration
 // API Configuration
 const getApiBaseUrl = () => {
   // Se a variável de ambiente estiver definida, use ela
@@ -83,6 +83,7 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
       'Content-Type': 'application/json',
       ...options.headers,
     },
+    credentials: 'omit', // Não precisamos de credenciais para JWT
     ...options,
   };
 

@@ -41,7 +41,7 @@ app.use(cors({
     'https://*.tbsnet.com.br',
     process.env.FRONTEND_URL || 'http://localhost:3000'
   ],
-  credentials: false, // Não precisamos de cookies
+  credentials: false, // Não precisamos de credenciais para JWT
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   exposedHeaders: ['Content-Type', 'Authorization'],
