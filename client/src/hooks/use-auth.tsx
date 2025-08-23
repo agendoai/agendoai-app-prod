@@ -135,6 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   console.log("🔧 ===== CRIANDO LOGIN MUTATION =====");
   console.log("🔍 QueryClient disponível?", !!queryClient);
   console.log("🔍 QueryClient.getQueryData existe?", !!queryClient?.getQueryData);
+  console.log("🔍 QueryClient.getMutationCache existe?", !!queryClient?.getMutationCache);
+  console.log("🔍 QueryClient.getQueryCache existe?", !!queryClient?.getQueryCache);
   
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {

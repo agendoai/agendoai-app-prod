@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { apiJson } from "@/lib/api";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -50,22 +51,7 @@ export default function AuthPage() {
     hasRegisterMutation: !!registerMutation
   });
   
-  // Monitorar o estado da mutation de login usando uma abordagem mais simples
-  React.useEffect(() => {
-    // Verificar se a mutation foi bem-sucedida observando o estado do usuário
-    if (user && !isLoading) {
-      console.log("🎉 ===== LOGIN/REGISTRO SUCESSO DETECTADO =====");
-      console.log("👤 Usuário logado:", user);
-      
-      // Mostrar toast de sucesso
-      toast({
-        title: "Operação realizada com sucesso!",
-        description: `Bem-vindo(a) ${user?.name || user?.email}!`,
-      });
-      
-      setLoading(false);
-    }
-  }, [user, isLoading, toast]);
+  // Não precisamos mais monitorar mutations, fazemos login direto
   
   // Efeito para redirecionar usuário logado
   React.useEffect(() => {
@@ -122,34 +108,147 @@ export default function AuthPage() {
     );
   }
 
-  // Login handler
-  function onLoginSubmit(data: any) {
-    console.log("🔵 ===== LOGIN SUBMIT CHAMADO =====");
+  // Login handler - DIRETO SEM MUTATION
+  async function onLoginSubmit(data: any) {
+    console.log("🔵 ===== LOGIN SUBMIT DIRETO =====");
     console.log("📤 Dados do formulário:", { email: data.email, password: "***" });
-    console.log("🔍 loginMutation existe?", !!loginMutation);
-    console.log("🔍 loginMutation.mutate existe?", !!loginMutation?.mutate);
-
-    console.log("🔍 loginMutation.isPending:", loginMutation?.isPending);
     
     setLoading(true);
     
-    console.log("🚀 Chamando loginMutation.mutate...");
     try {
-      // Chamar apenas com os dados, sem sobrescrever os callbacks
-      loginMutation.mutate(data);
-      console.log("✅ loginMutation.mutate chamado com sucesso");
-    } catch (error) {
-      console.error("❌ Erro ao chamar loginMutation.mutate:", error);
+      console.log("🚀 Fazendo login direto via API...");
+      
+      // Fazer login direto
+      const response = await apiJson("/api/login", {
+        method: "POST",
+        body: JSON.stringify(data),
+      });
+      
+      console.log("✅ Login bem-sucedido!");
+      console.log("👤 Resposta da API:", response);
+      
+      if (response && response.token) {
+        console.log("🔑 Salvando token diretamente...");
+        
+        // Salvar token
+        try {
+          localStorage.setItem('authToken', response.token);
+          console.log("✅ Token salvo no localStorage");
+        } catch (error) {
+          console.error("❌ Erro ao salvar no localStorage:", error);
+        }
+        
+        try {
+          sessionStorage.setItem('authToken', response.token);
+          console.log("✅ Token salvo no sessionStorage");
+        } catch (error) {
+          console.error("❌ Erro ao salvar no sessionStorage:", error);
+        }
+        
+        // Mostrar toast de sucesso
+        toast({
+          title: "Login realizado com sucesso!",
+          description: `Bem-vindo(a) de volta, ${response.user?.name || response.user?.email}!`,
+        });
+        
+        // Redirecionar baseado no tipo de usuário
+        setTimeout(() => {
+          if (response.user?.userType === 'provider') {
+            window.location.href = '/provider/dashboard';
+          } else if (response.user?.userType === 'admin') {
+            window.location.href = '/admin/dashboard';
+          } else {
+            window.location.href = '/client/dashboard';
+          }
+        }, 1000);
+        
+      } else {
+        console.error("❌ Token não encontrado na resposta");
+        throw new Error("Token não encontrado na resposta da API");
+      }
+      
+    } catch (error: any) {
+      console.error("❌ Erro no login direto:", error);
+      toast({ 
+        title: "Erro ao entrar", 
+        description: error.message || "Verifique seus dados.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
     }
   }
 
-  // Registro handler
-  function onRegisterSubmit(data: any) {
+  // Registro handler - DIRETO SEM MUTATION
+  async function onRegisterSubmit(data: any) {
+    console.log("🔵 ===== REGISTRO SUBMIT DIRETO =====");
+    console.log("📤 Dados do formulário:", { email: data.email, name: data.name });
+    
     setLoading(true);
     const { confirmPassword, ...registerData } = data;
     
-    // Chamar apenas com os dados, sem sobrescrever os callbacks
-    registerMutation.mutate(registerData);
+    try {
+      console.log("🚀 Fazendo registro direto via API...");
+      
+      // Fazer registro direto
+      const response = await apiJson("/api/register", {
+        method: "POST",
+        body: JSON.stringify(registerData),
+      });
+      
+      console.log("✅ Registro bem-sucedido!");
+      console.log("👤 Resposta da API:", response);
+      
+      if (response && response.token) {
+        console.log("🔑 Salvando token diretamente...");
+        
+        // Salvar token
+        try {
+          localStorage.setItem('authToken', response.token);
+          console.log("✅ Token salvo no localStorage");
+        } catch (error) {
+          console.error("❌ Erro ao salvar no localStorage:", error);
+        }
+        
+        try {
+          sessionStorage.setItem('authToken', response.token);
+          console.log("✅ Token salvo no sessionStorage");
+        } catch (error) {
+          console.error("❌ Erro ao salvar no sessionStorage:", error);
+        }
+        
+        // Mostrar toast de sucesso
+        toast({
+          title: "Conta criada com sucesso!",
+          description: "Bem-vindo(a) ao AgendoAI!",
+        });
+        
+        // Redirecionar baseado no tipo de usuário
+        setTimeout(() => {
+          if (response.user?.userType === 'provider') {
+            window.location.href = '/provider/dashboard';
+          } else if (response.user?.userType === 'admin') {
+            window.location.href = '/admin/dashboard';
+          } else {
+            window.location.href = '/client/dashboard';
+          }
+        }, 1000);
+        
+      } else {
+        console.error("❌ Token não encontrado na resposta");
+        throw new Error("Token não encontrado na resposta da API");
+      }
+      
+    } catch (error: any) {
+      console.error("❌ Erro no registro direto:", error);
+      toast({ 
+        title: "Erro ao cadastrar", 
+        description: error.message || "Verifique seus dados.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -255,27 +354,7 @@ export default function AuthPage() {
                   ) : "Entrar"}
                 </Button>
                 
-                {/* Botão de teste para debug */}
-                <Button 
-                  type="button" 
-                  className="w-full h-8 mt-2 bg-orange-500 text-white text-xs font-medium shadow-md hover:bg-orange-600 transition-all" 
-                  onClick={() => {
-                    console.log("🧪 ===== TESTE DIRETO DA MUTATION =====");
-                    const testData = { email: "test@test.com", password: "123456" };
-                    console.log("📤 Dados de teste:", testData);
-                    console.log("🔍 loginMutation:", loginMutation);
-                    console.log("🔍 loginMutation.mutate:", loginMutation?.mutate);
-                    
-                    try {
-                      loginMutation.mutate(testData);
-                      console.log("✅ Mutation chamada com sucesso");
-                    } catch (error) {
-                      console.error("❌ Erro ao chamar mutation:", error);
-                    }
-                  }}
-                >
-                  🧪 Teste Direto da Mutation
-                </Button>
+
                
                
             </form>
