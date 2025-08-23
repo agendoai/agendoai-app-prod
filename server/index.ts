@@ -30,16 +30,24 @@ const app = express();
   }
 })();
 
-// Configurar CORS - Permitir todas as origens já que usamos JWT
+// Configurar CORS - Permitir origens específicas incluindo produção
 app.use(cors({
-  origin: true, // Permitir todas as origens
+  origin: [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'https://agendoai-app-prod-6qoh.vercel.app',
+    'https://app.tbsnet.com.br',
+    'https://*.tbsnet.com.br',
+    process.env.FRONTEND_URL || 'http://localhost:3000'
+  ],
   credentials: false, // Não precisamos de cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   exposedHeaders: ['Content-Type', 'Authorization'],
 }));
 
-// Middleware para debug de CORS
+// Middleware para debug de CORS e headers adicionais
 app.use((req, res, next) => {
   console.log('🌐 CORS Debug:', {
     method: req.method,
@@ -49,10 +57,30 @@ app.use((req, res, next) => {
     'content-type': req.headers['content-type']
   });
   
-  // Adicionar headers CORS manualmente se necessário
-  res.header('Access-Control-Allow-Origin', '*');
+  // Adicionar headers CORS manualmente para garantir compatibilidade
+  const allowedOrigins = [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'https://agendoai-app-prod-6qoh.vercel.app',
+    'https://app.tbsnet.com.br'
+  ];
+  
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
   res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  res.header('Access-Control-Allow-Credentials', 'false');
+  
+  // Responder imediatamente para requisições OPTIONS (preflight)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
   
   next();
 });

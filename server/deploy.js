@@ -23,10 +23,18 @@ const app = express();
 
 // Configuração de CORS
 app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: [
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+    'http://localhost:3001',
+    'https://agendoai-app-prod-6qoh.vercel.app',
+    'https://app.tbsnet.com.br',
+    'https://*.tbsnet.com.br',
+    process.env.FRONTEND_URL || 'http://localhost:3000'
+  ],
+  credentials: false, // Não precisamos de cookies com JWT
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
 }));
 
 // Middlewares básicos
