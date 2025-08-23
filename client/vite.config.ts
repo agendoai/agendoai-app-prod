@@ -21,7 +21,6 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3000,
-      https: false, // Desabilitar HTTPS em desenvolvimento
       proxy: {
         '/api': {
           target: 'http://localhost:5000',
@@ -34,6 +33,20 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: "dist",
       emptyOutDir: true,
+      // Configurações específicas para produção
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            vendor: ['react', 'react-dom'],
+            router: ['wouter'],
+            ui: ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-toast'],
+          },
+        },
+      },
+      // Garantir que as variáveis de ambiente sejam incluídas
+      define: {
+        'process.env.NODE_ENV': JSON.stringify(mode),
+      },
     },
   };
 });

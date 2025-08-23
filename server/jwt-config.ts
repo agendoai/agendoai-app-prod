@@ -2,6 +2,10 @@
  * Configurações JWT para autenticação
  */
 
+// Log para debug do JWT secret
+console.log('🔐 JWT Config - JWT_SECRET definido:', !!process.env.JWT_SECRET);
+console.log('🔐 JWT Config - Usando secret:', process.env.JWT_SECRET ? 'ENV' : 'DEFAULT');
+
 export const JWT_CONFIG = {
   secret: process.env.JWT_SECRET || 'agendoai-jwt-secret',
   expiresIn: '7d', // 7 dias

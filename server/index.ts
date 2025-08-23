@@ -34,7 +34,12 @@ const app = express();
 app.use(cors({
   origin: function (origin, callback) {
     // Permitir requisições sem origem (como mobile apps ou Postman)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      console.log('🌐 CORS: Requisição sem origem permitida');
+      return callback(null, true);
+    }
+    
+    console.log('🌐 CORS: Verificando origem:', origin);
     
     const allowedOrigins = [
       'http://localhost:3000',
@@ -47,15 +52,18 @@ app.use(cors({
     
     // Permitir qualquer subdomínio do tbsnet.com.br
     if (origin.includes('tbsnet.com.br')) {
+      console.log('🌐 CORS: Origem tbsnet.com.br permitida');
       return callback(null, true);
     }
     
     // Permitir qualquer subdomínio do vercel.app
     if (origin.includes('vercel.app')) {
+      console.log('🌐 CORS: Origem vercel.app permitida');
       return callback(null, true);
     }
     
     if (allowedOrigins.includes(origin)) {
+      console.log('🌐 CORS: Origem na lista permitida');
       return callback(null, true);
     }
     

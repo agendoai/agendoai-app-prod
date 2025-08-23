@@ -119,20 +119,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("🔍 Verificando se response.token existe:", !!response.token);
         console.log("🔍 Tipo de response.token:", typeof response.token);
         console.log("🔍 Tamanho do token:", response.token ? response.token.length : 'N/A');
+        console.log("🔍 Response completo:", JSON.stringify(response, null, 2));
         
         // Salvar token no localStorage
-        if (response.token) {
+        if (response && response.token) {
           try {
             localStorage.setItem('authToken', response.token);
             console.log('🔑 Token salvo no localStorage');
             console.log('🔍 Verificando se foi salvo:', localStorage.getItem('authToken') ? 'SIM' : 'NÃO');
             console.log('🔍 Token salvo:', response.token.substring(0, 50) + '...');
+            
+            // Verificação adicional
+            const savedToken = localStorage.getItem('authToken');
+            if (savedToken) {
+              console.log('✅ Token confirmado no localStorage');
+            } else {
+              console.log('❌ Token não foi salvo no localStorage');
+            }
           } catch (error) {
             console.error('❌ Erro ao salvar token:', error);
+            console.error('❌ Detalhes do erro:', error.message);
           }
         } else {
           console.log('❌ Nenhum token encontrado na resposta');
           console.log('🔍 Estrutura da resposta:', Object.keys(response || {}));
+          console.log('🔍 Response.token:', response?.token);
         }
         
         return response.user;

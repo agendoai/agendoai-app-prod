@@ -21,6 +21,13 @@ const scryptAsync = promisify(scrypt);
  * Middleware para autenticação JWT
  */
 export function authenticateJWT(req: Request, res: Response, next: NextFunction) {
+  console.log('🔐 JWT Auth - Verificando:', req.path, req.method);
+  console.log('🔐 JWT Auth - Headers:', {
+    authorization: req.headers.authorization ? 'PRESENT' : 'MISSING',
+    origin: req.headers.origin,
+    'user-agent': req.headers['user-agent']
+  });
+  
   // Pular autenticação para rotas de login, registro e OPTIONS
   if (req.path === '/api/login' || req.path === '/api/register' || req.method === 'OPTIONS') {
     console.log('🔓 Pular autenticação para:', req.path, req.method);
@@ -30,18 +37,29 @@ export function authenticateJWT(req: Request, res: Response, next: NextFunction)
   const authHeader = req.headers.authorization;
   
   if (authHeader) {
+    console.log('🔐 JWT Auth - Header Authorization encontrado');
     const token = authHeader.split(' ')[1]; // Bearer TOKEN
+    
+    if (!token) {
+      console.log('🔐 JWT Auth - Token não encontrado no header');
+      return res.status(401).json({ message: 'Token não fornecido' });
+    }
+    
+    console.log('🔐 JWT Auth - Verificando token...');
     
     jwt.verify(token, JWT_CONFIG.secret, (err: any, decoded: any) => {
       if (err) {
-        console.log('JWT inválido:', err.message);
+        console.log('❌ JWT inválido:', err.message);
+        console.log('🔐 JWT Auth - Token rejeitado');
         return res.status(401).json({ message: 'Token inválido' });
       }
       
+      console.log('✅ JWT válido, usuário:', decoded.email);
       req.user = decoded;
       next();
     });
   } else {
+    console.log('❌ JWT Auth - Header Authorization não encontrado');
     return res.status(401).json({ message: 'Token não fornecido' });
   }
 }
