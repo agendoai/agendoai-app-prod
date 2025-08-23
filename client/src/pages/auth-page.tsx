@@ -99,25 +99,11 @@ export default function AuthPage() {
   async function onLoginSubmit(data: any) {
     setLoading(true);
     try {
-      // Usar a função apiJson que usa a configuração correta da API
-      const response = await apiJson("/api/login", {
-        method: "POST",
-        body: JSON.stringify(data),
-      });
+      // Usar o hook useAuth para login
+      const { loginMutation } = useAuth();
+      await loginMutation.mutateAsync(data);
       
-      // Salvar token no localStorage
-      if (response.token) {
-        localStorage.setItem('authToken', response.token);
-        console.log('🔑 Token salvo no localStorage');
-      }
-      
-      toast({ title: "Login realizado!", description: `Bem-vindo(a), ${response.user.name || response.user.email}` });
-      
-      // Recarregar página após login
-      setTimeout(() => {
-        console.log('🔄 Recarregando página após login...');
-        window.location.reload();
-      }, 500);
+      // O redirecionamento será feito automaticamente pelo hook useAuth
       
     } catch (e: any) {
       toast({ title: "Erro ao entrar", description: e.message || "Verifique seus dados.", variant: "destructive" });
@@ -131,15 +117,11 @@ export default function AuthPage() {
     setLoading(true);
     try {
       const { confirmPassword, ...registerData } = data;
-      // Usar a função apiJson que usa a configuração correta da API
-      const userData = await apiJson("/api/register", {
-        method: "POST",
-        body: JSON.stringify(registerData),
-      });
-      toast({ title: "Conta criada!", description: "Bem-vindo(a) ao AgendoAI!" });
+      // Usar o hook useAuth para registro
+      const { registerMutation } = useAuth();
+      await registerMutation.mutateAsync(registerData);
       
-      // Forçar atualização da página após registro
-      window.location.reload();
+      // O redirecionamento será feito automaticamente pelo hook useAuth
       
     } catch (e: any) {
       toast({ title: "Erro ao cadastrar", description: e.message || "Verifique seus dados.", variant: "destructive" });

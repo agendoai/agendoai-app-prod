@@ -35,8 +35,27 @@ app.use(cors({
   origin: true, // Permitir todas as origens
   credentials: false, // Não precisamos de cookies
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  exposedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+// Middleware para debug de CORS
+app.use((req, res, next) => {
+  console.log('🌐 CORS Debug:', {
+    method: req.method,
+    url: req.url,
+    origin: req.headers.origin,
+    'user-agent': req.headers['user-agent'],
+    'content-type': req.headers['content-type']
+  });
+  
+  // Adicionar headers CORS manualmente se necessário
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin');
+  
+  next();
+});
 
 // CORS já configurado acima
 
