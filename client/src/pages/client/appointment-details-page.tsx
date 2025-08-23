@@ -96,17 +96,6 @@ export default function AppointmentDetailsPage() {
     queryKey: ['/api/booking', appointmentId],
     queryFn: async () => {
       try {
-        const user = await queryClient.fetchQuery({
-          queryKey: ['/api/user'],
-          staleTime: 0 // Força uma nova requisição para verificar a autenticação
-        });
-        
-        if (!user) {
-          console.error('Usuário não autenticado. Redirecionando para login...');
-          navigate('/auth');
-          throw new Error('Usuário não autenticado');
-        }
-        
         const response = await apiRequest('GET', `/api/booking/${appointmentId}`);
         
         if (!response.ok) {

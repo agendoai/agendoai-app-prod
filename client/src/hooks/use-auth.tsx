@@ -46,33 +46,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Verificar se há token no localStorage e buscar dados do usuário
   React.useEffect(() => {
     const token = localStorage.getItem('authToken');
+    console.log("🔍 Verificação inicial de token:", token ? "ENCONTRADO" : "NÃO ENCONTRADO");
+    
     if (token && !user) {
       console.log("Token encontrado, buscando dados do usuário...");
       setIsLoading(true);
       
-      // Buscar dados do usuário
-      apiJson("/api/user", {
-        headers: {
-          "Accept": "application/json",
-          "Authorization": `Bearer ${token}`,
-          "X-Requested-With": "XMLHttpRequest"
-        }
-      })
-      .then((userData) => {
-        console.log("Dados do usuário obtidos:", userData);
-        setUser(userData);
-      })
-      .catch((err) => {
-        console.error("Erro ao buscar dados do usuário:", err);
-        // Se der erro, remover token inválido
-        localStorage.removeItem('authToken');
-        setUser(null);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+      // Buscar dados do usuário usando a função apiJson que já adiciona o token automaticamente
+      apiJson("/api/user")
+        .then((userData) => {
+          console.log("✅ Dados do usuário obtidos:", userData);
+          setUser(userData);
+        })
+        .catch((err) => {
+          console.error("❌ Erro ao buscar dados do usuário:", err);
+          // Se der erro, remover token inválido
+          localStorage.removeItem('authToken');
+          setUser(null);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
+    } else if (!token) {
+      // Se não há token, garantir que o usuário está null
+      setUser(null);
+      setIsLoading(false);
     }
-  }, [user]);
+  }, []); // Remover dependência [user] para evitar loop infinito
   
 
 
@@ -122,11 +122,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         
         // Salvar token no localStorage
         if (response.token) {
-          localStorage.setItem('authToken', response.token);
-          console.log('🔑 Token salvo no localStorage');
-          console.log('🔍 Verificando se foi salvo:', localStorage.getItem('authToken') ? 'SIM' : 'NÃO');
+          try {
+            localStorage.setItem('authToken', response.token);
+            console.log('🔑 Token salvo no localStorage');
+            console.log('🔍 Verificando se foi salvo:', localStorage.getItem('authToken') ? 'SIM' : 'NÃO');
+            console.log('🔍 Token salvo:', response.token.substring(0, 50) + '...');
+          } catch (error) {
+            console.error('❌ Erro ao salvar token:', error);
+          }
         } else {
           console.log('❌ Nenhum token encontrado na resposta');
+          console.log('🔍 Estrutura da resposta:', Object.keys(response || {}));
         }
         
         return response.user;

@@ -28,6 +28,8 @@ const TermsPage = lazy(() => import("@/pages/terms-page"));
 const PaymentSuccessPage = lazy(() => import("@/pages/payment-success-page"));
 const StripeCheckoutPage = lazy(() => import("@/pages/checkout-page"));
 const PaymentPage = lazy(() => import("@/pages/client/payment-page"));
+const OnboardingStripeReturnPage = lazy(() => import("@/pages/onboarding-stripe-return"));
+const OnboardingStripeRefreshPage = lazy(() => import("@/pages/onboarding-stripe-refresh"));
 
 // Páginas de cliente
 const ClientDashboard = lazy(() => import("@/pages/client/client-dashboard"));

@@ -220,6 +220,9 @@ const isAdminOrSupport = (req: Request, res: Response, next: any) => {
 }
 
 export function registerRoutes(app: Express): Server {
+	// Configurar autenticação JWT
+	setupAuth(app);
+	
 	// Registrar rotas de autenticação - SEM middleware de autenticação
 	app.use("/api", authRoutes)
 
