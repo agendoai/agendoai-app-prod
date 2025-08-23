@@ -7,6 +7,7 @@ import type { InsertUser, User } from "../../../shared/schema";
 
 import { useToast } from "./use-toast";
 import { apiJson } from "../lib/api";
+import { queryClient } from "../lib/queryClient";
 
 // Declaração de tipo para window.authToken
 declare global {
@@ -131,6 +132,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user, isLoading]);
 
+  console.log("🔧 ===== CRIANDO LOGIN MUTATION =====");
+  console.log("🔍 QueryClient disponível?", !!queryClient);
+  console.log("🔍 QueryClient.getQueryData existe?", !!queryClient?.getQueryData);
+  
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
       console.log("🚀 INICIANDO LOGIN MUTATION...");
@@ -230,6 +235,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
     },
   });
+  
+  console.log("✅ ===== LOGIN MUTATION CRIADA =====");
+  console.log("🔍 loginMutation.mutate existe?", !!loginMutation.mutate);
 
   const registerMutation = useMutation({
     mutationFn: async (credentials: RegisterData) => {

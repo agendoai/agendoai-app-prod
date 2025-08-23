@@ -128,12 +128,19 @@ export default function AuthPage() {
     console.log("📤 Dados do formulário:", { email: data.email, password: "***" });
     console.log("🔍 loginMutation existe?", !!loginMutation);
     console.log("🔍 loginMutation.mutate existe?", !!loginMutation?.mutate);
+
+    console.log("🔍 loginMutation.isPending:", loginMutation?.isPending);
     
     setLoading(true);
     
     console.log("🚀 Chamando loginMutation.mutate...");
-    // Chamar apenas com os dados, sem sobrescrever os callbacks
-    loginMutation.mutate(data);
+    try {
+      // Chamar apenas com os dados, sem sobrescrever os callbacks
+      loginMutation.mutate(data);
+      console.log("✅ loginMutation.mutate chamado com sucesso");
+    } catch (error) {
+      console.error("❌ Erro ao chamar loginMutation.mutate:", error);
+    }
   }
 
   // Registro handler
@@ -235,18 +242,40 @@ export default function AuthPage() {
                   <p className="text-xs text-red-500 mt-1">{loginForm.formState.errors.password.message as string}</p>
                 )}
               </div>
-                             <Button 
-                 type="submit" 
-                 className="w-full h-10 mt-2 bg-[#58c9d1] text-white font-medium shadow-md hover:bg-[#58c9d1]/90 transition-all" 
-                 disabled={loading}
-               >
-                 {loading ? (
-                   <span className="flex items-center gap-2 justify-center text-sm">
-                     <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                     Entrando...
-                   </span>
-                 ) : "Entrar"}
-               </Button>
+                                             <Button 
+                  type="submit" 
+                  className="w-full h-10 mt-2 bg-[#58c9d1] text-white font-medium shadow-md hover:bg-[#58c9d1]/90 transition-all" 
+                  disabled={loading}
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2 justify-center text-sm">
+                      <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                      Entrando...
+                    </span>
+                  ) : "Entrar"}
+                </Button>
+                
+                {/* Botão de teste para debug */}
+                <Button 
+                  type="button" 
+                  className="w-full h-8 mt-2 bg-orange-500 text-white text-xs font-medium shadow-md hover:bg-orange-600 transition-all" 
+                  onClick={() => {
+                    console.log("🧪 ===== TESTE DIRETO DA MUTATION =====");
+                    const testData = { email: "test@test.com", password: "123456" };
+                    console.log("📤 Dados de teste:", testData);
+                    console.log("🔍 loginMutation:", loginMutation);
+                    console.log("🔍 loginMutation.mutate:", loginMutation?.mutate);
+                    
+                    try {
+                      loginMutation.mutate(testData);
+                      console.log("✅ Mutation chamada com sucesso");
+                    } catch (error) {
+                      console.error("❌ Erro ao chamar mutation:", error);
+                    }
+                  }}
+                >
+                  🧪 Teste Direto da Mutation
+                </Button>
                
                
             </form>
