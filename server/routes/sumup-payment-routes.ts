@@ -5,6 +5,7 @@
  */
 
 import { Router, Request, Response } from 'express';
+import { isAuthenticated, isClient, isProvider, isAdmin, isSupport, isAdminOrSupport } from '../middleware/jwt-auth';
 import * as SumUpPaymentService from '../services/sumup-payment-service';
 import { storage } from '../storage';
 
@@ -12,7 +13,7 @@ const router = Router();
 
 // Middleware para verificar se o usuário é um prestador autenticado
 const isAuthenticatedProvider = async (req: Request, res: Response, next: Function) => {
-  if (!req.isAuthenticated()) {
+  if (!req.user) {
     return res.status(401).json({ error: 'Não autenticado' });
   }
   

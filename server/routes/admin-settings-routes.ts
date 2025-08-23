@@ -1,4 +1,5 @@
 import { Express } from "express";
+import { isAuthenticated, isClient, isProvider, isAdmin, isSupport, isAdminOrSupport } from '../middleware/jwt-auth';
 import { db } from "../db";
 import { systemSettings } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -16,7 +17,7 @@ export function registerAdminSettingsRoutes(app: Express): void {
    */
   app.get("/api/admin/integrations-settings/system-settings", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || req.user.role !== 'admin') {
+      if (!req.user || req.user.role !== 'admin') {
         return res.status(401).json({ message: "Não autorizado" });
       }
       
@@ -33,7 +34,7 @@ export function registerAdminSettingsRoutes(app: Express): void {
    */
   app.get("/api/admin/integrations-settings/system-settings/:key", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || req.user.role !== 'admin') {
+      if (!req.user || req.user.role !== 'admin') {
         return res.status(401).json({ message: "Não autorizado" });
       }
       
@@ -59,7 +60,7 @@ export function registerAdminSettingsRoutes(app: Express): void {
    */
   app.post("/api/admin/integrations-settings/system-settings/:key", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || req.user.role !== 'admin') {
+      if (!req.user || req.user.role !== 'admin') {
         return res.status(401).json({ message: "Não autorizado" });
       }
       
@@ -132,7 +133,7 @@ export function registerAdminSettingsRoutes(app: Express): void {
    */
   app.delete("/api/admin/integrations-settings/system-settings/:key", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || req.user.role !== 'admin') {
+      if (!req.user || req.user.role !== 'admin') {
         return res.status(401).json({ message: "Não autorizado" });
       }
       
@@ -176,7 +177,7 @@ export function registerAdminSettingsRoutes(app: Express): void {
    */
   app.get("/api/admin/integrations-settings/system-settings/push-notification-status", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || req.user.role !== 'admin') {
+      if (!req.user || req.user.role !== 'admin') {
         return res.status(401).json({ message: "Não autorizado" });
       }
       
@@ -197,7 +198,7 @@ export function registerAdminSettingsRoutes(app: Express): void {
    */
   app.post("/api/admin/integrations-settings/system-settings/vapid/generate", async (req, res) => {
     try {
-      if (!req.isAuthenticated() || req.user.role !== 'admin') {
+      if (!req.user || req.user.role !== 'admin') {
         return res.status(401).json({ message: "Não autorizado" });
       }
       

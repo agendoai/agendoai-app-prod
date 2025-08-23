@@ -24,6 +24,7 @@ import { formatCurrency } from "@/lib/utils";
 import ProviderLayout from "@/components/layout/provider-layout";
 import type { ProviderAnalytics } from "@/types";
 import Navbar from "@/components/layout/navbar";
+import { apiCall } from '@/lib/api';
 
 // Cores para gráficos
 const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
@@ -54,7 +55,7 @@ export default function AnalyticsPage() {
     queryKey: ["/api/provider/analytics", period],
     queryFn: async ({ queryKey }) => {
       const [_, selectedPeriod] = queryKey;
-      const response = await fetch(`/api/providers/analytics?period=${selectedPeriod}`);
+      const response = await apiCall(`/providers/analytics?period=${selectedPeriod}`);
       if (!response.ok) {
         throw new Error('Falha ao carregar dados de análise');
       }

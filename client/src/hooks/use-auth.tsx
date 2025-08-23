@@ -1,15 +1,12 @@
 import React, { createContext, ReactNode, useContext } from "react";
 import {
-  useQuery,
   useMutation,
-  UseMutationResult,
-  useQueryClient
+  UseMutationResult
 } from "@tanstack/react-query";
-import type { InsertUser, User } from "@shared/schema";
-import { getQueryFn, apiRequest, queryClient } from "../lib/queryClient";
-import { useLocation } from "wouter";
-import { useToast } from "@/hooks/use-toast";
-import { apiJson } from "@/lib/api";
+import type { InsertUser, User } from "../../../shared/schema";
+
+import { useToast } from "./use-toast";
+import { apiJson } from "../lib/api";
 
 type AuthContextType = {
   user: User | null;
@@ -35,76 +32,49 @@ type RegisterData = {
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [, setLocation] = useLocation();
   const { toast } = useToast();
   
   console.log("AuthProvider - Inicializando...");
   
-  // Efeito para verificar sessão quando a página carrega
-  React.useEffect(() => {
-    console.log("AuthProvider - Verificando sessão na inicialização...");
-    // Removido refetchUser() para evitar loop infinito
-  }, []);
-  
-  // Verificar token uma vez só
-  const hasToken = React.useMemo(() => !!localStorage.getItem('authToken'), []);
-  
-  const {
-    data: user,
-    error,
-    isLoading,
-    refetch: refetchUser
-  } = useQuery<User | undefined, Error>({
-    queryKey: ["/api/user"],
-    enabled: hasToken, // Só executar se tiver token
-    staleTime: 10 * 60 * 1000, // 10 minutos - dados ficam "frescos" por 10 minutos
-    gcTime: 15 * 60 * 1000, // 15 minutos - cache mantido por 15 minutos
-    refetchOnWindowFocus: false, // Não refazer query quando a janela ganhar foco
-    refetchOnMount: false, // Não refazer automaticamente
-    retry: 1, // Tentar uma vez em caso de erro (útil para iOS)
-    retryDelay: 1000, // Aguardar 1 segundo antes de tentar novamente
-    queryFn: async ({ queryKey }) => {
-      console.log("useAuth - Executando queryFn para /api/user");
-      try {
-        console.log("useAuth - Fazendo requisição GET para", queryKey[0]);
-        
-        // Pegar token do localStorage
-        const token = localStorage.getItem('authToken');
-        
-        if (!token) {
-          console.log("useAuth - Nenhum token encontrado");
-          return null;
-        }
-        
-        const response = await apiJson(queryKey[0] as string, {
-          headers: {
-            "Accept": "application/json",
-            "Authorization": `Bearer ${token}`,
-            "X-Requested-With": "XMLHttpRequest"
-          }
-        });
-        
-        console.log('🔍 Verificando autenticação:', {
-          url: queryKey[0],
-          hasToken: !!token
-        });
-        
-        // Se chegou aqui, a resposta foi bem-sucedida
-        console.log("useAuth - Dados do usuário obtidos:", {
-          id: response?.id,
-          email: response?.email,
-          userType: response?.userType,
-          name: response?.name
-        });
-        return response;
-        
 
-      } catch (error) {
-        console.error("useAuth - Erro ao buscar usuário:", error);
-        return null;
-      }
-    },
-  });
+  
+  // Estado do usuário
+  const [user, setUser] = React.useState<User | null>(null);
+  const [isLoading, setIsLoading] = React.useState(false);
+  const [error, setError] = React.useState<Error | null>(null);
+  
+  // Verificar se há token no localStorage e buscar dados do usuário
+  React.useEffect(() => {
+    const token = localStorage.getItem('authToken');
+    if (token && !user) {
+      console.log("Token encontrado, buscando dados do usuário...");
+      setIsLoading(true);
+      
+      // Buscar dados do usuário
+      apiJson("/api/user", {
+        headers: {
+          "Accept": "application/json",
+          "Authorization": `Bearer ${token}`,
+          "X-Requested-With": "XMLHttpRequest"
+        }
+      })
+      .then((userData) => {
+        console.log("Dados do usuário obtidos:", userData);
+        setUser(userData);
+      })
+      .catch((err) => {
+        console.error("Erro ao buscar dados do usuário:", err);
+        // Se der erro, remover token inválido
+        localStorage.removeItem('authToken');
+        setUser(null);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+    }
+  }, [user]);
+  
+
 
   // Efeito para redirecionar usuário logado que está na página de auth
   React.useEffect(() => {
@@ -119,14 +89,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       
       // Redirecionamento imediato sem delay
       if (user.userType === "client") {
-        setLocation("/client/dashboard");
+        window.location.href = "/client/dashboard";
       } else if (user.userType === "provider") {
-        setLocation("/provider/dashboard");
+        window.location.href = "/provider/dashboard";
       } else if (user.userType === "admin") {
-        setLocation("/admin/dashboard");
+        window.location.href = "/admin/dashboard";
       }
     }
-  }, [user, isLoading, setLocation]);
+  }, [user, isLoading]);
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
@@ -157,18 +127,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: (user: User) => {
-      console.log("Login bem-sucedido, atualizando cache:", user);
+      console.log("Login bem-sucedido, atualizando estado:", user);
       
-      // Limpar todo o cache para garantir dados frescos
-      queryClient.clear();
-      queryClient.setQueryData(["/api/user"], user);
+      // Atualizar o estado do usuário diretamente
+      setUser(user);
       
-      console.log("Hook useAuth - login bem-sucedido, cache limpo");
-      
-      toast({
-        title: "Login realizado com sucesso!",
-        description: `Bem-vindo(a) de volta, ${user.name || user.email}!`,
-      });
+      console.log("Hook useAuth - login bem-sucedido, estado atualizado");
     },
     onError: (error: Error) => {
       toast({
@@ -205,15 +169,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onSuccess: (user: any) => {
       console.log("Registro realizado com sucesso:", user);
       
-      // Atualizar cache do usuário
-      queryClient.setQueryData(["/api/user"], user);
+      // Atualizar o estado do usuário diretamente
+      setUser(user);
       
       console.log("Hook useAuth - registro bem-sucedido");
-      
-      toast({
-        title: "Conta criada com sucesso!",
-        description: "Bem-vindo(a) ao AgendoAI!",
-      });
     },
     onError: (error: Error) => {
       console.error("Erro no registro:", error);
@@ -245,10 +204,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('authToken');
       console.log('🔑 Token removido do localStorage');
       
-      // Limpar cache imediatamente
-      queryClient.setQueryData(["/api/user"], null);
-      queryClient.invalidateQueries({queryKey: ["/api/user"]});
-      queryClient.clear(); // Limpar todo o cache
+      // Limpar estado do usuário
+      setUser(null);
       
       // Forçar recarregamento da página após logout
       window.location.reload();
@@ -264,10 +221,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Remover token mesmo com erro
       localStorage.removeItem('authToken');
       
-      // Limpar cache e recarregar página mesmo com erro
-      queryClient.setQueryData(["/api/user"], null);
-      queryClient.invalidateQueries({queryKey: ["/api/user"]});
-      queryClient.clear();
+      // Limpar estado do usuário
+      setUser(null);
+      
+      // Forçar recarregamento da página
       window.location.reload();
       
       toast({

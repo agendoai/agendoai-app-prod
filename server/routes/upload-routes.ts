@@ -11,11 +11,12 @@ import {
   getPublicUrl,
   deleteFile
 } from "../upload-service";
+import { isAuthenticated, isAdmin } from "../middleware/jwt-auth";
 
 export function registerUploadRoutes(app: Express) {
   // Middleware para verificar se o usuário é proprietário ou administrador
   const isOwnerOrAdmin = (userId: number) => (req: Request, res: Response, next: Function) => {
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ error: "Não autenticado" });
     }
     
@@ -30,7 +31,7 @@ export function registerUploadRoutes(app: Express) {
   // Upload de imagem de perfil
   app.post('/api/users/:userId/profile-image', (req: Request, res: Response) => {
     // Verificar autenticação
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ error: "Não autenticado" });
     }
     const userId = parseInt(req.params.userId);
@@ -87,7 +88,7 @@ export function registerUploadRoutes(app: Express) {
   // Upload de imagem de capa para prestadores
   app.post('/api/providers/:providerId/cover-image', (req: Request, res: Response) => {
     // Verificar autenticação
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ error: "Não autenticado" });
     }
     const providerId = parseInt(req.params.providerId);

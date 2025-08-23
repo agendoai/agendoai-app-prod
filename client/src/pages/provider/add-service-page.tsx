@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Plus, Search, ArrowLeft, Sparkles, Clock, DollarSign, FileText, Filter, X } from "lucide-react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { apiCall } from "@/lib/api";
 import type { ServiceTemplate, Category } from "@shared/schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ProviderLayout from "@/components/layout/provider-layout";
@@ -175,7 +176,7 @@ export default function AddServicePage() {
   // Ajustar addServiceMutation para receber os dados corretos
   const addServiceMutation = useMutation({
     mutationFn: async ({ serviceId, executionTime, price, breakTime, duration }: any) => {
-      const response = await fetch(`/api/provider-services`, {
+      const response = await apiCall(`/provider-services`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

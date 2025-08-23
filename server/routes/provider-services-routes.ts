@@ -22,33 +22,9 @@ import {
   clearCache,
   clearAllCache,
 } from "../utils/resilience-utils";
+import { isAuthenticated, isProvider } from "../middleware/jwt-auth";
 
-// Middleware para verificar se o usuário está autenticado
-const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-  console.log(
-    "Verificando autenticação:",
-    req.isAuthenticated(),
-    req.user?.id,
-    req.user?.userType,
-  );
 
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  return res.status(401).json({ error: "Não autorizado" });
-};
-
-// Middleware para verificar se o usuário é um prestador
-const isProvider = (req: Request, res: Response, next: NextFunction) => {
-  console.log("Verificando se é prestador:", req.user?.id, req.user?.userType);
-
-  if (req.user && req.user.userType === "provider") {
-    return next();
-  }
-  return res
-    .status(403)
-    .json({ error: "Acesso permitido apenas para prestadores de serviço" });
-};
 
 // Garantindo que req.user está disponível em TypeScript
 declare global {

@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
+import { apiCall } from "@/lib/api";
 import { ArrowLeft, Save, X, DollarSign, Clock, Scissors, Activity, Calendar, Home, CalendarCheck, PlusCircle, Search, User } from "lucide-react";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -34,7 +35,7 @@ export default function EditServicePage() {
     queryKey: ['/api/provider-services', serviceId],
     queryFn: async () => {
       console.log("Fazendo requisição para:", `/api/provider-services/${serviceId}`);
-      const response = await fetch(`/api/provider-services/${serviceId}`);
+      const response = await apiCall(`/provider-services/${serviceId}`);
       if (!response.ok) {
         throw new Error('Erro ao carregar serviço');
       }
@@ -60,7 +61,7 @@ export default function EditServicePage() {
   // Mutação para atualizar serviço
   const updateServiceMutation = useMutation({
     mutationFn: async (data: any) => {
-      const response = await fetch(`/api/provider-services/${serviceId}`, {
+      const response = await apiCall(`/provider-services/${serviceId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",

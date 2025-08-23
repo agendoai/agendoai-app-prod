@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { supportTicketRoutes } from "./support-ticket-routes";
 import { asaasMarketplaceRouter } from "./asaas-marketplace-routes";
+import authRoutes from "./auth-routes";
 
 // Criar roteador para todas as rotas administrativas
 const adminRouter = Router();
@@ -9,4 +10,4 @@ const adminRouter = Router();
 adminRouter.use("/support", supportTicketRoutes);
 
 // Exportar os roteadores para uso no routes.ts principal
-export { adminRouter, asaasMarketplaceRouter };
+export { adminRouter, asaasMarketplaceRouter, authRoutes };

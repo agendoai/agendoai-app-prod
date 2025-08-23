@@ -6,6 +6,7 @@
  */
 
 import { Router } from 'express';
+import { isAuthenticated, isClient, isProvider, isAdmin, isSupport, isAdminOrSupport } from '../middleware/jwt-auth';
 import { generateAlternativeSuggestions } from '../alternative-suggestions-service';
 import { createLogger } from '../logger';
 import { z } from 'zod';
@@ -29,13 +30,7 @@ const suggestionRequestSchema = z.object({
   message: "Pelo menos um critério de busca deve ser fornecido (prestador, serviço, categoria ou data)"
 });
 
-// Middleware para verificar se o usuário está autenticado
-const isAuthenticated = (req: any, res: any, next: any) => {
-  if (req.isAuthenticated() && req.user) {
-    return next();
-  }
-  return res.status(401).json({ error: "Não autorizado" });
-};
+
 
 // Middleware para verificar se o usuário é cliente
 const isClient = (req: any, res: any, next: any) => {

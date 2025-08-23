@@ -15,21 +15,12 @@ import {
 import { createLogger } from "../logger";
 import { anthropicService } from "../anthropic-service";
 import * as AdvancedSlotGenerator from "../advanced-slot-generator";
+import { isAuthenticated } from "../middleware/jwt-auth";
 
 const logger = createLogger("TimeSlots");
 const router = express.Router();
 
-// Middleware para verificar se o usuário está autenticado
-function isAuthenticated(
-  req: express.Request,
-  res: express.Response,
-  next: express.NextFunction,
-) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.status(401).json({ error: "Não autorizado" });
-}
+
 
 // Função auxiliar para filtrar slots de tempo que já passaram
 function filterPastTimeSlots(slots: any[], date: string): any[] {

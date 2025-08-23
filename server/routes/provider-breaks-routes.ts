@@ -1,16 +1,11 @@
 // Rotas para gerenciar intervalos personalizados de prestadores (almoço, janta, etc.)
 import { Router, Request, Response, NextFunction } from "express";
+import { isAuthenticated, isClient, isProvider, isAdmin, isSupport, isAdminOrSupport } from '../middleware/jwt-auth';
 import { storage } from "../storage";
 import { z } from "zod";
 import { ProviderBreak, insertProviderBreakSchema } from "@shared/schema";
 
-// Middleware para verificar se o usuário está autenticado
-const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  return res.status(401).json({ error: "Não autorizado" });
-};
+
 
 // Middleware para verificar se o usuário é prestador
 const isProvider = (req: Request, res: Response, next: NextFunction) => {

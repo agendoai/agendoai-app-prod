@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import ProviderNavbar from "@/components/layout/provider-navbar";
 import ClientNavbar from "@/components/layout/client-navbar";
 import AdminLayout from "@/components/layouts/AdminLayout";
+import { apiCall } from '@/lib/api';
 import { API_BASE_URL } from "@/lib/api";
 
 // Helper para montar a URL da imagem de perfil
@@ -270,7 +271,7 @@ export default function ProfilePage() {
     try {
       const formData = new FormData();
       formData.append('profileImage', file);
-      const response = await fetch(`/api/users/${user?.id}/profile-image`, {
+      const response = await apiCall(`/users/${user?.id}/profile-image`, {
         method: 'POST',
         body: formData,
       });

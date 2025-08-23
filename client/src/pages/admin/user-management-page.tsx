@@ -55,6 +55,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
+import { apiCall } from '@/lib/api';
 import { API_BASE_URL } from "@/lib/api";
 
 // Schema para validação do formulário de criação de usuário
@@ -592,7 +593,7 @@ export default function UserManagementPage() {
                             try {
                               if (currentUser) {
                                 // Para usuário existente, enviar a imagem imediatamente
-                                const res = await fetch(`/api/admin/users/${currentUser.id}/profile-image`, {
+                                const res = await apiCall(`/admin/users/${currentUser.id}/profile-image`, {
                                   method: 'POST',
                                   headers: {
                                     'Content-Type': 'application/json',
@@ -657,7 +658,7 @@ export default function UserManagementPage() {
                           className="text-destructive"
                           onClick={async () => {
                             try {
-                              const res = await fetch(`/api/admin/users/${currentUser.id}/profile-image`, {
+                              const res = await apiCall(`/admin/users/${currentUser.id}/profile-image`, {
                                 method: 'DELETE'
                               });
                               

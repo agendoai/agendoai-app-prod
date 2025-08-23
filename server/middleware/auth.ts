@@ -1,16 +1,42 @@
 import { Request, Response, NextFunction } from 'express';
+import jwt from 'jsonwebtoken';
+import { JWT_CONFIG } from '../jwt-config';
 
 // Middleware para verificar se o usuário está autenticado
 export const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-  // Verifica tanto req.session.user (método padrão) quanto req.user (passport/deserialização de emergência)
-  if (req.session.user || req.isAuthenticated()) {
-    console.log("Usuário autenticado com sucesso");
+  // Primeiro, verificar se já temos req.user (vindo do middleware JWT)
+  if (req.user) {
+    console.log("Usuário autenticado via JWT:", req.user);
     return next();
   }
+
+  // Verificar token JWT no header Authorization
+  const authHeader = req.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    const token = authHeader.substring(7); // Remove 'Bearer '
+    
+    try {
+      const decoded = jwt.verify(token, JWT_CONFIG.secret) as any;
+      req.user = decoded;
+      console.log("Usuário autenticado via JWT token:", decoded);
+      return next();
+    } catch (error) {
+      console.log("Token JWT inválido:", error);
+      return res.status(401).json({ error: 'Token inválido' });
+    }
+  }
+
+  // Fallback: verificar sessão (método antigo)
+  if (req.session.user || req.isAuthenticated()) {
+    console.log("Usuário autenticado via sessão");
+    return next();
+  }
+
   console.log("Falha na autenticação:", { 
     sessionUser: req.session.user, 
     isAuthenticated: req.isAuthenticated(),
-    user: req.user
+    user: req.user,
+    hasAuthHeader: !!authHeader
   });
   return res.status(401).json({ error: 'Usuário não autenticado' });
 };

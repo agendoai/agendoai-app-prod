@@ -5,6 +5,7 @@
  * custódia, onboarding de prestadores e pagamentos via Asaas
  */
 import { Router } from 'express';
+import { isAuthenticated, isClient, isProvider, isAdmin, isSupport, isAdminOrSupport } from '../middleware/jwt-auth';
 import { z } from 'zod';
 import { storage } from '../storage';
 import {
@@ -52,7 +53,7 @@ const createProviderSchema = z.object({
  */
 asaasMarketplaceRouter.post('/providers', async (req, res) => {
   try {
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ message: 'Usuário não autenticado' });
     }
 
@@ -132,7 +133,7 @@ asaasMarketplaceRouter.post('/providers', async (req, res) => {
  */
 asaasMarketplaceRouter.get('/providers/:providerId', async (req, res) => {
   try {
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ message: 'Usuário não autenticado' });
     }
 
@@ -179,7 +180,7 @@ asaasMarketplaceRouter.get('/providers/:providerId', async (req, res) => {
  */
 asaasMarketplaceRouter.get('/providers/:providerId/balance', async (req, res) => {
   try {
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ message: 'Usuário não autenticado' });
     }
 
@@ -230,7 +231,7 @@ asaasMarketplaceRouter.get('/providers/:providerId/balance', async (req, res) =>
  */
 asaasMarketplaceRouter.get('/admin/balance', async (req, res) => {
   try {
-    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+    if (!req.user || req.user.role !== 'admin') {
       return res.status(401).json({ message: 'Acesso negado' });
     }
 
@@ -270,7 +271,7 @@ asaasMarketplaceRouter.get('/admin/balance', async (req, res) => {
  */
 // asaasMarketplaceRouter.post('/payments', async (req, res) => {
 //   try {
-//     if (!req.isAuthenticated()) {
+//     if (!req.user) {
 //       return res.status(401).json({ message: 'Usuário não autenticado' });
 //     }
 //
@@ -377,7 +378,7 @@ asaasMarketplaceRouter.get('/admin/balance', async (req, res) => {
  */
 asaasMarketplaceRouter.post('/payments/:paymentId/release', async (req, res) => {
   try {
-    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+    if (!req.user || req.user.role !== 'admin') {
       return res.status(401).json({ message: 'Acesso negado' });
     }
 
@@ -434,7 +435,7 @@ asaasMarketplaceRouter.post('/payments/:paymentId/release', async (req, res) => 
  */
 asaasMarketplaceRouter.get('/payments/:paymentId/status', async (req, res) => {
   try {
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ message: 'Usuário não autenticado' });
     }
 
@@ -495,7 +496,7 @@ asaasMarketplaceRouter.get('/payments/:paymentId/status', async (req, res) => {
  */
 asaasMarketplaceRouter.post('/payments/:paymentId/cancel', async (req, res) => {
   try {
-    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+    if (!req.user || req.user.role !== 'admin') {
       return res.status(401).json({ message: 'Acesso negado' });
     }
 
@@ -546,7 +547,7 @@ asaasMarketplaceRouter.post('/payments/:paymentId/cancel', async (req, res) => {
  */
 asaasMarketplaceRouter.get('/admin/wallets', async (req, res) => {
   try {
-    if (!req.isAuthenticated() || req.user.role !== 'admin') {
+    if (!req.user || req.user.role !== 'admin') {
       return res.status(401).json({ message: 'Acesso negado' });
     }
 
@@ -585,7 +586,7 @@ asaasMarketplaceRouter.get('/admin/wallets', async (req, res) => {
  */
 asaasMarketplaceRouter.get('/providers/:providerId/payments', async (req, res) => {
   try {
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ message: 'Usuário não autenticado' });
     }
 
@@ -640,7 +641,7 @@ asaasMarketplaceRouter.get('/providers/:providerId/payments', async (req, res) =
  */
 asaasMarketplaceRouter.post('/providers/:providerId/release-escrow', async (req, res) => {
   try {
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ message: 'Usuário não autenticado' });
     }
 

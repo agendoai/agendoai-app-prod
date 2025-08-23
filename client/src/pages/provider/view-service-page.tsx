@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Edit, DollarSign, Clock, Scissors, Calendar, User, Activity, Eye, CalendarDays, Timer, Home, CalendarCheck, PlusCircle, Search } from "lucide-react";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
+import { apiCall } from "@/lib/api";
 import Navbar from "@/components/layout/navbar";
 
 export default function ViewServicePage() {
@@ -20,7 +21,7 @@ export default function ViewServicePage() {
     queryKey: ['/api/provider-services', serviceId],
     queryFn: async () => {
       console.log("Fazendo requisição para:", `/api/provider-services/${serviceId}`);
-      const response = await fetch(`/api/provider-services/${serviceId}`);
+      const response = await apiCall(`/provider-services/${serviceId}`);
       if (!response.ok) {
         throw new Error('Erro ao carregar serviço');
       }

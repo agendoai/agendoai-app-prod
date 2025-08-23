@@ -60,6 +60,7 @@ import {
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import ProviderLayout from "@/components/layout/provider-layout";
+import { apiCall } from '@/lib/api';
 
 export default function ProviderProfilePage() {
   const [, setLocation] = useLocation();
@@ -242,7 +243,7 @@ export default function ProviderProfilePage() {
     try {
       setUploadingProfileImage(true);
       
-      const response = await fetch(`/api/users/${user?.id}/profile-image`, {
+      const response = await apiCall(`/users/${user?.id}/profile-image`, {
         method: 'POST',
         body: formData,
       });
@@ -290,7 +291,7 @@ export default function ProviderProfilePage() {
     try {
       setUploadingCoverImage(true);
       
-      const response = await fetch(`/api/providers/${user?.id}/cover-image`, {
+      const response = await apiCall(`/providers/${user?.id}/cover-image`, {
         method: 'POST',
         body: formData,
       });

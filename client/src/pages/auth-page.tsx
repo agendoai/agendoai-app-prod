@@ -8,7 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
-import { apiJson } from "@/lib/api";
 
 const loginSchema = z.object({
   email: z.string().email({ message: "Email inválido" }),
@@ -38,7 +37,7 @@ export default function AuthPage() {
   const [, setLocation] = useLocation();
   
   // Verificação de autenticação usando o hook useAuth
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, loginMutation, registerMutation } = useAuth();
   
   // Efeito para redirecionar usuário logado
   React.useEffect(() => {
@@ -96,38 +95,60 @@ export default function AuthPage() {
   }
 
   // Login handler
-  async function onLoginSubmit(data: any) {
+  function onLoginSubmit(data: any) {
     setLoading(true);
-    try {
-      // Usar o hook useAuth para login
-      const { loginMutation } = useAuth();
-      await loginMutation.mutateAsync(data);
-      
-      // O redirecionamento será feito automaticamente pelo hook useAuth
-      
-    } catch (e: any) {
-      toast({ title: "Erro ao entrar", description: e.message || "Verifique seus dados.", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
+    
+    loginMutation.mutate(data, {
+      onSuccess: (user) => {
+        // Mostrar toast de sucesso
+        toast({
+          title: "Login realizado com sucesso!",
+          description: `Bem-vindo(a) de volta, ${user?.name || user?.email}!`,
+        });
+        
+        // O redirecionamento será feito automaticamente pelo hook useAuth
+        console.log("Login concluído, aguardando redirecionamento automático...");
+        setLoading(false);
+      },
+      onError: (error: any) => {
+        console.error("Erro no login:", error);
+        toast({ 
+          title: "Erro ao entrar", 
+          description: error.message || "Verifique seus dados.", 
+          variant: "destructive" 
+        });
+        setLoading(false);
+      }
+    });
   }
 
   // Registro handler
-  async function onRegisterSubmit(data: any) {
+  function onRegisterSubmit(data: any) {
     setLoading(true);
-    try {
-      const { confirmPassword, ...registerData } = data;
-      // Usar o hook useAuth para registro
-      const { registerMutation } = useAuth();
-      await registerMutation.mutateAsync(registerData);
-      
-      // O redirecionamento será feito automaticamente pelo hook useAuth
-      
-    } catch (e: any) {
-      toast({ title: "Erro ao cadastrar", description: e.message || "Verifique seus dados.", variant: "destructive" });
-    } finally {
-      setLoading(false);
-    }
+    const { confirmPassword, ...registerData } = data;
+    
+    registerMutation.mutate(registerData, {
+      onSuccess: (user) => {
+        // Mostrar toast de sucesso
+        toast({
+          title: "Conta criada com sucesso!",
+          description: "Bem-vindo(a) ao AgendoAI!",
+        });
+        
+        // O redirecionamento será feito automaticamente pelo hook useAuth
+        console.log("Registro concluído, aguardando redirecionamento automático...");
+        setLoading(false);
+      },
+      onError: (error: any) => {
+        console.error("Erro no registro:", error);
+        toast({ 
+          title: "Erro ao cadastrar", 
+          description: error.message || "Verifique seus dados.", 
+          variant: "destructive" 
+        });
+        setLoading(false);
+      }
+    });
   }
 
   return (

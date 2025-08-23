@@ -1,4 +1,5 @@
 import express from 'express';
+import { isAuthenticated, isClient, isProvider, isAdmin, isSupport, isAdminOrSupport } from '../middleware/jwt-auth';
 import { storage } from '../storage';
 import { adaptProviderAgendaForService } from '../ai-provider-scheduling-service';
 import { 
@@ -13,7 +14,7 @@ const router = express.Router();
 
 // Middleware para verificar se o usuário está autenticado
 function isAuthenticated(req: express.Request, res: express.Response, next: express.NextFunction) {
-  if (req.isAuthenticated()) {
+  if (req.user) {
     return next();
   }
   res.status(401).json({ error: 'Não autorizado' });

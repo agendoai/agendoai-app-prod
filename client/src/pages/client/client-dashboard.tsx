@@ -492,6 +492,7 @@ export default function ClientDashboard() {
     queryKey: ["/api/client/recent-services-providers"],
     staleTime: 5 * 60 * 1000,
     retry: 1,
+    enabled: !!localStorage.getItem('authToken'), // Só fazer requisição se houver token
   });
   
   const { 
@@ -501,6 +502,7 @@ export default function ClientDashboard() {
     queryKey: ["/api/client/appointments"],
     staleTime: 2 * 60 * 1000,
     retry: 1,
+    enabled: !!localStorage.getItem('authToken'), // Só fazer requisição se houver token
   });
   
   const { 
@@ -509,7 +511,7 @@ export default function ClientDashboard() {
   } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
     staleTime: 5 * 60 * 1000,
-    enabled: !personalizedData || !(personalizedData as any)?.hasHistory || ((personalizedData as any)?.topServices && (personalizedData as any)?.topServices.length === 0),
+    enabled: !!localStorage.getItem('authToken') && (!personalizedData || !(personalizedData as any)?.hasHistory || ((personalizedData as any)?.topServices && (personalizedData as any)?.topServices.length === 0)),
     retry: 1,
   });
   

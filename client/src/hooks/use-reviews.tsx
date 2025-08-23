@@ -15,6 +15,7 @@ export function useClientReviews() {
   return useQuery<Review[]>({
     queryKey: ['/api/client/reviews'],
     queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !!localStorage.getItem('authToken'), // Só fazer requisição se houver token
   });
 }
 

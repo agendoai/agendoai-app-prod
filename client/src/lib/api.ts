@@ -1,9 +1,16 @@
+import { apiCall } from '@/lib/api';
 // API Configuration
 const getApiBaseUrl = () => {
-  // Se a variável de ambiente estiver definida, use ela (sempre HTTPS)
+  // Se a variável de ambiente estiver definida, use ela
   if (import.meta.env.VITE_API_URL) {
     console.log('🔧 Usando VITE_API_URL:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
+  }
+  
+  // Em desenvolvimento, sempre usar HTTP para localhost
+  if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+    console.log('🔧 Usando HTTP para API em desenvolvimento local');
+    return 'http://localhost:5000';
   }
   
   // Se estiver em produção (HTTPS), usar HTTPS para a API
@@ -12,7 +19,7 @@ const getApiBaseUrl = () => {
     return 'https://app.tbsnet.com.br';
   }
   
-  // Em desenvolvimento, use localhost
+  // Fallback para desenvolvimento
   return 'http://localhost:5000';
 };
 
@@ -44,15 +51,32 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   if (endpoint.startsWith('http')) {
     url = endpoint;
   } else if (endpoint.startsWith('/api')) {
-    url = `${API_BASE_URL}${endpoint}`;
+    // Em desenvolvimento, usar o proxy do Vite
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      url = endpoint; // Usar caminho relativo para o proxy
+    } else {
+      url = `${API_BASE_URL}${endpoint}`;
+    }
   } else {
-    url = `${API_BASE_URL}/api${endpoint}`;
+    // Em desenvolvimento, usar o proxy do Vite
+    if (typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      url = `/api${endpoint}`; // Usar caminho relativo para o proxy
+    } else {
+      url = `${API_BASE_URL}/api${endpoint}`;
+    }
   }
   
   console.log('🔧 API Call URL:', url);
   
   // Pegar token do localStorage
   const token = localStorage.getItem('authToken');
+  
+  console.log('🔵 ===== TOKEN RETRIEVAL DEBUG =====');
+  console.log('🔍 Endpoint:', endpoint);
+  console.log('🔍 LocalStorage authToken:', token ? `EXISTS (${token.length} chars)` : 'NOT FOUND');
+  console.log('🔍 Token preview:', token ? token.substring(0, 50) + '...' : 'null');
+  console.log('🔍 All localStorage keys:', Object.keys(localStorage));
+  console.log('🔵 ==================================');
   
   const defaultOptions: RequestInit = {
     headers: {
@@ -68,12 +92,36 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
       ...defaultOptions.headers,
       'Authorization': `Bearer ${token}`,
     };
+    console.log('🟢 ===== FRONTEND TOKEN DEBUG =====');
+    console.log('🔧 Token adicionado ao header Authorization');
+    console.log('🔍 Endpoint:', endpoint);
+    console.log('🔍 Token length:', token.length);
+    console.log('🔍 Token preview:', token.substring(0, 50) + '...');
+    console.log('🔍 Headers que serão enviados:', defaultOptions.headers);
+    console.log('🟢 ================================');
+  } else {
+    console.log('🔴 ===== TOKEN NÃO ENVIADO =====');
+    console.log('🔧 Token não adicionado para:', endpoint);
+    console.log('🔍 Detalhes:', {
+      hasToken: !!token,
+      tokenLength: token ? token.length : 0,
+      isLoginOrRegister: endpoint.includes('/login') || endpoint.includes('/register'),
+      localStorageToken: !!localStorage.getItem('authToken')
+    });
+    console.log('🔴 ==============================');
   }
 
   const response = await fetch(url, defaultOptions);
   
   if (!response.ok) {
-    throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+    // Tentar extrair mensagem de erro do JSON
+    try {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `API call failed: ${response.status} ${response.statusText}`);
+    } catch (jsonError) {
+      // Se não conseguir parsear JSON, usar status text
+      throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+    }
   }
   
   return response;
@@ -135,7 +183,7 @@ export async function createAsaasProvider(providerData: {
  * Consulta dados de um prestador
  */
 export async function getAsaasProvider(providerId: number) {
-  const response = await fetch(`/api/asaas-marketplace/providers/${providerId}`, {
+  const response = await apiCall(`/asaas-marketplace/providers/${providerId}`, {
   });
 
   if (!response.ok) {
@@ -150,7 +198,7 @@ export async function getAsaasProvider(providerId: number) {
  * Consulta saldo de um prestador
  */
 export async function getAsaasProviderBalance(providerId: number) {
-  const response = await fetch(`/api/asaas-marketplace/providers/${providerId}/balance`, {
+  const response = await apiCall(`/asaas-marketplace/providers/${providerId}/balance`, {
     
   });
 
@@ -210,7 +258,7 @@ export async function createAsaasPayment(paymentData: {
  * Libera repasse para o prestador
  */
 export async function releaseAsaasPayment(paymentId: string) {
-  const response = await fetch(`/api/asaas-marketplace/payments/${paymentId}/release`, {
+  const response = await apiCall(`/asaas-marketplace/payments/${paymentId}/release`, {
     method: 'POST',
     
   });
@@ -227,7 +275,7 @@ export async function releaseAsaasPayment(paymentId: string) {
  * Consulta status de um pagamento
  */
 export async function getAsaasPaymentStatus(paymentId: string) {
-  const response = await fetch(`/api/asaas-marketplace/payments/${paymentId}/status`, {
+  const response = await apiCall(`/asaas-marketplace/payments/${paymentId}/status`, {
     
   });
 
@@ -243,7 +291,7 @@ export async function getAsaasPaymentStatus(paymentId: string) {
  * Cancela um pagamento
  */
 export async function cancelAsaasPayment(paymentId: string) {
-  const response = await fetch(`/api/asaas-marketplace/payments/${paymentId}/cancel`, {
+  const response = await apiCall(`/asaas-marketplace/payments/${paymentId}/cancel`, {
     method: 'POST',
     
   });
@@ -301,7 +349,7 @@ export const listAsaasSubAccounts = async () => {
 
 // Consultar saldo da subconta
 export const getAsaasSubAccountBalance = async (subAccountId: string) => {
-  const response = await fetch(`/api/admin/asaas/subaccounts/${subAccountId}/balance`, {
+  const response = await apiCall(`/admin/asaas/subaccounts/${subAccountId}/balance`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -313,7 +361,7 @@ export const getAsaasSubAccountBalance = async (subAccountId: string) => {
 
 // Atualizar subconta
 export const updateAsaasSubAccount = async (subAccountId: string, updates: any) => {
-  const response = await fetch(`/api/admin/asaas/subaccounts/${subAccountId}`, {
+  const response = await apiCall(`/admin/asaas/subaccounts/${subAccountId}`, {
     method: 'PATCH',
     headers: {
       'Content-Type': 'application/json',
@@ -375,7 +423,7 @@ export const processAsaasBookingPayment = async (paymentData: {
 
 // Liberar valor retido na custódia
 export const releaseAsaasEscrowValue = async (subAccountId: string, amount: number) => {
-  const response = await fetch(`/api/admin/asaas/subaccounts/${subAccountId}/release-escrow`, {
+  const response = await apiCall(`/admin/asaas/subaccounts/${subAccountId}/release-escrow`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -388,7 +436,7 @@ export const releaseAsaasEscrowValue = async (subAccountId: string, amount: numb
 
 // Consultar pagamentos de uma subconta
 export const getAsaasSubAccountPayments = async (subAccountId: string) => {
-  const response = await fetch(`/api/admin/asaas/subaccounts/${subAccountId}/payments`, {
+  const response = await apiCall(`/admin/asaas/subaccounts/${subAccountId}/payments`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -402,7 +450,7 @@ export const getAsaasSubAccountPayments = async (subAccountId: string) => {
 
 // Consultar saldo da subconta do prestador (rota de prestador)
 export const getAsaasProviderSubAccountBalance = async (providerId: number) => {
-  const response = await fetch(`/api/asaas-marketplace/providers/${providerId}/balance`, {
+  const response = await apiCall(`/asaas-marketplace/providers/${providerId}/balance`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -414,7 +462,7 @@ export const getAsaasProviderSubAccountBalance = async (providerId: number) => {
 
 // Consultar pagamentos da subconta do prestador (rota de prestador)
 export const getAsaasProviderPayments = async (providerId: number) => {
-  const response = await fetch(`/api/asaas-marketplace/providers/${providerId}/payments`, {
+  const response = await apiCall(`/asaas-marketplace/providers/${providerId}/payments`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',
@@ -426,7 +474,7 @@ export const getAsaasProviderPayments = async (providerId: number) => {
 
 // Liberar valor retido na custódia (rota de prestador)
 export const releaseAsaasProviderEscrowValue = async (providerId: number, amount: number) => {
-  const response = await fetch(`/api/asaas-marketplace/providers/${providerId}/release-escrow`, {
+  const response = await apiCall(`/asaas-marketplace/providers/${providerId}/release-escrow`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

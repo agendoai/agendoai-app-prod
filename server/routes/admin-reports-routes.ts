@@ -5,11 +5,12 @@
  */
 
 import { Router } from 'express';
+import { isAuthenticated, isClient, isProvider, isAdmin, isSupport, isAdminOrSupport } from '../middleware/jwt-auth';
 import { storage } from '../storage';
 import { Request, Response } from 'express';
 // Funções de middleware de autenticação
 const isAdminOrSupport = (req: Request, res: Response, next: any) => {
-  if (!req.isAuthenticated()) {
+  if (!req.user) {
     return res.status(401).json({ error: 'Não autenticado' });
   }
   

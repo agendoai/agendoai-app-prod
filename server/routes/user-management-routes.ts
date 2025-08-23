@@ -6,6 +6,7 @@
  */
 
 import { Express, Request, Response } from "express";
+import { isAuthenticated, isClient, isProvider, isAdmin, isSupport, isAdminOrSupport } from '../middleware/jwt-auth';
 import { storage } from "../storage";
 import { scrypt, randomBytes, timingSafeEqual } from "crypto";
 import { promisify } from "util";
@@ -47,7 +48,7 @@ async function comparePasswords(supplied: string, stored: string) {
 
 // Middleware para verificar se o usuário é proprietário ou administrador
 const isOwnerOrAdmin = (userId: number) => (req: Request, res: Response, next: Function) => {
-  if (!req.isAuthenticated()) {
+  if (!req.user) {
     return res.status(401).json({ error: "Não autenticado" });
   }
   

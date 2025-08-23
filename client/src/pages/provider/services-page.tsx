@@ -65,6 +65,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { motion } from "framer-motion";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiCall } from "@/lib/api";
 import Navbar from "@/components/layout/navbar";
 
 export default function ProviderServicesPage() {
@@ -80,7 +81,7 @@ export default function ProviderServicesPage() {
   // Função para excluir serviço
   const deleteServiceMutation = useMutation({
     mutationFn: async (serviceId: number) => {
-      const response = await fetch(`/api/provider-services/${serviceId}`, {
+      const response = await apiCall(`/provider-services/${serviceId}`, {
         method: "DELETE",
       });
       if (!response.ok) {
@@ -110,7 +111,7 @@ export default function ProviderServicesPage() {
     queryKey: [`/api/provider-services/provider/${user?.id}`],
     queryFn: async () => {
       try {
-        const response = await fetch(`/api/provider-services/provider/${user?.id}`);
+        const response = await apiCall(`/provider-services/provider/${user?.id}`);
         if (!response.ok) {
           throw new Error('Failed to fetch services');
         }

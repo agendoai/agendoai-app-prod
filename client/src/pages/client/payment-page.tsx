@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, CreditCard, QrCode, ArrowLeft, CheckCircle, Copy } from 'lucide-react';
+import { apiCall } from '@/lib/api';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { apiJson } from '@/lib/api';
@@ -155,7 +156,7 @@ export default function PaymentPage() {
             });
             const result = await paymentResponse.json();
             if (result.paymentId) {
-              const qrRes = await fetch(`/api/payments/pixQrCode/${result.paymentId}`);
+              const qrRes = await apiCall(`/payments/pixQrCode/${result.paymentId}`);
               if (qrRes.ok) {
                 const qrData = await qrRes.json();
                 setPixQrCode(qrData.pixQrCode);
@@ -208,14 +209,14 @@ export default function PaymentPage() {
   const fetchProviderAndServiceData = async (providerId: number, serviceId: number) => {
     try {
       // Buscar dados do prestador
-      const providerResponse = await fetch(`/api/providers/${providerId}`);
+      const providerResponse = await apiCall(`/providers/${providerId}`);
       if (providerResponse.ok) {
         const provider = await providerResponse.json();
         setProviderData(provider);
       }
 
       // Buscar dados do serviço
-      const serviceResponse = await fetch(`/api/services/${serviceId}`);
+      const serviceResponse = await apiCall(`/services/${serviceId}`);
       if (serviceResponse.ok) {
         const service = await serviceResponse.json();
         setServiceData(service);
@@ -265,7 +266,7 @@ export default function PaymentPage() {
       // Buscar o QR Code do PIX após criar o pagamento
       if (bookingData.paymentMethod === 'pix' && result.paymentId) {
         try {
-          const qrRes = await fetch(`/api/payments/pixQrCode/${result.paymentId}`);
+          const qrRes = await apiCall(`/payments/pixQrCode/${result.paymentId}`);
           if (qrRes.ok) {
             const qrData = await qrRes.json();
             setPixQrCode(qrData.pixQrCode);
@@ -457,7 +458,7 @@ export default function PaymentPage() {
     
     setIsProcessing(true);
     try {
-      const response = await fetch(`/api/payments/check-status/${paymentIntentId}`);
+      const response = await apiCall(`/payments/check-status/${paymentIntentId}`);
       
       if (!response.ok) {
         throw new Error('Erro ao verificar status do pagamento');

@@ -29,6 +29,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
+import { apiCall } from '@/lib/api';
 import { formatCurrency } from "@/lib/utils";
 import { 
   Dialog,
@@ -95,7 +96,7 @@ export default function BookingConfirmationPage() {
   // Buscar dados do prestador
   const { data: providerData, isLoading: isLoadingProvider } = useQuery<ProviderData>({
     queryKey: ['/api/providers', parsedProviderId],
-    queryFn: () => fetch(`/api/providers/${parsedProviderId}`).then(res => {
+    queryFn: () => apiCall(`/providers/${parsedProviderId}`).then(res => {
       if (!res.ok) throw new Error("Erro ao buscar dados do prestador");
       return res.json();
     }),
@@ -105,7 +106,7 @@ export default function BookingConfirmationPage() {
   // Buscar dados do serviço
   const { data: service, isLoading: isLoadingService } = useQuery<Service>({
     queryKey: ['/api/services', parsedServiceId],
-    queryFn: () => fetch(`/api/services/${parsedServiceId}`).then(res => {
+    queryFn: () => apiCall(`/services/${parsedServiceId}`).then(res => {
       if (!res.ok) throw new Error("Erro ao buscar dados do serviço");
       return res.json();
     }),

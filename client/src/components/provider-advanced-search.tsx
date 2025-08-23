@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Star, MapPin, Search } from 'lucide-react';
+import { apiCall } from '@/lib/api';
 
 export default function ProviderAdvancedSearch() {
   const [name, setName] = useState('');
@@ -33,7 +34,7 @@ export default function ProviderAdvancedSearch() {
   // Fetch categories when niche changes
   useEffect(() => {
     if (selectedNiche) {
-      fetch(`/api/niches/${selectedNiche}/categories`)
+      apiCall(`/niches/${selectedNiche}/categories`)
         .then(res => res.json())
         .then(data => setCategories(data || []));
     } else {
@@ -46,7 +47,7 @@ export default function ProviderAdvancedSearch() {
   // Fetch services when category changes
   useEffect(() => {
     if (selectedCategory) {
-      fetch(`/api/services?categoryId=${selectedCategory}`)
+      apiCall(`/services?categoryId=${selectedCategory}`)
         .then(res => res.json())
         .then(data => setServices(data || []));
     } else {
@@ -93,7 +94,7 @@ export default function ProviderAdvancedSearch() {
       params.append('lng', String(location.lng));
     }
     try {
-      const res = await fetch(`/api/providers/optimized/search?${params.toString()}`);
+      const res = await apiCall(`/providers/optimized/search?${params.toString()}`);
       const data = await res.json();
       setResults(data.providers || []);
       if (!data.providers || data.providers.length === 0) setError('Nenhum prestador encontrado.');

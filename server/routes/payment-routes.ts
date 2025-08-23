@@ -14,6 +14,7 @@ import { appointments } from '@shared/schema';
 import { eq } from 'drizzle-orm';
 import axios from 'axios';
 import { getAsaasBaseUrl, asaasConfig } from '../asaas-service';
+import { isAuthenticated, isClient, isProvider } from '../middleware/jwt-auth';
 
 // Função utilitária para converter HH:MM em minutos
 function timeToMinutes(time) {
@@ -52,7 +53,7 @@ const createPaymentIntentSchema = z.object({
  */
 paymentRouter.post('/create-payment-intent', async (req, res) => {
   try {
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ message: 'Usuário não autenticado' });
     }
 
@@ -208,7 +209,7 @@ paymentRouter.post('/create-payment-intent', async (req, res) => {
 paymentRouter.get('/check-status/:paymentIntentId', async (req, res) => {
   try {
     // Verifica se o usuário está autenticado
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ message: 'Usuário não autenticado' });
     }
 
@@ -488,7 +489,7 @@ const createSubscriptionSchema = z.object({
 paymentRouter.post('/create-subscription', async (req, res) => {
   try {
     // Verifica se o usuário está autenticado
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ message: 'Usuário não autenticado' });
     }
 
@@ -606,7 +607,7 @@ paymentRouter.post('/create-subscription', async (req, res) => {
 paymentRouter.get('/subscription', async (req, res) => {
   try {
     // Verifica se o usuário está autenticado
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ message: 'Usuário não autenticado' });
     }
 
@@ -666,7 +667,7 @@ paymentRouter.get('/subscription', async (req, res) => {
 paymentRouter.post('/cancel-subscription', async (req, res) => {
   try {
     // Verifica se o usuário está autenticado
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ message: 'Usuário não autenticado' });
     }
 

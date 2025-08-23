@@ -7,17 +7,12 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
+import { isAuthenticated, isClient, isProvider, isAdmin, isSupport, isAdminOrSupport } from '../middleware/jwt-auth';
 import { z } from 'zod';
 import { storage } from '../storage';
 import { insertServiceTemplateSchema, type ServiceTemplate } from '../../shared/schema';
 
-// Middleware para verificar se o usuário está autenticado
-const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  return res.status(401).json({ error: "Não autorizado" });
-};
+
 
 // Middleware para verificar se o usuário é um administrador
 const isAdmin = (req: Request, res: Response, next: NextFunction) => {

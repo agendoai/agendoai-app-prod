@@ -16,6 +16,7 @@ import {
   TabsTrigger
 } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
+import { apiCall } from '@/lib/api';
 import {
   Select,
   SelectContent,
@@ -92,7 +93,7 @@ export default function ReportsPage() {
     queryKey: ['/api/admin/reports/dashboard', { period }],
     queryFn: async () => {
       try {
-        const response = await fetch(`/api/admin/reports/dashboard?period=${period}`);
+        const response = await apiCall(`/admin/reports/dashboard?period=${period}`);
         if (!response.ok) {
           throw new Error('Falha ao carregar dados do relatório');
         }

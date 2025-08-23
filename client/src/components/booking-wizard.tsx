@@ -22,6 +22,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Slider } from '@/components/ui/slider';
 import { cn, formatCurrency } from '@/lib/utils';
+import { apiCall } from '@/lib/api';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -111,7 +112,7 @@ function useMultiDaySlots(providerId: number | null, serviceTemplate: ServiceTem
         const date = addDays(today, i);
         const formattedDate = format(date, 'yyyy-MM-dd');
         try {
-          const resp = await fetch(`/api/providers/${providerId}/availability?date=${formattedDate}&duration=${serviceTemplate.duration}`);
+          const resp = await apiCall(`/providers/${providerId}/availability?date=${formattedDate}&duration=${serviceTemplate.duration}`);
           if (resp.ok) {
             const slots = await resp.json();
             if (Array.isArray(slots) && slots.length > 0) {
@@ -160,18 +161,18 @@ export function BookingWizard({ onComplete }: BookingWizardProps) {
           const serviceId = parseInt(serviceIdParam);
           
           // Buscar dados do prestador
-          const providerResponse = await fetch(`/api/providers/${providerId}`);
+          const providerResponse = await apiCall(`/providers/${providerId}`);
           if (providerResponse.ok) {
             const providerData = await providerResponse.json();
             setSelectedProvider(providerData);
           }
           
           // Buscar dados do serviço
-          const serviceResponse = await fetch(`/api/services/${serviceId}`);
+          const serviceResponse = await apiCall(`/services/${serviceId}`);
           if (serviceResponse.ok) {
             const serviceData = await serviceResponse.json();
             // Buscar o template correspondente
-            const templateResponse = await fetch(`/api/service-templates?categoryId=${serviceData.categoryId}`);
+            const templateResponse = await apiCall(`/service-templates?categoryId=${serviceData.categoryId}`);
             if (templateResponse.ok) {
               const templates = await templateResponse.json();
               const matchingTemplate = templates.find((t: ServiceTemplate) => 
@@ -181,7 +182,7 @@ export function BookingWizard({ onComplete }: BookingWizardProps) {
                 setSelectedServiceTemplate(matchingTemplate);
                 setSelectedCategoryId(serviceData.categoryId);
                 // Buscar o nicho correspondente
-                const categoryResponse = await fetch(`/api/categories/${serviceData.categoryId}`);
+                const categoryResponse = await apiCall(`/categories/${serviceData.categoryId}`);
                 if (categoryResponse.ok) {
                   const categoryData = await categoryResponse.json();
                   setSelectedNicheId(categoryData.nicheId);
@@ -203,7 +204,7 @@ export function BookingWizard({ onComplete }: BookingWizardProps) {
       const fetchProviderData = async () => {
         try {
           const providerId = parseInt(providerIdParam);
-          const providerResponse = await fetch(`/api/providers/${providerId}`);
+          const providerResponse = await apiCall(`/providers/${providerId}`);
           if (providerResponse.ok) {
             const providerData = await providerResponse.json();
             setSelectedProvider(providerData);
@@ -227,7 +228,7 @@ export function BookingWizard({ onComplete }: BookingWizardProps) {
     queryKey: ['/api/niches', selectedNicheId, 'categories'],
     queryFn: async () => {
       if (!selectedNicheId) return [];
-      const response = await fetch(`/api/niches/${selectedNicheId}/categories`);
+      const response = await apiCall(`/niches/${selectedNicheId}/categories`);
       if (!response.ok) {
         throw new Error('Falha ao carregar categorias');
       }
@@ -241,7 +242,7 @@ export function BookingWizard({ onComplete }: BookingWizardProps) {
     queryKey: ['/api/service-templates', selectedCategoryId],
     queryFn: async () => {
       if (!selectedCategoryId) return [];
-      const response = await fetch(`/api/service-templates?categoryId=${selectedCategoryId}`);
+      const response = await apiCall(`/service-templates?categoryId=${selectedCategoryId}`);
       if (!response.ok) {
         throw new Error('Falha ao carregar serviços');
       }

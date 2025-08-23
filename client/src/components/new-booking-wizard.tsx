@@ -85,6 +85,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import { apiCall } from '@/lib/api';
 
 // Tipos para os passos do assistente
 type BookingStep =
@@ -229,7 +230,7 @@ export function NewBookingWizard({
     queryKey: ["/api/niches", selectedNicheId, "categories"],
     queryFn: async () => {
       if (!selectedNicheId) return [];
-      const response = await fetch(`/api/niches/${selectedNicheId}/categories`);
+      const response = await apiCall(`/niches/${selectedNicheId}/categories`);
       
       if (!response.ok) {
         throw new Error("Falha ao carregar categorias");

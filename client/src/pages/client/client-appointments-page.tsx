@@ -184,6 +184,7 @@ export default function ClientAppointmentsPage() {
   } = useQuery<Appointment[]>({
     queryKey: ["/api/client/appointments"],
     staleTime: 30 * 1000,
+    enabled: !!localStorage.getItem('authToken'), // Só fazer requisição se houver token
   });
   
   // Função para atualizar manualmente os agendamentos

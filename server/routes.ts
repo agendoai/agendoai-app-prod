@@ -9,11 +9,13 @@ import { createServer, type Server } from "http"
 import Stripe from "stripe"
 import asaasWebhookRoutes from './routes/asaas-webhook-routes';
 import { storage } from "./storage"
-import { setupAuth, hashPassword } from "./auth"
+import { setupAuth, hashPassword, authenticateJWT } from "./auth"
+import jwt from 'jsonwebtoken';
+import { JWT_CONFIG } from './jwt-config';
 import sumupPaymentRoutes from "./routes/sumup-payment-routes"
 import { checkAvailabilityRouter } from "./routes/check-availability-routes"
 import { paymentRouter } from "./routes/payment-routes"
-import { adminRouter, asaasMarketplaceRouter } from "./routes/index"
+import { adminRouter, asaasMarketplaceRouter, authRoutes } from "./routes/index"
 import adminFinancialRoutes from "./routes/admin-financial-routes"
 import { db } from "./db"
 import { users, supportTickets, supportMessages } from "@shared/schema.ts"
@@ -117,22 +119,46 @@ function minutesToTime(minutes: number): string {
 
 // Middleware para verificar se o usuário está autenticado
 const isAuthenticated = (req: Request, res: Response, next: any) => {
+	console.log('🔍 Middleware isAuthenticated executado para:', req.originalUrl);
+	console.log('🔍 Headers de autorização:', req.headers.authorization);
+	
+	// Primeiro tentar autenticação JWT
+	const authHeader = req.headers.authorization;
+	
+	if (authHeader && authHeader.startsWith('Bearer ')) {
+		const token = authHeader.split(' ')[1];
+		console.log('🔍 Token JWT encontrado, verificando...');
+		
+		try {
+			// Verificar JWT token
+			const decoded = jwt.verify(token, JWT_CONFIG.secret) as any;
+			req.user = decoded;
+			console.log(
+				`✅ Usuário autenticado via JWT: ID=${req.user?.id}, Tipo=${req.user?.userType}, Rota=${req.originalUrl}, Método=${req.method}`
+			);
+			return next();
+		} catch (err) {
+			console.log('❌ JWT inválido:', err);
+			return res.status(401).json({ error: 'Token inválido' });
+		}
+	}
+	
+	// Fallback para autenticação de sessão (para compatibilidade)
 	if (req.isAuthenticated()) {
-		// Para depuração: registrar detalhes da autenticação
 		console.log(
-			`Usuário autenticado: ID=${req.user?.id}, Tipo=${req.user?.userType}, Rota=${req.originalUrl}, Método=${req.method}`
-		)
-		return next()
+			`✅ Usuário autenticado via sessão: ID=${req.user?.id}, Tipo=${req.user?.userType}, Rota=${req.originalUrl}, Método=${req.method}`
+		);
+		return next();
 	}
 
 	// Para depuração: registrar falha de autenticação
 	console.log(
-		`Falha de autenticação na rota: ${req.originalUrl}, Método: ${req.method}, Headers:`,
-		req.headers
-	)
+		`❌ Falha de autenticação na rota: ${req.originalUrl}, Método: ${req.method}`
+	);
+	console.log('🔍 Headers completos:', req.headers);
 
-	return res.status(401).json({ error: "Não autorizado" })
-}
+	return res.status(401).json({ error: "Não autorizado" });
+};
 
 // Middleware para verificar se o usuário é cliente
 const isClient = (req: Request, res: Response, next: any) => {
@@ -198,8 +224,15 @@ export function registerRoutes(app: Express): Server {
 	setupAuth(app)
 
 	// Registrar rotas de notificações push
-	app.use("/api/push", pushRouter)
-    app.use('/api/webhook', asaasWebhookRoutes)
+	// Rotas de autenticação - SEM middleware de autenticação
+app.use("/api", authRoutes)
+
+// Rotas protegidas com middleware de autenticação
+app.use("/api/user", authenticateJWT);
+app.use("/api/logout", authenticateJWT);
+
+app.use("/api/push", pushRouter)
+app.use('/api/webhook', asaasWebhookRoutes)
 	// Registrar rotas de otimização de agenda com IA
 	app.use("/api/provider-agenda", providerAIRouter)
 

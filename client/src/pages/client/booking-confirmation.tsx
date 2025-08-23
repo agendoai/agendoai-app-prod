@@ -30,6 +30,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { ClientNavbar } from "@/components/client-navbar";
+import { apiCall } from '@/lib/api';
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { shareOnWhatsApp } from "@/lib/whatsapp";
 import { createAsaasPayment } from "@/lib/api";
@@ -114,7 +115,7 @@ export default function BookingConfirmation() {
   const { data: providerPaymentMethods, isLoading: isLoadingProviderPaymentMethods } = useQuery({
     queryKey: ['/api/providers', parsedProviderId, 'payment-methods'],
     queryFn: () => 
-      fetch(`/api/providers/${parsedProviderId}/payment-methods`)
+      apiCall(`/providers/${parsedProviderId}/payment-methods`)
         .then(res => {
           if (!res.ok) {
             throw new Error('Erro ao buscar métodos de pagamento do prestador');
@@ -140,7 +141,7 @@ export default function BookingConfirmation() {
     queryKey: ['/api/providers', parsedProviderId],
     queryFn: () => {
       console.log(`Buscando dados do prestador para confirmação: ${parsedProviderId}`);
-      return fetch(`/api/providers/${parsedProviderId}`)
+      return apiCall(`/providers/${parsedProviderId}`)
         .then(res => {
           if (!res.ok) {
             throw new Error(`Erro ao buscar prestador: ${res.status}`);
@@ -156,7 +157,7 @@ export default function BookingConfirmation() {
     queryKey: ['/api/services', parsedServiceId],
     queryFn: () => {
       console.log(`Buscando serviço por ID: ${parsedServiceId}`);
-      return fetch(`/api/services/${parsedServiceId}`).then(res => {
+      return apiCall(`/services/${parsedServiceId}`).then(res => {
         if (!res.ok) {
           throw new Error(`Erro ao buscar serviço: ${res.status}`);
         }

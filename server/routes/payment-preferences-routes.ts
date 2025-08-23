@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { isAuthenticated, isClient, isProvider, isAdmin, isSupport, isAdminOrSupport } from '../middleware/jwt-auth';
 import { db } from "../db";
 import { eq } from "drizzle-orm";
 import { 
@@ -7,13 +8,7 @@ import {
   insertProviderPaymentPreferenceSchema,
   insertClientPaymentPreferenceSchema
 } from "@shared/schema";
-// Middleware para verificar se o usuário está autenticado
-const isAuthenticated = (req: any, res: any, next: any) => {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  return res.status(401).json({ error: "Não autorizado" });
-};
+
 
 // Este arquivo contém as rotas para gerenciar as preferências de pagamento
 // tanto de prestadores quanto de clientes

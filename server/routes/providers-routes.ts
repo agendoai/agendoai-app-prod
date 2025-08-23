@@ -6,13 +6,14 @@
  */
 
 import { Router } from "express";
+import { isAuthenticated, isClient, isProvider, isAdmin, isSupport, isAdminOrSupport } from '../middleware/jwt-auth';
 import { storage } from "../storage";
 import { Request, Response, NextFunction } from "express";
 import { ParsedQs } from "qs";
 
 // Middleware para verificar se o usuário está autenticado
 function isAuthenticated(req: Request, res: Response, next: NextFunction) {
-  if (req.isAuthenticated()) {
+  if (req.user) {
     return next();
   }
   res.status(401).json({ error: 'Não autorizado' });
@@ -409,7 +410,7 @@ router.post("/:id/available-slots-check", async (req, res) => {
 // Rota de analytics para provider (dashboard)
 router.get("/analytics", isAuthenticated, async (req, res) => {
   console.log('DEBUG /analytics req.user:', req.user);
-  console.log('DEBUG /analytics isAuthenticated:', req.isAuthenticated && req.isAuthenticated());
+  console.log('DEBUG /analytics isAuthenticated:', req.isAuthenticated && req.user);
   try {
     const providerId = req.user.id;
     // Buscar todos os agendamentos do provider

@@ -12,6 +12,7 @@ import { Share, Calendar, ArrowRight, Check, Clock, MapPin, Phone, User, Downloa
 import { getQueryFn } from "@/lib/queryClient";
 import { shareOnWhatsApp } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
+import { apiCall } from '@/lib/api';
 
 interface Appointment {
   id: number;
@@ -89,7 +90,7 @@ export default function BookingSuccessPage() {
     queryKey: ['/api/appointments', parsedAppointmentId],
     queryFn: () => {
       console.log(`Buscando dados do agendamento: ${parsedAppointmentId}`);
-      return fetch(`/api/appointments/${parsedAppointmentId}`)
+      return apiCall(`/appointments/${parsedAppointmentId}`)
         .then(res => {
           if (!res.ok) {
             console.error(`Erro ao buscar agendamento: ${res.status}`);
@@ -115,7 +116,7 @@ export default function BookingSuccessPage() {
     queryKey: ['/api/services', appointment?.serviceId],
     queryFn: () => {
       console.log(`Buscando dados do serviço para sucesso: ${appointment?.serviceId}`);
-      return fetch(`/api/services/${appointment?.serviceId}`)
+      return apiCall(`/services/${appointment?.serviceId}`)
         .then(res => {
           if (!res.ok) {
             console.error(`Erro ao buscar serviço: ${res.status}`);
@@ -141,7 +142,7 @@ export default function BookingSuccessPage() {
     queryKey: ['/api/providers', appointment?.providerId],
     queryFn: () => {
       console.log(`Buscando dados do prestador para sucesso: ${appointment?.providerId}`);
-      return fetch(`/api/providers/${appointment?.providerId}`)
+      return apiCall(`/providers/${appointment?.providerId}`)
         .then(res => {
           if (!res.ok) {
             console.error(`Erro ao buscar prestador: ${res.status}`);

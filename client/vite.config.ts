@@ -21,7 +21,15 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: 3000,
-      https: true, // Forçar HTTPS em desenvolvimento
+      https: false, // Desabilitar HTTPS em desenvolvimento
+      proxy: {
+        '/api': {
+          target: 'http://localhost:5000',
+          changeOrigin: true,
+          secure: false,
+          rewrite: (path) => path.replace(/^\/api/, '/api'),
+        },
+      },
     },
     build: {
       outDir: "dist",

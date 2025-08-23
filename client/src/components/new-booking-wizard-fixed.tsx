@@ -30,6 +30,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
 import { TimeSlotSelector } from "@/components/booking/time-slot-selector";
 import { Service, TimeSlot } from "@/lib/utils";
+import { apiCall } from "@/lib/api";
 import React from "react"; // Added missing import
 
 // Tipos para os passos do assistente
@@ -132,13 +133,13 @@ export function NewBookingWizard({
   // Efeito para buscar dados do serviço pré-selecionado e seu nicho/categoria
   useEffect(() => {
     if (preSelectedServiceId) {
-      fetch(`/api/services/${preSelectedServiceId}`)
+      apiCall(`/services/${preSelectedServiceId}`)
         .then((res) => res.json())
         .then((serviceData) => {
           if (serviceData && serviceData.categoryId) {
             setSelectedCategoryId(serviceData.categoryId);
 
-            fetch(`/api/categories/${serviceData.categoryId}`)
+            apiCall(`/categories/${serviceData.categoryId}`)
               .then((res) => res.json())
               .then((categoryData) => {
                 if (categoryData && categoryData.nicheId) {
@@ -160,7 +161,7 @@ export function NewBookingWizard({
     queryKey: ["/api/niches", selectedNicheId, "categories"],
     queryFn: () => {
       if (!selectedNicheId) return null;
-      return fetch(`/api/niches/${selectedNicheId}/categories`).then((res) =>
+      return apiCall(`/niches/${selectedNicheId}/categories`).then((res) =>
         res.json(),
       );
     },
@@ -172,7 +173,7 @@ export function NewBookingWizard({
     queryKey: ["/api/services", selectedCategoryId],
     queryFn: () => {
       if (!selectedCategoryId) return null;
-      return fetch(`/api/services?categoryId=${selectedCategoryId}`)
+      return apiCall(`/services?categoryId=${selectedCategoryId}`)
         .then((res) => res.json());
     },
     enabled: !!selectedCategoryId,
@@ -237,8 +238,8 @@ export function NewBookingWizard({
         }));
         
         // Primeiro buscar os serviços do prestador usando a rota correta
-        fetch(
-          `/api/provider-services/provider/${provider.id}`,
+        apiCall(
+          `/provider-services/provider/${provider.id}`,
         )
           .then((response) => {
             if (!response.ok) {
@@ -272,8 +273,8 @@ export function NewBookingWizard({
             const finalDuration = providerDuration > 0 ? providerDuration : (totalDuration || 60);
             
             // Verificar se este prestador tem horários disponíveis
-            return fetch(
-              `/api/providers/${provider.id}/time-slots?date=${selectedDate.toISOString().split("T")[0]}&duration=${finalDuration}`
+            return apiCall(
+              `/providers/${provider.id}/time-slots?date=${selectedDate.toISOString().split("T")[0]}&duration=${finalDuration}`
             )
               .then(slotsResponse => slotsResponse.json())
               .then(slots => {
@@ -327,7 +328,7 @@ export function NewBookingWizard({
   const fetchProviderServiceExecutionTime = useCallback(async (providerId: number, serviceId: number) => {
     if (!providerId || !serviceId) return null;
     try {
-      const res = await fetch(`/api/provider-services/provider/${providerId}/service/${serviceId}`);
+      const res = await apiCall(`/provider-services/provider/${providerId}/service/${serviceId}`);
       if (!res.ok) return null;
       const data = await res.json();
       // Preferir executionTime, fallback para duration
@@ -617,7 +618,7 @@ export function NewBookingWizard({
     queryKey: ["/api/provider-fees", selectedProvider],
     queryFn: async () => {
       if (!selectedProvider) return null;
-      const res = await fetch(`/api/provider-fees/${selectedProvider}`);
+      const res = await apiCall(`/provider-fees/${selectedProvider}`);
       if (!res.ok) return null;
       return await res.json();
     },

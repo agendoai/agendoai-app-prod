@@ -1,4 +1,5 @@
 import express from 'express';
+import { isAuthenticated, isClient, isProvider, isAdmin, isSupport, isAdminOrSupport } from '../middleware/jwt-auth';
 import { storage } from '../storage';
 import * as marketplaceService from '../services/marketplace-payment-service';
 
@@ -63,7 +64,7 @@ initializeMarketplaceService();
 
 // Middleware para verificar se o usuário é um prestador
 function isProvider(req: express.Request, res: express.Response, next: express.NextFunction) {
-  if (!req.isAuthenticated()) {
+  if (!req.user) {
     return res.status(401).json({ message: 'Não autenticado' });
   }
   
@@ -284,7 +285,7 @@ router.put('/admin/category-fees/:id', isAdmin, async (req, res) => {
 
 // Rotas administrativas (somente para usuários admin)
 function isAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
-  if (!req.isAuthenticated()) {
+  if (!req.user) {
     return res.status(401).json({ message: 'Não autenticado' });
   }
   

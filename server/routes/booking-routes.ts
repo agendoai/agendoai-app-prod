@@ -9,6 +9,7 @@ import { Router } from 'express';
 import { bookingSystem } from '../intelligent-booking-system';
 import { timeToMinutes, minutesToTime } from '../advanced-slot-generator';
 import { storage } from '../storage';
+import { isAuthenticated, isClient } from '../middleware/jwt-auth';
 
 const router = Router();
 
@@ -88,7 +89,7 @@ router.post('/', async (req, res) => {
     }
     
     // Validar autenticação
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({
         error: 'É necessário estar autenticado para agendar'
       });
@@ -239,7 +240,7 @@ router.put('/:appointmentId/reschedule', async (req, res) => {
     }
     
     // Validar autenticação
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({
         error: 'É necessário estar autenticado para reagendar'
       });
@@ -290,7 +291,7 @@ router.post('/consecutive', async (req, res) => {
     }
     
     // Validar autenticação
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({
         error: 'É necessário estar autenticado para agendar'
       });
@@ -344,7 +345,7 @@ router.post('/generic-provider', async (req, res) => {
     }
     
     // Validar autenticação
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({
         error: 'É necessário estar autenticado para agendar'
       });
@@ -436,7 +437,7 @@ router.patch('/:appointmentId/status', async (req, res) => {
     if (!status) {
       return res.status(400).json({ error: 'Status é obrigatório' });
     }
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ error: 'É necessário estar autenticado' });
     }
     const updated = await storage.updateAppointmentStatus(Number(appointmentId), status);

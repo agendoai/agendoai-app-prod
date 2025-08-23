@@ -2,6 +2,7 @@
  * Rotas para gerenciamento de notificações push
  */
 import { Router } from 'express';
+import { isAuthenticated, isClient, isProvider, isAdmin, isSupport, isAdminOrSupport } from '../middleware/jwt-auth';
 import { pushNotificationService } from '../push-notification-service';
 import { createLogger } from '../logger';
 
@@ -33,7 +34,7 @@ pushRouter.get('/vapid-public-key', (req, res) => {
 pushRouter.post('/subscribe', async (req, res) => {
   try {
     // Verificar se o usuário está autenticado
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ error: 'Usuário não autenticado' });
     }
     
@@ -75,7 +76,7 @@ pushRouter.post('/subscribe', async (req, res) => {
 pushRouter.post('/unsubscribe', async (req, res) => {
   try {
     // Verificar se o usuário está autenticado
-    if (!req.isAuthenticated()) {
+    if (!req.user) {
       return res.status(401).json({ error: 'Usuário não autenticado' });
     }
     
@@ -104,7 +105,7 @@ pushRouter.post('/unsubscribe', async (req, res) => {
 pushRouter.post('/send/:userId', async (req, res) => {
   try {
     // Verificar se o usuário está autenticado e é admin
-    if (!req.isAuthenticated() || req.user!.type !== 'admin') {
+    if (!req.user || req.user!.type !== 'admin') {
       return res.status(403).json({ error: 'Acesso negado' });
     }
     
@@ -164,7 +165,7 @@ pushRouter.post('/send/:userId', async (req, res) => {
 pushRouter.post('/generate-keys', async (req, res) => {
   try {
     // Verificar se o usuário está autenticado e é admin
-    if (!req.isAuthenticated() || req.user!.type !== 'admin') {
+    if (!req.user || req.user!.type !== 'admin') {
       return res.status(403).json({ error: 'Acesso negado' });
     }
     

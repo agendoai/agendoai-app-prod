@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ChevronRight, ArrowLeft, Briefcase } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useEffect, useState } from "react";
+import { apiCall } from '@/lib/api';
 
 export default function CategoriesPage() {
   const [location, setLocation] = useLocation();
@@ -31,7 +32,7 @@ export default function CategoriesPage() {
     queryKey: ["/api/niches", selectedNicheId],
     queryFn: async () => {
       if (!selectedNicheId) return null;
-      const response = await fetch(`/api/niches/${selectedNicheId}`);
+      const response = await apiCall(`/niches/${selectedNicheId}`);
       if (!response.ok) throw new Error('Falha ao carregar nicho');
       return response.json();
     },

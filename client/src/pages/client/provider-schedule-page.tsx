@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AITimeRecommendations } from "@/components/ai-time-recommendations";
 import { useAuth } from "@/hooks/use-auth";
+import { apiCall } from '@/lib/api';
 
 interface TimeSlot {
   startTime: string;
@@ -102,7 +103,7 @@ export default function ProviderSchedulePage() {
   const { data: providerData, isLoading: isLoadingProvider, error: providerError } = useQuery<ProviderData>({
     queryKey: ['/api/providers', parsedProviderId],
     queryFn: () => {
-      return fetch(`/api/providers/${parsedProviderId}`)
+      return apiCall(`/providers/${parsedProviderId}`)
         .then(res => {
           if (!res.ok) {
             throw new Error(`Erro ao buscar prestador: ${res.status}`);
@@ -123,7 +124,7 @@ export default function ProviderSchedulePage() {
   const { data: service, isLoading: isLoadingService, error: serviceError } = useQuery<Service>({
     queryKey: ['/api/services', parsedServiceId],
     queryFn: () => {
-      return fetch(`/api/services/${parsedServiceId}`)
+      return apiCall(`/services/${parsedServiceId}`)
         .then(res => {
           if (!res.ok) {
             throw new Error(`Erro ao buscar serviço: ${res.status}`);
@@ -144,7 +145,7 @@ export default function ProviderSchedulePage() {
   const { data: availabilityData, isLoading: isLoadingAvailability } = useQuery<AvailabilitySlot[]>({
     queryKey: ['/api/providers', parsedProviderId, 'availability'],
     queryFn: () => {
-      return fetch(`/api/providers/${parsedProviderId}/availability`).then(res => {
+      return apiCall(`/providers/${parsedProviderId}/availability`).then(res => {
         if (res.status === 401) {
           throw new Error("Unauthorized");
         }

@@ -10,6 +10,7 @@ import { z } from 'zod';
 import { storage } from '../storage';
 import { insertProviderServiceSchema, type ProviderService } from '../../shared/schema';
 import { getEnrichedProviderServices, updateOrCreateProviderService, removeProviderService } from '../services/provider-service-manager';
+import { isAuthenticated, isProvider } from '../middleware/jwt-auth';
 
 const router = Router();
 
@@ -48,7 +49,7 @@ router.get('/provider/:providerId', async (req, res) => {
  */
 router.put('/:serviceId', async (req, res) => {
   try {
-    if (!req.isAuthenticated() || req.user.userType !== 'provider') {
+    if (!req.user || req.user.userType !== 'provider') {
       return res.status(401).json({ error: 'Não autorizado' });
     }
     
@@ -112,7 +113,7 @@ router.put('/:serviceId', async (req, res) => {
  */
 router.delete('/:serviceId', async (req, res) => {
   try {
-    if (!req.isAuthenticated() || req.user.userType !== 'provider') {
+    if (!req.user || req.user.userType !== 'provider') {
       return res.status(401).json({ error: 'Não autorizado' });
     }
     
@@ -145,7 +146,7 @@ router.delete('/:serviceId', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    if (!req.isAuthenticated() || req.user.userType !== 'provider') {
+    if (!req.user || req.user.userType !== 'provider') {
       return res.status(401).json({ error: 'Não autorizado' });
     }
     

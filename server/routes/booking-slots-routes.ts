@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { isAuthenticated, isClient, isProvider, isAdmin, isSupport, isAdminOrSupport } from '../middleware/jwt-auth';
 import { z } from 'zod';
 import { storage } from '../storage';
 import { createLogger } from '../logger';
@@ -10,7 +11,7 @@ export const bookingSlotsRouter = Router();
  * Middleware para garantir que o usuário está autenticado
  */
 const isAuthenticated = (req: any, res: any, next: any) => {
-  if (req.isAuthenticated() && req.user) return next();
+  if (req.user && req.user) return next();
   return res.status(401).json({ error: "Não autorizado" });
 };
 
