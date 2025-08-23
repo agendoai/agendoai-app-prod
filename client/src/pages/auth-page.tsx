@@ -30,6 +30,10 @@ const registerSchema = z
   });
 
 export default function AuthPage() {
+  console.log("🔵 ===== AUTH PAGE CARREGADA =====");
+  console.log("🌐 URL atual:", window.location.href);
+  console.log("🔧 NODE_ENV:", process.env.NODE_ENV);
+  
   const [tab, setTab] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -38,6 +42,13 @@ export default function AuthPage() {
   
   // Verificação de autenticação usando o hook useAuth
   const { user, isLoading, loginMutation, registerMutation } = useAuth();
+  
+  console.log("🔍 Hook useAuth carregado:", {
+    user: user ? { id: user.id, email: user.email } : null,
+    isLoading,
+    hasLoginMutation: !!loginMutation,
+    hasRegisterMutation: !!registerMutation
+  });
   
   // Efeito para redirecionar usuário logado
   React.useEffect(() => {
@@ -96,10 +107,19 @@ export default function AuthPage() {
 
   // Login handler
   function onLoginSubmit(data: any) {
+    console.log("🔵 ===== LOGIN SUBMIT CHAMADO =====");
+    console.log("📤 Dados do formulário:", { email: data.email, password: "***" });
+    console.log("🔍 loginMutation existe?", !!loginMutation);
+    console.log("🔍 loginMutation.mutate existe?", !!loginMutation?.mutate);
+    
     setLoading(true);
     
+    console.log("🚀 Chamando loginMutation.mutate...");
     loginMutation.mutate(data, {
-      onSuccess: (user) => {
+      onSuccess: (user: any) => {
+        console.log("🎉 ===== ONSUCCESS DA PÁGINA CHAMADO =====");
+        console.log("👤 Usuário recebido:", user);
+        
         // Mostrar toast de sucesso
         toast({
           title: "Login realizado com sucesso!",
@@ -128,7 +148,7 @@ export default function AuthPage() {
     const { confirmPassword, ...registerData } = data;
     
     registerMutation.mutate(registerData, {
-      onSuccess: (user) => {
+      onSuccess: (user: any) => {
         // Mostrar toast de sucesso
         toast({
           title: "Conta criada com sucesso!",
@@ -241,18 +261,57 @@ export default function AuthPage() {
                   <p className="text-xs text-red-500 mt-1">{loginForm.formState.errors.password.message as string}</p>
                 )}
               </div>
-              <Button 
-                type="submit" 
-                className="w-full h-10 mt-2 bg-[#58c9d1] text-white font-medium shadow-md hover:bg-[#58c9d1]/90 transition-all" 
-                disabled={loading}
-              >
-                {loading ? (
-                  <span className="flex items-center gap-2 justify-center text-sm">
-                    <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                    Entrando...
-                  </span>
-                ) : "Entrar"}
-              </Button>
+                             <Button 
+                 type="submit" 
+                 className="w-full h-10 mt-2 bg-[#58c9d1] text-white font-medium shadow-md hover:bg-[#58c9d1]/90 transition-all" 
+                 disabled={loading}
+               >
+                 {loading ? (
+                   <span className="flex items-center gap-2 justify-center text-sm">
+                     <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                     Entrando...
+                   </span>
+                 ) : "Entrar"}
+               </Button>
+               
+               {/* Botão de teste para debug */}
+               <Button 
+                 type="button" 
+                 className="w-full h-8 mt-2 bg-red-500 text-white text-xs font-medium shadow-md hover:bg-red-600 transition-all" 
+                 onClick={() => {
+                   console.log("🧪 ===== TESTE MANUAL DE TOKEN =====");
+                   const testToken = "test-token-123";
+                   
+                   try {
+                     localStorage.setItem('authToken', testToken);
+                     console.log("✅ localStorage testado");
+                   } catch (e) {
+                     console.error("❌ localStorage falhou:", e);
+                   }
+                   
+                   try {
+                     sessionStorage.setItem('authToken', testToken);
+                     console.log("✅ sessionStorage testado");
+                   } catch (e) {
+                     console.error("❌ sessionStorage falhou:", e);
+                   }
+                   
+                   try {
+                     window.authToken = testToken;
+                     console.log("✅ window.authToken testado");
+                   } catch (e) {
+                     console.error("❌ window.authToken falhou:", e);
+                   }
+                   
+                   console.log("🔍 Verificação:", {
+                     localStorage: localStorage.getItem('authToken'),
+                     sessionStorage: sessionStorage.getItem('authToken'),
+                     global: window.authToken
+                   });
+                 }}
+               >
+                 🧪 Teste Manual de Token
+               </Button>
             </form>
           </>
         ) : (

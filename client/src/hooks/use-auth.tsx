@@ -39,6 +39,10 @@ type RegisterData = {
 export const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  console.log("🔵 ===== AUTH PROVIDER INICIALIZANDO =====");
+  console.log("🌐 URL atual:", window.location.href);
+  console.log("🔧 NODE_ENV:", process.env.NODE_ENV);
+  
   const { toast } = useToast();
   
   console.log("AuthProvider - Inicializando...");
@@ -129,6 +133,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation({
     mutationFn: async (credentials: LoginData) => {
+      console.log("🚀 INICIANDO LOGIN MUTATION...");
       console.log("Enviando requisição de login para o servidor:", {
         email: credentials.email,
         // senha omitida por segurança
@@ -151,6 +156,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.log("🔍 Response completo:", JSON.stringify(response, null, 2));
         
         // Salvar token de forma simples e direta
+        console.log("🔑 INICIANDO PROCESSO DE SALVAMENTO DO TOKEN...");
+        console.log("🔍 Response existe?", !!response);
+        console.log("🔍 Response.token existe?", !!response?.token);
+        
         if (response && response.token) {
           console.log('🔑 Salvando token...');
           
@@ -195,6 +204,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           console.log('❌ Nenhum token encontrado na resposta');
           console.log('🔍 Estrutura da resposta:', Object.keys(response || {}));
           console.log('🔍 Response.token:', response?.token);
+          console.log('🔍 Response completo para debug:', JSON.stringify(response, null, 2));
         }
         
         return response.user;
@@ -204,6 +214,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     },
     onSuccess: (user: User) => {
+      console.log("🎉 ONSUCCESS CHAMADO!");
       console.log("Login bem-sucedido, atualizando estado:", user);
       
       // Atualizar o estado do usuário diretamente
