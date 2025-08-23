@@ -36,9 +36,7 @@ createRoot(rootElement).render(
   </StrictMode>,
 );
 
-// Optional: Service Worker registration (for PWA) - DESABILITADO TEMPORARIAMENTE
-console.log("🔧 Service Worker desabilitado temporariamente para debug");
-/*
+// Optional: Service Worker registration (for PWA)
 if ("serviceWorker" in navigator && import.meta.env.PROD) {
   window.addEventListener("load", () => {
     // Verificar se estamos em HTTPS antes de registrar o Service Worker
@@ -55,4 +53,3 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
     }
   });
 }
-*/

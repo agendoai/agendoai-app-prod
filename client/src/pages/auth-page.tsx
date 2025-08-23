@@ -50,6 +50,23 @@ export default function AuthPage() {
     hasRegisterMutation: !!registerMutation
   });
   
+  // Monitorar o estado da mutation de login usando uma abordagem mais simples
+  React.useEffect(() => {
+    // Verificar se a mutation foi bem-sucedida observando o estado do usuário
+    if (user && !isLoading) {
+      console.log("🎉 ===== LOGIN/REGISTRO SUCESSO DETECTADO =====");
+      console.log("👤 Usuário logado:", user);
+      
+      // Mostrar toast de sucesso
+      toast({
+        title: "Operação realizada com sucesso!",
+        description: `Bem-vindo(a) ${user?.name || user?.email}!`,
+      });
+      
+      setLoading(false);
+    }
+  }, [user, isLoading, toast]);
+  
   // Efeito para redirecionar usuário logado
   React.useEffect(() => {
     if (user && !isLoading) {
@@ -115,31 +132,8 @@ export default function AuthPage() {
     setLoading(true);
     
     console.log("🚀 Chamando loginMutation.mutate...");
-    loginMutation.mutate(data, {
-      onSuccess: (user: any) => {
-        console.log("🎉 ===== ONSUCCESS DA PÁGINA CHAMADO =====");
-        console.log("👤 Usuário recebido:", user);
-        
-        // Mostrar toast de sucesso
-        toast({
-          title: "Login realizado com sucesso!",
-          description: `Bem-vindo(a) de volta, ${user?.name || user?.email}!`,
-        });
-        
-        // O redirecionamento será feito automaticamente pelo hook useAuth
-        console.log("Login concluído, aguardando redirecionamento automático...");
-        setLoading(false);
-      },
-      onError: (error: any) => {
-        console.error("Erro no login:", error);
-        toast({ 
-          title: "Erro ao entrar", 
-          description: error.message || "Verifique seus dados.", 
-          variant: "destructive" 
-        });
-        setLoading(false);
-      }
-    });
+    // Chamar apenas com os dados, sem sobrescrever os callbacks
+    loginMutation.mutate(data);
   }
 
   // Registro handler
@@ -147,28 +141,8 @@ export default function AuthPage() {
     setLoading(true);
     const { confirmPassword, ...registerData } = data;
     
-    registerMutation.mutate(registerData, {
-      onSuccess: (user: any) => {
-        // Mostrar toast de sucesso
-        toast({
-          title: "Conta criada com sucesso!",
-          description: "Bem-vindo(a) ao AgendoAI!",
-        });
-        
-        // O redirecionamento será feito automaticamente pelo hook useAuth
-        console.log("Registro concluído, aguardando redirecionamento automático...");
-        setLoading(false);
-      },
-      onError: (error: any) => {
-        console.error("Erro no registro:", error);
-        toast({ 
-          title: "Erro ao cadastrar", 
-          description: error.message || "Verifique seus dados.", 
-          variant: "destructive" 
-        });
-        setLoading(false);
-      }
-    });
+    // Chamar apenas com os dados, sem sobrescrever os callbacks
+    registerMutation.mutate(registerData);
   }
 
   return (
@@ -274,44 +248,7 @@ export default function AuthPage() {
                  ) : "Entrar"}
                </Button>
                
-               {/* Botão de teste para debug */}
-               <Button 
-                 type="button" 
-                 className="w-full h-8 mt-2 bg-red-500 text-white text-xs font-medium shadow-md hover:bg-red-600 transition-all" 
-                 onClick={() => {
-                   console.log("🧪 ===== TESTE MANUAL DE TOKEN =====");
-                   const testToken = "test-token-123";
-                   
-                   try {
-                     localStorage.setItem('authToken', testToken);
-                     console.log("✅ localStorage testado");
-                   } catch (e) {
-                     console.error("❌ localStorage falhou:", e);
-                   }
-                   
-                   try {
-                     sessionStorage.setItem('authToken', testToken);
-                     console.log("✅ sessionStorage testado");
-                   } catch (e) {
-                     console.error("❌ sessionStorage falhou:", e);
-                   }
-                   
-                   try {
-                     window.authToken = testToken;
-                     console.log("✅ window.authToken testado");
-                   } catch (e) {
-                     console.error("❌ window.authToken falhou:", e);
-                   }
-                   
-                   console.log("🔍 Verificação:", {
-                     localStorage: localStorage.getItem('authToken'),
-                     sessionStorage: sessionStorage.getItem('authToken'),
-                     global: window.authToken
-                   });
-                 }}
-               >
-                 🧪 Teste Manual de Token
-               </Button>
+               
             </form>
           </>
         ) : (
