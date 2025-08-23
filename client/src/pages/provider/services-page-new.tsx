@@ -314,8 +314,7 @@ export default function ServicesPageNew() {
             executionTime,
             breakTime,
             isActive: true
-          }),
-          credentials: "include" // Importante para enviar cookies de autenticação
+          })
         });
         
         console.log("Status da resposta:", response.status);
@@ -335,8 +334,7 @@ export default function ServicesPageNew() {
                 executionTime,
                 breakTime,
                 isActive: true
-              }),
-              credentials: "include"
+              })
             });
             
             if (!altResponse.ok) {

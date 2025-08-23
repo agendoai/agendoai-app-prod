@@ -54,9 +54,7 @@ export default function AnalyticsPage() {
     queryKey: ["/api/provider/analytics", period],
     queryFn: async ({ queryKey }) => {
       const [_, selectedPeriod] = queryKey;
-      const response = await fetch(`/api/providers/analytics?period=${selectedPeriod}`, {
-        credentials: "include"
-      });
+      const response = await fetch(`/api/providers/analytics?period=${selectedPeriod}`);
       if (!response.ok) {
         throw new Error('Falha ao carregar dados de análise');
       }

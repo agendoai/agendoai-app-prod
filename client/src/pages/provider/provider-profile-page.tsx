@@ -245,7 +245,6 @@ export default function ProviderProfilePage() {
       const response = await fetch(`/api/users/${user?.id}/profile-image`, {
         method: 'POST',
         body: formData,
-        credentials: 'include',
       });
       
       if (!response.ok) {
@@ -294,7 +293,6 @@ export default function ProviderProfilePage() {
       const response = await fetch(`/api/providers/${user?.id}/cover-image`, {
         method: 'POST',
         body: formData,
-        credentials: 'include',
       });
       
       if (!response.ok) {

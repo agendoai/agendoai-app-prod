@@ -148,7 +148,6 @@ export default function AddServicePage() {
       const createServiceRes = await fetch('/api/services', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           name: selectedTemplate.name,
           description: selectedTemplate.description,
@@ -179,7 +178,6 @@ export default function AddServicePage() {
       const response = await fetch(`/api/provider-services`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
         body: JSON.stringify({
           providerId: user?.id,
           serviceId,

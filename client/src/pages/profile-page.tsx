@@ -273,7 +273,6 @@ export default function ProfilePage() {
       const response = await fetch(`/api/users/${user?.id}/profile-image`, {
         method: 'POST',
         body: formData,
-        credentials: 'include',
       });
       if (!response.ok) {
         const errorData = await response.json();

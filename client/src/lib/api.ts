@@ -120,7 +120,6 @@ export async function createAsaasProvider(providerData: {
     headers: {
       'Content-Type': 'application/json',
     },
-    credentials: 'include',
     body: JSON.stringify(providerData),
   });
 
