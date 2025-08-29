@@ -57,6 +57,7 @@ app.use(cors({
       'http://localhost:3001',
       'https://agendoai-app-prod-6qoh.vercel.app',
       'https://app.tbsnet.com.br',
+      'https://www.agendoai.pagina-oficial.com',
       process.env.FRONTEND_URL || 'http://localhost:3000'
     ];
     
