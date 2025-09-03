@@ -7,6 +7,8 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { NotificationProvider } from "@/hooks/use-notifications";
 import { AnimatePresence } from "framer-motion";
 import { HelmetProvider } from "react-helmet-async";
+import { ConnectivityBanner } from "@/components/ui/connectivity-banner";
+import { useModuleErrorHandler } from "@/hooks/use-module-error-handler";
 
 // Componentes essenciais carregados imediatamente
 import SplashPage from "@/pages/splash-page";
@@ -123,13 +125,63 @@ const SupportDashboardPage = lazy(() => import("@/pages/support/support-dashboar
 
 // Componente de carregamento para suspense
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
+import { GlobalErrorFallback } from "@/components/ui/global-error-fallback";
+
+// Error Boundary para componentes lazy
+class LazyErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback?: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  state = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('Erro ao carregar componente lazy:', error);
+    this.setState({ error });
+  }
+
+  handleRetry = () => {
+    this.setState({ hasError: false, error: null });
+  };
+
+  render() {
+    if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+      
+      return (
+        <GlobalErrorFallback
+          error={this.state.error}
+          resetError={this.handleRetry}
+          title="Erro ao carregar página"
+          message="Não foi possível carregar esta página. Tente novamente."
+        />
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 // Envolve o componente lazy em Suspense para exibir indicador de carregamento
 const LazyWrapper = ({ component: Component, ...props }: { component: React.ComponentType<any>; [key: string]: any }) => {
   return (
-    <Suspense fallback={<LoadingSpinner />}>
-      <Component {...props} />
-    </Suspense>
+    <LazyErrorBoundary>
+      <Suspense fallback={
+        <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+          <div className="text-center">
+            <LoadingSpinner size="lg" />
+            <p className="mt-4 text-gray-600">Carregando página...</p>
+          </div>
+        </div>
+      }>
+        <Component {...props} />
+      </Suspense>
+    </LazyErrorBoundary>
   );
 };
 
@@ -629,6 +681,8 @@ function RouterWithTransitions() {
 
 function App() {
   const [location] = useLocation();
+  const moduleErrorHandler = useModuleErrorHandler();
+  
   // Verifica se estamos na rota de admin ou suporte para aplicar um layout mais amplo
   const isAdmin = location.startsWith('/admin');
   const isSupport = location.startsWith('/support');
@@ -638,12 +692,53 @@ function App() {
                         location.includes('/onboarding-wizard') ||
                         location.includes('/smart-booking-test');
 
+  // Se houver erro crítico de módulo, mostrar tela de erro
+  if (moduleErrorHandler.hasCriticalError) {
+    return (
+      <div className="min-h-screen bg-red-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-6 text-center">
+          <div className="text-red-500 mb-4">
+            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          
+          <h1 className="text-xl font-bold text-gray-900 mb-2">
+            Erro crítico detectado
+          </h1>
+          
+          <p className="text-gray-600 mb-4">
+            Ocorreu um erro ao carregar módulos essenciais da aplicação. 
+            Isso pode ser causado por problemas de rede ou cache corrompido.
+          </p>
+
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={moduleErrorHandler.retryFailedModules}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+            >
+              Tentar novamente
+            </button>
+            
+            <button
+              onClick={() => window.location.href = '/'}
+              className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium py-2 px-4 rounded-lg transition-colors"
+            >
+              Voltar ao início
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <HelmetProvider>
         <NotificationProvider>
           <AuthProvider>
             <div className={`${needsFullWidth ? 'w-full' : 'max-w-md mx-auto'} min-h-screen bg-white`}>
+              <ConnectivityBanner />
               <RouterWithTransitions />
               <Toaster />
             </div>

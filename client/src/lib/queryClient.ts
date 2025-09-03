@@ -1,5 +1,6 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
 import { apiCall, apiJson } from "./api";
+import { ERROR_CONFIG, shouldRetryError, calculateRetryDelay, clearCacheForError } from "./error-config";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -37,7 +38,6 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   try {
-    
     // Verificar o estado de autenticação localmente antes da requisição
     const userDataFromCache = queryClient.getQueryData(["/api/user"]);
     
@@ -118,11 +118,46 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "returnNull" }), // Retornar null em vez de throw para 401
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: 0, // Sempre buscar dados frescos
-      retry: false,
+      staleTime: ERROR_CONFIG.TIMEOUT.API_CALL, // Timeout para queries
+      retry: (failureCount, error) => {
+        // Usar configuração centralizada para retry
+        return shouldRetryError(error, failureCount);
+      },
+      retryDelay: (attemptIndex) => calculateRetryDelay(attemptIndex),
+      networkMode: 'online', // Só tentar quando online
+      gcTime: 5 * 60 * 1000, // 5 minutos de cache
     },
     mutations: {
-      retry: false,
+      retry: (failureCount, error) => {
+        // Retry para mutações apenas em casos específicos
+        if (error instanceof Error) {
+          // Retry para erros de rede em mutações
+          if (error.message.includes('Failed to fetch') || 
+              error.message.includes('Network Error')) {
+            return failureCount < ERROR_CONFIG.RETRY.MAX_ATTEMPTS;
+          }
+        }
+        return false;
+      },
+      retryDelay: ERROR_CONFIG.RETRY.BASE_DELAY,
+    },
+  },
+});
+
+// Interceptor global para limpar cache em caso de erro
+queryClient.setDefaultOptions({
+  queries: {
+    onError: (error) => {
+      if (error instanceof Error) {
+        clearCacheForError(error);
+      }
+    },
+  },
+  mutations: {
+    onError: (error) => {
+      if (error instanceof Error) {
+        clearCacheForError(error);
+      }
     },
   },
 });
