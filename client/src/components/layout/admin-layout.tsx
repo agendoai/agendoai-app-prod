@@ -49,6 +49,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from '@/hooks/use-toast';
 
 type AdminLayoutProps = {
   children: ReactNode;
@@ -70,6 +71,7 @@ export default function AdminLayout({
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
   
   // Abrir automaticamente o submenu quando a rota for de documentação
   useEffect(() => {
@@ -110,14 +112,30 @@ export default function AdminLayout({
     setLogoutDialogOpen(true);
   };
 
-          const confirmLogout = () => {
-          setLogoutDialogOpen(false);
-          logoutMutation.mutate(undefined, {
-            onError: (error) => {
-              console.error("Erro no logout:", error);
-            }
-          });
-        };
+  const confirmLogout = () => {
+    setLogoutDialogOpen(false);
+    
+    // Remover token diretamente do localStorage e sessionStorage
+    localStorage.removeItem('authToken');
+    sessionStorage.removeItem('authToken');
+    if (window.authToken) {
+      window.authToken = undefined;
+    }
+    
+    console.log('🔑 Token removido diretamente do localStorage e sessionStorage');
+    
+    // Mostrar toast de sucesso
+    toast({
+      title: "Logout realizado",
+      description: "Você saiu da sua conta com sucesso.",
+    });
+    
+    // Forçar recarregamento da página após um pequeno delay
+    setTimeout(() => {
+      console.log('🔄 Recarregando página...');
+      window.location.reload();
+    }, 500);
+  };
   
   // Verificar se a rota atual corresponde a algum item de navegação
   const isActive = (path: string) => {

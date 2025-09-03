@@ -63,14 +63,14 @@ import ProviderLayout from "@/components/layout/provider-layout";
 import { apiCall } from '@/lib/api';
 
 export default function ProviderProfilePage() {
-  const [, setLocation] = useLocation();
   const { user, logoutMutation } = useAuth();
+  const [location, setLocation] = useLocation();
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const { toast } = useToast();
   
   // State for editing
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState("business");
-  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   
   // Refs para os inputs de arquivo
   const profileImageInputRef = useRef<HTMLInputElement>(null);
@@ -217,18 +217,30 @@ export default function ProviderProfilePage() {
     setLogoutDialogOpen(true);
   };
   
-          const confirmLogout = () => {
-          logoutMutation.mutate(undefined, {
-            onError: (error) => {
-              toast({
-                title: "Erro no logout",
-                description: "Ocorreu um erro ao sair da conta.",
-                variant: "destructive",
-              });
-            }
-          });
-          setLogoutDialogOpen(false);
-        };
+  const confirmLogout = () => {
+    setLogoutDialogOpen(false);
+    
+    // Remover token diretamente do localStorage e sessionStorage
+    localStorage.removeItem('authToken');
+    sessionStorage.removeItem('authToken');
+    if (window.authToken) {
+      window.authToken = undefined;
+    }
+    
+    console.log('🔑 Token removido diretamente do localStorage e sessionStorage');
+    
+    // Mostrar toast de sucesso
+    toast({
+      title: "Logout realizado",
+      description: "Você saiu da sua conta com sucesso.",
+    });
+    
+    // Forçar recarregamento da página após um pequeno delay
+    setTimeout(() => {
+      console.log('🔄 Recarregando página...');
+      window.location.reload();
+    }, 500);
+  };
   
   // Função para upload de imagem de perfil
   const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {

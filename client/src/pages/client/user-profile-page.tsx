@@ -31,7 +31,7 @@ import ClientLayout from "@/components/layout/client-layout";
 
 export default function UserProfilePage() {
   const [, setLocation] = useLocation();
-  const { user, logoutMutation, isLoading } = useAuth();
+  const { user, isLoading } = useAuth();
   const { toast } = useToast();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   
@@ -124,28 +124,50 @@ export default function UserProfilePage() {
     setLogoutDialogOpen(true);
   };
   
-          const confirmLogout = () => {
-          try {
-            setLogoutDialogOpen(false);
-            
-            // Executar logout em background
-            logoutMutation.mutate(undefined, {
-              onError: (error) => {
-                toast({
-                  title: "Erro no logout",
-                  description: "Ocorreu um erro ao sair da conta.",
-                  variant: "destructive",
-                });
-              }
-            });
-          } catch (error) {
-            toast({
-              title: "Erro no logout",
-              description: "Ocorreu um erro ao sair da conta.",
-              variant: "destructive",
-            });
-          }
-        };
+  const confirmLogout = () => {
+    console.log('🚀 Função confirmLogout executada!');
+    
+    try {
+      setLogoutDialogOpen(false);
+      
+      // Verificar se o token existe antes de remover
+      const tokenBefore = localStorage.getItem('authToken');
+      console.log('🔍 Token antes da remoção:', tokenBefore ? 'EXISTE' : 'NÃO EXISTE');
+      
+      // Remover token diretamente do localStorage e sessionStorage
+      localStorage.removeItem('authToken');
+      sessionStorage.removeItem('authToken');
+      if (window.authToken) {
+        window.authToken = undefined;
+      }
+      
+      // Verificar se o token foi removido
+      const tokenAfter = localStorage.getItem('authToken');
+      console.log('🔍 Token após a remoção:', tokenAfter ? 'AINDA EXISTE' : 'REMOVIDO COM SUCESSO');
+      
+      console.log('🔑 Token removido diretamente do localStorage e sessionStorage');
+      
+      // Mostrar toast de sucesso
+      toast({
+        title: "Logout realizado",
+        description: "Você saiu da sua conta com sucesso.",
+      });
+      
+      // Forçar recarregamento da página após um pequeno delay
+      setTimeout(() => {
+        console.log('🔄 Recarregando página...');
+        window.location.reload();
+      }, 500);
+      
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+      toast({
+        title: "Erro no logout",
+        description: "Ocorreu um erro ao sair da conta.",
+        variant: "destructive",
+      });
+    }
+  };
 
   // Verificar se o usuário está carregado
   if (!user) {
@@ -295,11 +317,10 @@ export default function UserProfilePage() {
           variant="outline"
           className="w-full border-2 border-red-500 text-red-600 font-bold py-4 rounded-2xl text-lg hover:bg-red-50 hover:text-red-700 transition-colors mb-4"
           onClick={handleLogout}
-          disabled={logoutMutation.isPending}
           aria-label="Sair da conta"
         >
           <LogOut className="mr-2 h-5 w-5" />
-          {logoutMutation.isPending ? "Saindo..." : "Sair da conta"}
+          Sair da conta
         </Button>
       </div>
       
@@ -316,7 +337,6 @@ export default function UserProfilePage() {
             <Button 
               variant="outline" 
               onClick={() => setLogoutDialogOpen(false)}
-              disabled={logoutMutation.isPending}
               className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50 h-12"
             >
               Cancelar
@@ -324,17 +344,9 @@ export default function UserProfilePage() {
             <Button 
               variant="destructive" 
               onClick={confirmLogout}
-              disabled={logoutMutation.isPending}
               className="flex-1 bg-red-600 hover:bg-red-700 text-white h-12"
             >
-              {logoutMutation.isPending ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Saindo...
-                </>
-              ) : (
-                "Sair"
-              )}
+              Sair
             </Button>
           </DialogFooter>
         </DialogContent>

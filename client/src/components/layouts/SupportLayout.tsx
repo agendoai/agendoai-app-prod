@@ -26,11 +26,13 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SupportLayout({ children }: { children: React.ReactNode }) {
   const { user, logoutMutation } = useAuth();
-  const [location, navigate] = useLocation();
+  const [location, setLocation] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { toast } = useToast();
   
   // Consulta para buscar mensagens de suporte pendentes
   const { data: pendingMessages } = useQuery({
@@ -45,21 +47,32 @@ export default function SupportLayout({ children }: { children: React.ReactNode 
     if (user) {
       if (user.userType !== "support") {
         // Se não for usuário de suporte, redireciona
-        navigate("/");
+        setLocation("/");
       }
     }
-  }, [user, navigate]);
+  }, [user, setLocation]);
 
   const handleLogout = async () => {
-    logoutMutation.mutate(undefined, {
-      onSuccess: () => {
-        // Forçar atualização da página após logout
-        window.location.reload();
-      },
-      onError: (error) => {
-        console.error("Erro no logout:", error);
-      }
+    // Remover token diretamente do localStorage e sessionStorage
+    localStorage.removeItem('authToken');
+    sessionStorage.removeItem('authToken');
+    if (window.authToken) {
+      window.authToken = undefined;
+    }
+    
+    console.log('🔑 Token removido diretamente do localStorage e sessionStorage');
+    
+    // Mostrar toast de sucesso
+    toast({
+      title: "Logout realizado",
+      description: "Você saiu da sua conta com sucesso.",
     });
+    
+    // Forçar recarregamento da página após um pequeno delay
+    setTimeout(() => {
+      console.log('🔄 Recarregando página...');
+      window.location.reload();
+    }, 500);
   };
 
   // Links do menu de navegação
@@ -173,7 +186,7 @@ export default function SupportLayout({ children }: { children: React.ReactNode 
               <DropdownMenuSeparator />
               {pendingCount > 0 ? (
                 <>
-                  <DropdownMenuItem className="cursor-pointer" onClick={() => navigate("/support/pending")}>
+                  <DropdownMenuItem className="cursor-pointer" onClick={() => setLocation("/support/pending")}>
                     Você tem {pendingCount} {pendingCount === 1 ? "mensagem" : "mensagens"} pendente{pendingCount === 1 ? "" : "s"}
                   </DropdownMenuItem>
                 </>

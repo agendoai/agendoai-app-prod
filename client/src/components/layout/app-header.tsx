@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger 
 } from "@/components/ui/dropdown-menu";
 import { motion } from "framer-motion";
+import { useToast } from "@/hooks/use-toast";
 
 export interface AppHeaderProps {
   title?: string;
@@ -42,21 +43,16 @@ export interface AppHeaderProps {
   children?: React.ReactNode;
 }
 
-export default function AppHeader({ 
+function AppHeader({ 
   title, 
-  showBackButton = false,
-  backUrl,
-  showUserInfo = false,
-  showNotificationIcon = false,
-  showMenuIcon = true,
-  userType = "client",
-  className = "",
-  onBack,
-  backButtonAction,
+  showBackButton = false, 
+  showUserInfo = true, 
   transparent = false,
+  className = ""
 }: AppHeaderProps) {
-  const [, setLocation] = useLocation();
-  const { user, logoutMutation } = useAuth();
+  const { user } = useAuth();
+  const [location, setLocation] = useLocation();
+  const { toast } = useToast();
   const { unreadCount } = useNotifications();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   
@@ -74,18 +70,34 @@ export default function AppHeader({
   
   const handleLogout = () => {
     try {
-      // Executar a mutação de logout
-      logoutMutation.mutate(undefined, {
-        onSuccess: () => {
-          // Forçar atualização da página após logout
-          window.location.reload();
-        },
-        onError: (error) => {
-          console.error("Erro no logout:", error);
-        }
+      // Remover token diretamente do localStorage e sessionStorage
+      localStorage.removeItem('authToken');
+      sessionStorage.removeItem('authToken');
+      if (window.authToken) {
+        window.authToken = undefined;
+      }
+      
+      console.log('🔑 Token removido diretamente do localStorage e sessionStorage');
+      
+      // Mostrar toast de sucesso
+      toast({
+        title: "Logout realizado",
+        description: "Você saiu da sua conta com sucesso.",
       });
+      
+      // Forçar recarregamento da página após um pequeno delay
+      setTimeout(() => {
+        console.log('🔄 Recarregando página...');
+        window.location.reload();
+      }, 500);
+      
     } catch (error) {
       console.error("Erro ao processar logout:", error);
+      toast({
+        title: "Erro no logout",
+        description: "Ocorreu um erro ao sair da conta.",
+        variant: "destructive",
+      });
     }
   };
   
@@ -255,3 +267,5 @@ export default function AppHeader({
     </motion.div>
   );
 }
+
+export default AppHeader;

@@ -44,8 +44,7 @@ function SidebarItem({ icon, label, isActive, onClick }: SidebarItemProps) {
 
 export function ClientSidebar() {
   const [location, setLocation] = useLocation();
-  const auth = useAuth();
-  const logout = auth?.logout;
+  const { logoutMutation } = useAuth();
   const { toast } = useToast();
   
   // Verifica se a rota atual está ativa
@@ -53,22 +52,27 @@ export function ClientSidebar() {
     return location.startsWith(path);
   };
 
-  const handleLogout = async () => {
-    if (logout) {
-      await logout();
-      toast({
-        title: "Logout realizado",
-        description: "Você foi desconectado com sucesso",
-      });
-      setLocation("/login");
-    } else {
-      // Fallback caso logout não esteja disponível
-      toast({
-        title: "Função não disponível",
-        description: "Não foi possível realizar o logout",
-        variant: "destructive"
-      });
+  const handleLogout = () => {
+    // Remover token diretamente do localStorage e sessionStorage
+    localStorage.removeItem('authToken');
+    sessionStorage.removeItem('authToken');
+    if (window.authToken) {
+      window.authToken = undefined;
     }
+    
+    console.log('🔑 Token removido diretamente do localStorage e sessionStorage');
+    
+    // Mostrar toast de sucesso
+    toast({
+      title: "Logout realizado",
+      description: "Você saiu da sua conta com sucesso.",
+    });
+    
+    // Forçar recarregamento da página após um pequeno delay
+    setTimeout(() => {
+      console.log('🔄 Recarregando página...');
+      window.location.reload();
+    }, 500);
   };
   
   return (

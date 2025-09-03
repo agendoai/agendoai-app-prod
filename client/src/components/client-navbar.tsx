@@ -10,12 +10,17 @@ import {
 } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useAuth } from "@/hooks/use-auth";
+import { useToast } from "@/hooks/use-toast";
 import { Menu, X, CalendarClock, UserCircle, Search, MapPin, Home } from "lucide-react";
+import { useNotifications } from "@/hooks/use-notifications";
 
 export function ClientNavbar() {
-  const [isOpen, setIsOpen] = useState(false);
   const { user, logoutMutation } = useAuth();
+  const { unreadCount } = useNotifications();
   const [location] = useLocation();
+  const [open, setOpen] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { toast } = useToast();
   
   // Obtém as iniciais do nome do usuário
   const getUserInitials = () => {
@@ -40,6 +45,29 @@ export function ClientNavbar() {
     { path: "/client/provider-map", label: "Mapa", icon: <MapPin size={20} /> },
     { path: "/client/profile", label: "Perfil", icon: <UserCircle size={20} /> },
   ];
+
+  const handleLogout = () => {
+    // Remover token diretamente do localStorage e sessionStorage
+    localStorage.removeItem('authToken');
+    sessionStorage.removeItem('authToken');
+    if (window.authToken) {
+      window.authToken = undefined;
+    }
+    
+    console.log('🔑 Token removido diretamente do localStorage e sessionStorage');
+    
+    // Mostrar toast de sucesso
+    toast({
+      title: "Logout realizado",
+      description: "Você saiu da sua conta com sucesso.",
+    });
+    
+    // Forçar recarregamento da página após um pequeno delay
+    setTimeout(() => {
+      console.log('🔄 Recarregando página...');
+      window.location.reload();
+    }, 500);
+  };
   
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
@@ -55,7 +83,7 @@ export function ClientNavbar() {
         
         {/* Avatar e Menu de Navegação (Mobile) */}
         <div className="flex items-center space-x-2">
-          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="md:hidden">
                 <Menu size={24} />
@@ -69,7 +97,7 @@ export function ClientNavbar() {
                   <Button 
                     variant="ghost" 
                     size="icon" 
-                    onClick={() => setIsOpen(false)}
+                    onClick={() => setOpen(false)}
                   >
                     <X size={18} />
                   </Button>
@@ -104,7 +132,7 @@ export function ClientNavbar() {
                               ? "bg-primary text-primary-foreground" 
                               : "hover:bg-primary/10"
                           }`}
-                          onClick={() => setIsOpen(false)}
+                          onClick={() => setOpen(false)}
                         >
                           {link.icon}
                           <span>{link.label}</span>
@@ -120,10 +148,7 @@ export function ClientNavbar() {
                 <Button 
                   variant="outline" 
                   className="w-full"
-                  onClick={() => {
-                    logoutMutation.mutate();
-                    setIsOpen(false);
-                  }}
+                  onClick={handleLogout}
                 >
                   Sair
                 </Button>

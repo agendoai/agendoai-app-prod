@@ -12,26 +12,44 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
+import { useNotifications } from '@/hooks/use-notifications';
+import { useLocation } from 'wouter';
+import { useState } from 'react';
 
 interface AdminHeaderProps {
   title?: string;
   description?: string;
 }
 
-export default function AdminHeader({ title, description }: AdminHeaderProps) {
+export default function AdminHeader({ title }: AdminHeaderProps) {
   const { user, logoutMutation } = useAuth();
+  const { unreadCount } = useNotifications();
+  const [location] = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { toast } = useToast();
   
   const handleLogout = () => {
-    // Chamamos logoutMutation para realizar o logout no servidor
-    logoutMutation.mutate(undefined, {
-      onSuccess: () => {
-        // Forçar atualização da página após logout
-        window.location.reload();
-      },
-      onError: (error) => {
-        console.error("Erro no logout:", error);
-      }
+    // Remover token diretamente do localStorage e sessionStorage
+    localStorage.removeItem('authToken');
+    sessionStorage.removeItem('authToken');
+    if (window.authToken) {
+      window.authToken = undefined;
+    }
+    
+    console.log('🔑 Token removido diretamente do localStorage e sessionStorage');
+    
+    // Mostrar toast de sucesso
+    toast({
+      title: "Logout realizado",
+      description: "Você saiu da sua conta com sucesso.",
     });
+    
+    // Forçar recarregamento da página após um pequeno delay
+    setTimeout(() => {
+      console.log('🔄 Recarregando página...');
+      window.location.reload();
+    }, 500);
   };
   
   const userInitials = user?.name

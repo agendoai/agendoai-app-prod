@@ -23,6 +23,7 @@ type AuthContextType = {
   loginMutation: UseMutationResult<User, Error, LoginData>;
   logoutMutation: UseMutationResult<void, Error, void>;
   registerMutation: UseMutationResult<User, Error, RegisterData>;
+  logout: () => void; // Função conveniente para logout
 };
 
 type LoginData = {
@@ -359,6 +360,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loginMutation,
         logoutMutation,
         registerMutation,
+        logout: logoutMutation.mutate, // Adicionar a função logout ao contexto
       }}
     >
       {children}

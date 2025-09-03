@@ -67,21 +67,29 @@ export default function AdminSidebar() {
         ))}
       </nav>
       <div className="mt-auto p-4 border-t border-gray-100">
-        <button
-          onClick={() => logoutMutation.mutate(undefined, {
-            onSuccess: () => {
-              // Forçar atualização da página após logout
-              window.location.reload();
-            },
-            onError: (error) => {
-              console.error("Erro no logout:", error);
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-3 text-muted-foreground hover:bg-muted"
+          onClick={() => {
+            // Remover token diretamente do localStorage e sessionStorage
+            localStorage.removeItem('authToken');
+            sessionStorage.removeItem('authToken');
+            if (window.authToken) {
+              window.authToken = undefined;
             }
-          })}
-          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-base font-medium text-red-600 hover:bg-red-50 transition-colors"
+            
+            console.log('🔑 Token removido diretamente do localStorage e sessionStorage');
+            
+            // Forçar recarregamento da página após um pequeno delay
+            setTimeout(() => {
+              console.log('🔄 Recarregando página...');
+              window.location.reload();
+            }, 500);
+          }}
         >
           <LogOut className="h-5 w-5" />
           <span>Sair</span>
-        </button>
+        </Button>
       </div>
     </aside>
   );

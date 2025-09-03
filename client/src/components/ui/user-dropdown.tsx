@@ -15,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { useToast } from '@/hooks/use-toast';
 
 interface UserDropdownProps {
   userType?: 'client' | 'provider' | 'admin';
@@ -23,6 +24,7 @@ interface UserDropdownProps {
 export function UserDropdown({ userType = 'admin' }: UserDropdownProps) {
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
 
   const getUserInitials = () => {
     if (!user || !user.name) return userType.substring(0, 2).toUpperCase();
@@ -32,16 +34,26 @@ export function UserDropdown({ userType = 'admin' }: UserDropdownProps) {
   };
 
   const handleLogout = () => {
-    // Executar a mutação de logout
-    logoutMutation.mutate(undefined, {
-      onSuccess: () => {
-        // Forçar atualização da página após logout
-        window.location.reload();
-      },
-      onError: (error) => {
-        console.error("Erro no logout:", error);
-      }
+    // Remover token diretamente do localStorage e sessionStorage
+    localStorage.removeItem('authToken');
+    sessionStorage.removeItem('authToken');
+    if (window.authToken) {
+      window.authToken = undefined;
+    }
+    
+    console.log('🔑 Token removido diretamente do localStorage e sessionStorage');
+    
+    // Mostrar toast de sucesso
+    toast({
+      title: "Logout realizado",
+      description: "Você saiu da sua conta com sucesso.",
     });
+    
+    // Forçar recarregamento da página após um pequeno delay
+    setTimeout(() => {
+      console.log('🔄 Recarregando página...');
+      window.location.reload();
+    }, 500);
   };
 
   return (
