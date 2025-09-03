@@ -91,9 +91,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         } else {
           wsUrl = 'ws://localhost:5000/api/ws';
         }
-        console.log('🔧 WebSocket URL configurada:', wsUrl);
-        console.log('🔧 VITE_API_URL:', import.meta.env.VITE_API_URL);
-        console.log('🔧 Protocolo atual:', window.location.protocol);
+        
         
         let webSocket;
         try {
@@ -139,7 +137,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             const data = JSON.parse(event.data);
             
             if (data.type === 'auth_success') {
-              console.log('WebSocket authenticated');
+      
             } else if (data.type === 'notification') {
               // Add notification to state
               const newNotification: Notification = {

@@ -250,7 +250,7 @@ export default function BookingConfirmation() {
   // Verificar autenticação ao carregar o componente
   useEffect(() => {
     if (!user) {
-      console.log("Usuário não está autenticado. Redirecionando para tela de login.");
+      
       
       // Salvar dados do agendamento atual na sessão para continuar depois do login
       const bookingData = {
@@ -262,7 +262,7 @@ export default function BookingConfirmation() {
         availabilityId: parsedAvailabilityId
       };
       
-      console.log("Salvando dados do agendamento para recuperação pós-login:", bookingData);
+      
       sessionStorage.setItem('pendingBooking', JSON.stringify(bookingData));
       
       // Notificar o usuário

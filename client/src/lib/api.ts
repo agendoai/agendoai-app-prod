@@ -10,23 +10,14 @@ declare global {
 const getApiBaseUrl = () => {
   // SEMPRE usar a variável de ambiente VITE_API_URL
   if (import.meta.env.VITE_API_URL) {
-    console.log('🔧 Usando VITE_API_URL:', import.meta.env.VITE_API_URL);
     return import.meta.env.VITE_API_URL;
   }
   
   // Fallback apenas se VITE_API_URL não estiver definida
-  console.warn('⚠️ VITE_API_URL não definida, usando fallback');
   return 'http://localhost:5000';
 };
 
 const API_BASE_URL = getApiBaseUrl();
-
-// Log para debug
-if (typeof window !== 'undefined') {
-  console.log('🔧 API Base URL configurada:', API_BASE_URL);
-  console.log('🔧 Protocolo atual:', window.location.protocol);
-  console.log('🔧 VITE_API_URL:', import.meta.env.VITE_API_URL);
-}
 
 // Expose base URL and normalize all relative "/api" requests to use it
 declare global {
@@ -64,8 +55,6 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
     }
   }
   
-  console.log('🔧 API Call URL:', url);
-  
   // Função para obter token de múltiplas fontes
   const getToken = () => {
     // 1. Tentar localStorage primeiro
@@ -86,15 +75,6 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   
   const token = getToken();
   
-  console.log('🔵 ===== TOKEN RETRIEVAL DEBUG =====');
-  console.log('🔍 Endpoint:', endpoint);
-  console.log('🔍 Token encontrado:', token ? `EXISTS (${token.length} chars)` : 'NOT FOUND');
-  console.log('🔍 Token preview:', token ? token.substring(0, 50) + '...' : 'null');
-  console.log('🔍 localStorage:', localStorage.getItem('authToken') ? 'HAS TOKEN' : 'NO TOKEN');
-  console.log('🔍 sessionStorage:', sessionStorage.getItem('authToken') ? 'HAS TOKEN' : 'NO TOKEN');
-  console.log('🔍 global:', window.authToken ? 'HAS TOKEN' : 'NO TOKEN');
-  console.log('🔵 ==================================');
-  
   const defaultOptions: RequestInit = {
     headers: {
       'Content-Type': 'application/json',
@@ -110,23 +90,6 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
       ...defaultOptions.headers,
       'Authorization': `Bearer ${token}`,
     };
-    console.log('🟢 ===== FRONTEND TOKEN DEBUG =====');
-    console.log('🔧 Token adicionado ao header Authorization');
-    console.log('🔍 Endpoint:', endpoint);
-    console.log('🔍 Token length:', token.length);
-    console.log('🔍 Token preview:', token.substring(0, 50) + '...');
-    console.log('🔍 Headers que serão enviados:', defaultOptions.headers);
-    console.log('🟢 ================================');
-  } else {
-    console.log('🔴 ===== TOKEN NÃO ENVIADO =====');
-    console.log('🔧 Token não adicionado para:', endpoint);
-    console.log('🔍 Detalhes:', {
-      hasToken: !!token,
-      tokenLength: token ? token.length : 0,
-      isLoginOrRegister: endpoint.includes('/login') || endpoint.includes('/register'),
-      localStorageToken: !!localStorage.getItem('authToken')
-    });
-    console.log('🔴 ==============================');
   }
 
   const response = await fetch(url, defaultOptions);
@@ -147,11 +110,8 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 
 // Helper function for JSON responses
 export const apiJson = async (endpoint: string, options: RequestInit = {}) => {
-  console.log('🔄 apiJson chamada para:', endpoint);
   const response = await apiCall(endpoint, options);
-  console.log('📥 apiJson - Status da resposta:', response.status);
   const jsonData = await response.json();
-  console.log('📥 apiJson - Dados JSON:', jsonData);
   return jsonData;
 };
 

@@ -31,9 +31,9 @@ const registerSchema = z
   });
 
 export default function AuthPage() {
-  console.log("🔵 ===== AUTH PAGE CARREGADA =====");
-  console.log("🌐 URL atual:", window.location.href);
-  console.log("🔧 NODE_ENV:", process.env.NODE_ENV);
+
+
+
   
   const [tab, setTab] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
@@ -44,12 +44,7 @@ export default function AuthPage() {
   // Verificação de autenticação usando o hook useAuth
   const { user, isLoading, loginMutation, registerMutation } = useAuth();
   
-  console.log("🔍 Hook useAuth carregado:", {
-    user: user ? { id: user.id, email: user.email } : null,
-    isLoading,
-    hasLoginMutation: !!loginMutation,
-    hasRegisterMutation: !!registerMutation
-  });
+
   
   // Não precisamos mais monitorar mutations, fazemos login direto
   
@@ -110,13 +105,12 @@ export default function AuthPage() {
 
   // Login handler - DIRETO SEM MUTATION
   async function onLoginSubmit(data: any) {
-    console.log("🔵 ===== LOGIN SUBMIT DIRETO =====");
-    console.log("📤 Dados do formulário:", { email: data.email, password: "***" });
+
     
     setLoading(true);
     
     try {
-      console.log("🚀 Fazendo login direto via API...");
+
       
       // Fazer login direto
       const response = await apiJson("/api/login", {
@@ -124,26 +118,21 @@ export default function AuthPage() {
         body: JSON.stringify(data),
       });
       
-      console.log("✅ Login bem-sucedido!");
-      console.log("👤 Resposta da API:", response);
+
       
-      if (response && response.token) {
-        console.log("🔑 Salvando token diretamente...");
-        
-        // Salvar token
-        try {
-          localStorage.setItem('authToken', response.token);
-          console.log("✅ Token salvo no localStorage");
-        } catch (error) {
-          console.error("❌ Erro ao salvar no localStorage:", error);
-        }
-        
-        try {
-          sessionStorage.setItem('authToken', response.token);
-          console.log("✅ Token salvo no sessionStorage");
-        } catch (error) {
-          console.error("❌ Erro ao salvar no sessionStorage:", error);
-        }
+              if (response && response.token) {
+          // Salvar token
+          try {
+            localStorage.setItem('authToken', response.token);
+          } catch (error) {
+            console.error("❌ Erro ao salvar no localStorage:", error);
+          }
+          
+          try {
+            sessionStorage.setItem('authToken', response.token);
+          } catch (error) {
+            console.error("❌ Erro ao salvar no sessionStorage:", error);
+          }
         
         // Mostrar toast de sucesso
         toast({
@@ -163,12 +152,11 @@ export default function AuthPage() {
         }, 1000);
         
       } else {
-        console.error("❌ Token não encontrado na resposta");
         throw new Error("Token não encontrado na resposta da API");
       }
       
     } catch (error: any) {
-      console.error("❌ Erro no login direto:", error);
+
       toast({ 
         title: "Erro ao entrar", 
         description: error.message || "Verifique seus dados.", 
@@ -181,14 +169,13 @@ export default function AuthPage() {
 
   // Registro handler - DIRETO SEM MUTATION
   async function onRegisterSubmit(data: any) {
-    console.log("🔵 ===== REGISTRO SUBMIT DIRETO =====");
-    console.log("📤 Dados do formulário:", { email: data.email, name: data.name });
+
     
     setLoading(true);
     const { confirmPassword, ...registerData } = data;
     
     try {
-      console.log("🚀 Fazendo registro direto via API...");
+
       
       // Fazer registro direto
       const response = await apiJson("/api/register", {
@@ -196,23 +183,18 @@ export default function AuthPage() {
         body: JSON.stringify(registerData),
       });
       
-      console.log("✅ Registro bem-sucedido!");
-      console.log("👤 Resposta da API:", response);
+
       
       if (response && response.token) {
-        console.log("🔑 Salvando token diretamente...");
-        
         // Salvar token
         try {
           localStorage.setItem('authToken', response.token);
-          console.log("✅ Token salvo no localStorage");
         } catch (error) {
           console.error("❌ Erro ao salvar no localStorage:", error);
         }
         
         try {
           sessionStorage.setItem('authToken', response.token);
-          console.log("✅ Token salvo no sessionStorage");
         } catch (error) {
           console.error("❌ Erro ao salvar no sessionStorage:", error);
         }
@@ -235,12 +217,11 @@ export default function AuthPage() {
         }, 1000);
         
       } else {
-        console.error("❌ Token não encontrado na resposta");
         throw new Error("Token não encontrado na resposta da API");
       }
       
     } catch (error: any) {
-      console.error("❌ Erro no registro direto:", error);
+
       toast({ 
         title: "Erro ao cadastrar", 
         description: error.message || "Verifique seus dados.", 

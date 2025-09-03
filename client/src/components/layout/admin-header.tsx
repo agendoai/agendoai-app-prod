@@ -47,7 +47,7 @@ export default function AdminHeader({ title }: AdminHeaderProps) {
       window.authToken = undefined;
     }
     
-    console.log('🔑 Token removido diretamente do localStorage e sessionStorage');
+    
     
     // Mostrar toast de sucesso
     toast({

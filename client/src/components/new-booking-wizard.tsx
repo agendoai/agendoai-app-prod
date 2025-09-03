@@ -276,10 +276,7 @@ export function NewBookingWizard({
       try {
         // Rota especializada que já inclui verificação de disponibilidade de horários
         const specializedEndpoint = `/api/providers/specialized-search?serviceIds=${selectedServiceTemplate.id}&date=${formattedDate}`;
-        console.log(
-          "Buscando prestadores com endpoint especializado:",
-          specializedEndpoint,
-        );
+
 
         const response = await fetch(specializedEndpoint);
 
@@ -288,14 +285,14 @@ export function NewBookingWizard({
         }
 
         const result = await response.json();
-        console.log("Resposta da rota especializada:", result);
+
         return result.providers || [];
       } catch (error) {
         console.error("Erro na busca especializada:", error);
 
         // Fallback para a rota original
         const fallbackEndpoint = `/api/providers/search?nicheId=${selectedNicheId}&categoryId=${selectedCategoryId}&executionTime=${selectedServiceTemplate.duration}&date=${formattedDate}`;
-        console.log("Usando fallback:", fallbackEndpoint);
+
 
         const fallbackResponse = await fetch(fallbackEndpoint);
 
@@ -326,13 +323,8 @@ export function NewBookingWizard({
       selectedDate,
     ],
     queryFn: async () => {
-      console.log("🔍 Executando queryFn para time slots");
-      console.log("selectedProvider:", selectedProvider);
-      console.log("selectedDate:", selectedDate);
-      console.log("selectedServiceTemplate:", selectedServiceTemplate);
-      
+  
       if (!selectedProvider || !selectedDate || !selectedServiceTemplate) {
-        console.log("❌ Condições não atendidas, retornando array vazio");
         return { timeSlots: [] };
       }
 
@@ -340,15 +332,12 @@ export function NewBookingWizard({
         // Usar diretamente o endpoint que sabemos que funciona
         const formattedDate = format(selectedDate, "yyyy-MM-dd");
         
-        console.log("🚀 Usando endpoint direto para time slots");
-        
         const response = await fetch(
           `/api/providers/${selectedProvider.id}/time-slots?date=${formattedDate}&serviceDuration=${selectedServiceTemplate.duration}`,
         );
 
         if (response.ok) {
           const timeSlots = await response.json();
-          console.log("✅ Time slots obtidos com sucesso:", timeSlots);
           return {
             timeSlots,
             aiRecommendations: false,
@@ -363,7 +352,7 @@ export function NewBookingWizard({
     },
     enabled: (() => {
       const isEnabled = !!selectedProvider && !!selectedDate && !!selectedServiceTemplate;
-      console.log("🔍 Query enabled check:", {
+  
         selectedProvider: !!selectedProvider,
         selectedDate: !!selectedDate,
         selectedServiceTemplate: !!selectedServiceTemplate,

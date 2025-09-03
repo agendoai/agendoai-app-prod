@@ -30,14 +30,27 @@ export default function AdminHeader({ title }: AdminHeaderProps) {
   const { toast } = useToast();
   
   const handleLogout = () => {
-    // Remover token diretamente do localStorage e sessionStorage
-    localStorage.removeItem('authToken');
-    sessionStorage.removeItem('authToken');
-    if (window.authToken) {
-      window.authToken = undefined;
-    }
+          // Remover token de todas as fontes possíveis
+      localStorage.removeItem('authToken');
+      sessionStorage.removeItem('authToken');
+      if (window.authToken) {
+        window.authToken = undefined;
+      }
+      
+      // Limpar também cookies relacionados
+      document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      document.cookie = 'authToken=; path=/; domain=' + window.location.hostname + '; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      
+      // Forçar limpeza do cache do navegador para o token
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => {
+            caches.delete(name);
+          });
+        });
+      }
     
-    console.log('🔑 Token removido diretamente do localStorage e sessionStorage');
+    
     
     // Mostrar toast de sucesso
     toast({
@@ -45,11 +58,8 @@ export default function AdminHeader({ title }: AdminHeaderProps) {
       description: "Você saiu da sua conta com sucesso.",
     });
     
-    // Forçar recarregamento da página após um pequeno delay
-    setTimeout(() => {
-      console.log('🔄 Recarregando página...');
+          // Forçar recarregamento da página imediatamente
       window.location.reload();
-    }, 500);
   };
   
   const userInitials = user?.name

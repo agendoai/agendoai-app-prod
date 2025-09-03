@@ -70,14 +70,27 @@ function AppHeader({
   
   const handleLogout = () => {
     try {
-      // Remover token diretamente do localStorage e sessionStorage
+      // Remover token de todas as fontes possíveis
       localStorage.removeItem('authToken');
       sessionStorage.removeItem('authToken');
       if (window.authToken) {
         window.authToken = undefined;
       }
       
-      console.log('🔑 Token removido diretamente do localStorage e sessionStorage');
+      // Limpar também cookies relacionados
+      document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      document.cookie = 'authToken=; path=/; domain=' + window.location.hostname + '; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      
+      // Forçar limpeza do cache do navegador para o token
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => {
+            caches.delete(name);
+          });
+        });
+      }
+      
+
       
       // Mostrar toast de sucesso
       toast({

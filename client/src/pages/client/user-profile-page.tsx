@@ -125,27 +125,28 @@ export default function UserProfilePage() {
   };
   
   const confirmLogout = () => {
-    console.log('🚀 Função confirmLogout executada!');
-    
     try {
       setLogoutDialogOpen(false);
       
-      // Verificar se o token existe antes de remover
-      const tokenBefore = localStorage.getItem('authToken');
-      console.log('🔍 Token antes da remoção:', tokenBefore ? 'EXISTE' : 'NÃO EXISTE');
-      
-      // Remover token diretamente do localStorage e sessionStorage
+      // Remover token de todas as fontes possíveis
       localStorage.removeItem('authToken');
       sessionStorage.removeItem('authToken');
       if (window.authToken) {
         window.authToken = undefined;
       }
       
-      // Verificar se o token foi removido
-      const tokenAfter = localStorage.getItem('authToken');
-      console.log('🔍 Token após a remoção:', tokenAfter ? 'AINDA EXISTE' : 'REMOVIDO COM SUCESSO');
+      // Limpar também cookies relacionados
+      document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      document.cookie = 'authToken=; path=/; domain=' + window.location.hostname + '; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       
-      console.log('🔑 Token removido diretamente do localStorage e sessionStorage');
+      // Forçar limpeza do cache do navegador para o token
+      if ('caches' in window) {
+        caches.keys().then(names => {
+          names.forEach(name => {
+            caches.delete(name);
+          });
+        });
+      }
       
       // Mostrar toast de sucesso
       toast({
@@ -153,14 +154,10 @@ export default function UserProfilePage() {
         description: "Você saiu da sua conta com sucesso.",
       });
       
-      // Forçar recarregamento da página após um pequeno delay
-      setTimeout(() => {
-        console.log('🔄 Recarregando página...');
-        window.location.reload();
-      }, 500);
+      // Forçar recarregamento da página imediatamente
+      window.location.reload();
       
     } catch (error) {
-      console.error("Erro ao fazer logout:", error);
       toast({
         title: "Erro no logout",
         description: "Ocorreu um erro ao sair da conta.",
