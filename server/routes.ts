@@ -1396,6 +1396,96 @@ app.use('/api/webhook', asaasWebhookRoutes)
 		}
 	)
 
+	// Obter detalhes de um agendamento específico do cliente
+	app.get(
+		"/api/client/appointments/:id",
+		isAuthenticated,
+		isClient,
+		async (req, res) => {
+			try {
+				const appointmentId = parseInt(req.params.id)
+				const appointment = await storage.getAppointment(appointmentId)
+
+				if (!appointment) {
+					return res
+						.status(404)
+						.json({ error: "Agendamento não encontrado" })
+				}
+
+				// Verificar se o agendamento pertence ao cliente autenticado
+				if (appointment.clientId !== req.user!.id) {
+					return res
+						.status(403)
+						.json({
+							error: "Você não tem permissão para ver este agendamento",
+						})
+				}
+
+				// Busca informações adicionais para enriquecer os detalhes do agendamento
+				const service = await storage.getService(appointment.serviceId)
+				const provider = await storage.getProviderSettings(
+					appointment.providerId
+				)
+				const user = await storage.getUser(appointment.providerId)
+
+				// Monta objeto de resposta com todas as informações necessárias
+				const response = {
+					...appointment,
+					serviceName: service?.name,
+					serviceDescription: service?.description,
+					servicePrice: service?.price || 0,
+					providerName: user?.name,
+					providerBusinessName: provider?.businessName,
+					providerPhone: user?.phone,
+					providerImage: user?.profileImage,
+					address: provider?.address,
+				}
+
+				res.json(response)
+			} catch (error) {
+				console.error("Erro ao buscar detalhes do agendamento:", error)
+				res.status(500).json({
+					error: "Erro ao buscar detalhes do agendamento",
+				})
+			}
+		}
+	)
+
+	// Verificar se um agendamento do cliente já foi avaliado
+	app.get(
+		"/api/client/appointments/:id/review",
+		isAuthenticated,
+		isClient,
+		async (req, res) => {
+			try {
+				const appointmentId = parseInt(req.params.id)
+				const review = await storage.getAppointmentReview(appointmentId)
+
+				if (!review) {
+					return res.status(404).json({
+						error: "Nenhuma avaliação encontrada para este agendamento",
+					})
+				}
+
+				// Verificar se a avaliação pertence ao cliente autenticado
+				if (review.clientId !== req.user!.id) {
+					return res
+						.status(403)
+						.json({
+							error: "Você não tem permissão para ver esta avaliação",
+						})
+				}
+
+				res.json(review)
+			} catch (error) {
+				console.error("Erro ao buscar avaliação do agendamento:", error)
+				res.status(500).json({
+					error: "Erro ao buscar avaliação do agendamento",
+				})
+			}
+		}
+	)
+
 	// Rota específica para admin acessar todos os agendamentos
 	app.get(
 		"/api/admin/appointments",

@@ -1,12 +1,12 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import type { Review } from "@shared/schema";
-import { apiRequest, getQueryFn, queryClient } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 
 export function useProviderReviews(providerId: number) {
   return useQuery<Review[]>({
     queryKey: ['/api/providers', providerId, 'reviews'],
-    queryFn: getQueryFn(),
+    queryFn: () => apiRequest('GET', `/api/providers/${providerId}/reviews`).then(res => res.json()),
     enabled: !!providerId
   });
 }
@@ -14,7 +14,7 @@ export function useProviderReviews(providerId: number) {
 export function useClientReviews() {
   return useQuery<Review[]>({
     queryKey: ['/api/client/reviews'],
-    queryFn: getQueryFn({ on401: "returnNull" }),
+    queryFn: () => apiRequest('GET', '/api/client/reviews').then(res => res.json()),
     enabled: !!localStorage.getItem('authToken'), // Só fazer requisição se houver token
   });
 }

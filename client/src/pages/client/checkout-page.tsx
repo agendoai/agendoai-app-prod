@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useRoute, Link } from "wouter";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { Elements } from '@stripe/react-stripe-js';
 import { loadStripe } from '@stripe/stripe-js';
@@ -61,7 +61,10 @@ export default function CheckoutPage() {
   // Buscar configurações de pagamento
   const { data: paymentSettingsData, isLoading: isLoadingSettings } = useQuery({
     queryKey: ["/api/payment-settings"],
-    queryFn: getQueryFn({ on401: "throw" }),
+    queryFn: async () => {
+      const response = await apiRequest("GET", "/api/payment-settings");
+      return response.json();
+    },
     retry: 1
   });
   
@@ -79,7 +82,10 @@ export default function CheckoutPage() {
   // Buscar detalhes da reserva
   const { data: bookingDetails, isLoading: isLoadingBooking, error: bookingError } = useQuery<BookingDetails>({
     queryKey: ["/api/bookings", params?.bookingId],
-    queryFn: getQueryFn({ on401: "throw" }),
+    queryFn: async () => {
+      const response = await apiRequest("GET", `/api/bookings/${params?.bookingId}`);
+      return response.json();
+    },
     enabled: !!params?.bookingId,
     retry: 1
   });

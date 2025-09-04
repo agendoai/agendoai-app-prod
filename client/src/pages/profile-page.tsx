@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Loader2, Camera, User, AtSign, Phone, MapPin, Lock, AlertCircle, 
@@ -194,7 +194,7 @@ export default function ProfilePage() {
   // Buscar histórico de agendamentos
   const { data: appointments = [], isLoading: isLoadingAppointments } = useQuery<AppointmentExtended[]>({
     queryKey: ["/api/appointments"],
-    queryFn: getQueryFn({ on401: "throw" }),
+    queryFn: () => apiRequest("GET", "/appointments").then(res => res.json()),
     enabled: !!user,
   });
 

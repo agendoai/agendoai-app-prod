@@ -1,11 +1,11 @@
 import { createRoot } from "react-dom/client";
-import React, { StrictMode } from "react";
+import React, { StrictMode, Component } from "react";
 import App from "./App";
 import "./index.css";
 import "./lib/api";
 
 // Error Boundary melhorado para capturar erros de carregamento
-class RootErrorBoundary extends React.Component<
+class RootErrorBoundary extends Component<
   { children: React.ReactNode },
   { hasError: boolean; error: Error | null; errorInfo: React.ErrorInfo | null }
 > {

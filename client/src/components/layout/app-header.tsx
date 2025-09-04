@@ -48,13 +48,23 @@ function AppHeader({
   showBackButton = false, 
   showUserInfo = true, 
   transparent = false,
-  className = ""
+  className = "",
+  userType,
+  showBackButton: showBackButtonProp,
+  backUrl,
+  onBack,
+  backButtonAction,
+  showNotificationIcon = true,
+  showMenuIcon = true
 }: AppHeaderProps) {
   const { user } = useAuth();
   const [location, setLocation] = useLocation();
   const { toast } = useToast();
   const { unreadCount } = useNotifications();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  
+  // Determinar userType se não fornecido nas props
+  const currentUserType = userType || user?.role || 'client';
   
   const handleBack = () => {
     if (backButtonAction) {
@@ -116,7 +126,7 @@ function AppHeader({
   
   // Navegar para a página inicial baseada no tipo de usuário
   const navigateToHome = () => {
-    switch (userType) {
+    switch (currentUserType) {
       case "client":
         setLocation("/client/dashboard");
         break;
@@ -136,27 +146,27 @@ function AppHeader({
   
   // Navegar para a página de agenda baseada no tipo de usuário
   const navigateToCalendar = () => {
-    if (userType === "client") {
+    if (currentUserType === "client") {
       setLocation("/client/appointments");
-    } else if (userType === "provider") {
+    } else if (currentUserType === "provider") {
       setLocation("/provider/schedule");
     }
   };
   
   // Navegar para a página de perfil baseada no tipo de usuário
   const navigateToProfile = () => {
-    if (userType === "client") {
+    if (currentUserType === "client") {
       setLocation("/client/profile");
-    } else if (userType === "provider") {
+    } else if (currentUserType === "provider") {
       setLocation("/provider/profile");
-    } else if (userType === "admin" || userType === "support") {
-      setLocation(`/${userType}/settings`);
+    } else if (currentUserType === "admin" || currentUserType === "support") {
+      setLocation(`/${currentUserType}/settings`);
     }
   };
 
   // Navegar para notificações
   const navigateToNotifications = () => {
-    setLocation(`/${userType}/notifications`);
+    setLocation(`/${currentUserType}/notifications`);
   };
   
   return (
@@ -193,9 +203,9 @@ function AppHeader({
           <div className="flex flex-col justify-center">
             <span className="font-medium text-sm text-white">{user.name || 'Usuário'}</span>
             <span className="text-xs text-white/80">
-              {userType === "client" ? "Cliente" : 
-               userType === "provider" ? "Prestador" : 
-               userType === "admin" ? "Administrador" : "Suporte"}
+              {currentUserType === "client" ? "Cliente" : 
+               currentUserType === "provider" ? "Prestador" : 
+               currentUserType === "admin" ? "Administrador" : "Suporte"}
             </span>
           </div>
         </div>
@@ -252,17 +262,17 @@ function AppHeader({
               
               <DropdownMenuSeparator />
               
-              <DropdownMenuItem onClick={() => setLocation(`/${userType}/settings`)}>
+              <DropdownMenuItem onClick={() => setLocation(`/${currentUserType}/settings`)}>
                 <Settings className="h-4 w-4 mr-2" />
                 <span>Configurações</span>
               </DropdownMenuItem>
               
-              <DropdownMenuItem onClick={() => setLocation(`/${userType}/help`)}>
+              <DropdownMenuItem onClick={() => setLocation(`/${currentUserType}/help`)}>
                 <HelpCircle className="h-4 w-4 mr-2" />
                 <span>Ajuda</span>
               </DropdownMenuItem>
               
-              <DropdownMenuItem onClick={() => setLocation(`/${userType}/support`)}>
+              <DropdownMenuItem onClick={() => setLocation(`/${currentUserType}/support`)}>
                 <MessageSquare className="h-4 w-4 mr-2" />
                 <span>Suporte</span>
               </DropdownMenuItem>

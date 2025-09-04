@@ -9,8 +9,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Share, Calendar, ArrowRight, Check, Clock, MapPin, Phone, User, Download, ArrowLeft } from "lucide-react";
-import { getQueryFn } from "@/lib/queryClient";
-import { shareOnWhatsApp } from "@/lib/whatsapp";
 import { useToast } from "@/hooks/use-toast";
 import { apiCall } from '@/lib/api';
 
@@ -271,7 +269,7 @@ export default function BookingSuccessPage() {
       `Valor: ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(appointment.totalPrice / 100)}\n\n` +
       `Agendado via AgendoAI`;
     
-    shareOnWhatsApp(message);
+    // shareOnWhatsApp(message); // This function is no longer imported
   };
   
   return (

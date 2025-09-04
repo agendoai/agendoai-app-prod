@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, Component } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -128,7 +128,7 @@ import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { GlobalErrorFallback } from "@/components/ui/global-error-fallback";
 
 // Error Boundary para componentes lazy
-class LazyErrorBoundary extends React.Component<
+class LazyErrorBoundary extends Component<
   { children: React.ReactNode; fallback?: React.ReactNode },
   { hasError: boolean; error: Error | null }
 > {

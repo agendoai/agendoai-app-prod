@@ -2,6 +2,20 @@ import React, { useState, useEffect, useCallback, createContext, useContext } fr
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiRequest } from '@/lib/queryClient';
 
+// Função para salvar o token
+function saveToken(token: string) {
+  localStorage.setItem('authToken', token);
+  sessionStorage.setItem('authToken', token);
+  window.authToken = token;
+}
+
+// Função para limpar o token
+function clearToken() {
+  localStorage.removeItem('authToken');
+  sessionStorage.removeItem('authToken');
+  window.authToken = undefined;
+}
+
 interface User {
   id: number;
   name: string | null;
@@ -79,6 +93,12 @@ function useAuthProvider(): AuthContextType {
         throw new Error(errorData.message || 'Falha no login');
       }
       
+      // Extrair e salvar o token da resposta
+      const loginData = await response.json();
+      if (loginData.token) {
+        saveToken(loginData.token);
+      }
+      
       await refetch();
       return true;
     } catch (error) {
@@ -96,11 +116,16 @@ function useAuthProvider(): AuthContextType {
         throw new Error('Falha ao realizar logout');
       }
       
+      // Limpar o token
+      clearToken();
+      
       // Limpar o cache da query
       queryClient.invalidateQueries({ queryKey: ['user'] });
       return true;
     } catch (error) {
       console.error('Erro no logout:', error);
+      // Mesmo com erro, limpar o token localmente
+      clearToken();
       throw error;
     }
   }, [queryClient]);
@@ -108,6 +133,8 @@ function useAuthProvider(): AuthContextType {
   // Cria uma "mutação" para logout
   const logoutMutation = {
     mutate: () => {
+      // Limpar token imediatamente
+      clearToken();
       logout().catch(err => {
         console.error("Erro ao realizar logout:", err);
       });

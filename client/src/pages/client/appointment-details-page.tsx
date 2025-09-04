@@ -37,7 +37,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest } from "@/lib/api";
 import { formatCurrency, getStatusBadgeProps, formatStatus } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Loader2, ArrowLeft, Star, Calendar, Clock, MapPin, CreditCard, FileText, Phone, Mail, User, Building } from "lucide-react";
@@ -93,10 +93,10 @@ export default function AppointmentDetailsPage() {
   console.log('Acessando detalhes do agendamento ID:', id, 'parsed:', appointmentId);
 
   const { data: appointment, isLoading, error } = useQuery<AppointmentDetails>({
-    queryKey: ['/api/booking', appointmentId],
+    queryKey: ['/api/client/appointments', appointmentId],
     queryFn: async () => {
       try {
-        const response = await apiRequest('GET', `/api/booking/${appointmentId}`);
+        const response = await apiRequest('GET', `/api/client/appointments/${appointmentId}`);
         
         if (!response.ok) {
           console.error('Erro na resposta do servidor:', response.status, response.statusText);
@@ -124,11 +124,11 @@ export default function AppointmentDetailsPage() {
   });
 
   const { data: review } = useQuery({
-    queryKey: ['/api/appointments', appointmentId, 'review'],
+    queryKey: ['/api/client/appointments', appointmentId, 'review'],
     queryFn: async () => {
-      const response = await apiRequest('GET', `/api/appointments/${appointmentId}/review`);
+      const response = await apiRequest('GET', `/api/client/appointments/${appointmentId}/review`);
       if (response.status === 404) {
-        return null;
+        return null; // No review exists
       }
       return await response.json();
     },
@@ -146,7 +146,7 @@ export default function AppointmentDetailsPage() {
 
   const reviewMutation = useMutation({
     mutationFn: async (data: ReviewFormValues) => {
-      const response = await apiRequest('POST', `/api/appointments/${appointmentId}/review`, data);
+      const response = await apiRequest('POST', `/api/client/appointments/${appointmentId}/review`, data);
       return await response.json();
     },
     onSuccess: () => {
@@ -155,8 +155,8 @@ export default function AppointmentDetailsPage() {
         description: "Obrigado por avaliar o serviço!",
       });
       setIsReviewModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['/api/appointments', appointmentId, 'review'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/appointments', appointmentId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/client/appointments', appointmentId, 'review'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/client/appointments', appointmentId] });
     },
     onError: (error: any) => {
       toast({
@@ -169,7 +169,7 @@ export default function AppointmentDetailsPage() {
 
   const cancelMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest('POST', `/api/appointments/${appointmentId}/cancel`);
+      const response = await apiRequest('POST', `/api/client/appointments/${appointmentId}/cancel`);
       return await response.json();
     },
     onSuccess: () => {
@@ -178,8 +178,8 @@ export default function AppointmentDetailsPage() {
         description: "Seu agendamento foi cancelado com sucesso",
       });
       setIsCancelModalOpen(false);
-      queryClient.invalidateQueries({ queryKey: ['/api/appointments', appointmentId] });
-      queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/client/appointments', appointmentId] });
+      queryClient.invalidateQueries({ queryKey: ['/api/client/appointments'] });
     },
     onError: (error: any) => {
       toast({

@@ -94,6 +94,11 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
 
   const response = await fetch(url, defaultOptions);
   
+  // Special handling for review endpoints - don't throw error for 404
+  if (!response.ok && response.status === 404 && endpoint.includes('/review')) {
+    return response; // Return 404 response for review endpoints without throwing error
+  }
+  
   if (!response.ok) {
     // Tentar extrair mensagem de erro do JSON
     try {
@@ -123,6 +128,16 @@ export const apiText = async (endpoint: string, options: RequestInit = {}) => {
 
 // Export the base URL for direct use if needed
 export { API_BASE_URL }; 
+
+// Helper function that provides the same interface as the old apiRequest
+export const apiRequest = async (method: string, endpoint: string, data?: any): Promise<Response> => {
+  const options: RequestInit = {
+    method,
+    ...(data && { body: JSON.stringify(data) })
+  };
+  
+  return await apiCall(endpoint, options);
+};
 
 // ==================== ASAAS MARKETPLACE API ====================
 

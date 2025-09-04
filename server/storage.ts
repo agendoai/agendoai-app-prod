@@ -197,6 +197,7 @@ export interface IStorage {
 	getReviewById(id: number): Promise<Review | undefined>
 	getReviewsByProviderId(providerId: number): Promise<Review[]>
 	getReviewsByClientId(clientId: number): Promise<Review[]>
+	getAppointmentReview(appointmentId: number): Promise<Review | undefined>
 	createReview(review: InsertReview): Promise<Review>
 	updateReview(id: number, review: Partial<InsertReview>): Promise<Review>
 	deleteReview(id: number): Promise<void>
@@ -2846,6 +2847,14 @@ async getBlockedTimeSlotsByDate(
 			.select()
 			.from(reviews)
 			.where(eq(reviews.clientId, clientId))
+	}
+
+	async getAppointmentReview(appointmentId: number): Promise<Review | undefined> {
+		const results = await db
+			.select()
+			.from(reviews)
+			.where(eq(reviews.appointmentId, appointmentId))
+		return results[0]
 	}
 
 	async createReview(review: InsertReview): Promise<Review> {
