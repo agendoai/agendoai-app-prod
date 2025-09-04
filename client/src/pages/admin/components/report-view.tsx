@@ -54,7 +54,7 @@ export default function ReportView() {
   const { data: providerReport, isLoading: providerReportLoading } = useQuery({
     queryKey: ['/api/admin/reports/providers'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/reports/providers');
+      const response = await apiCall('/api/admin/reports/providers');
       if (!response.ok) {
         throw new Error('Falha ao carregar relatório de prestadores');
       }
@@ -66,7 +66,7 @@ export default function ReportView() {
   const { data: serviceReport, isLoading: serviceReportLoading } = useQuery({
     queryKey: ['/api/admin/reports/services'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/reports/services');
+      const response = await apiCall('/api/admin/reports/services');
       if (!response.ok) {
         throw new Error('Falha ao carregar relatório de serviços');
       }

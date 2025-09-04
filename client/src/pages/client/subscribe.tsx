@@ -98,7 +98,7 @@ export default function Subscribe() {
     const createSubscription = async () => {
       try {
         setIsLoading(true);
-        const response = await fetch("/api/get-or-create-subscription", {
+        const response = await apiCall("/api/get-or-create-subscription", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

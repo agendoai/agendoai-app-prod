@@ -102,7 +102,7 @@ export default function BookingConfirmation() {
   const { data: availablePaymentMethods, isLoading: isLoadingPaymentMethods } = useQuery<PaymentMethod[]>({
     queryKey: ['/api/payment-methods/available'],
     queryFn: () => 
-      fetch('/api/payment-methods/available')
+      apiCall('/payment-methods/available')
         .then(res => {
           if (!res.ok) {
             throw new Error('Erro ao buscar métodos de pagamento');

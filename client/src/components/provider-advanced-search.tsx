@@ -26,7 +26,7 @@ export default function ProviderAdvancedSearch() {
 
   // Fetch niches on mount
   useEffect(() => {
-    fetch('/api/niches')
+    apiCall('/api/niches')
       .then(res => res.json())
       .then(data => setNiches(data || []));
   }, []);

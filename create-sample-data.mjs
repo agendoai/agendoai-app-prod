@@ -3,9 +3,9 @@
 import pkg from 'pg';
 const { Pool } = pkg;
 
-// Configuração do banco
+// Configuração do banco - usar o DATABASE_URL do .env
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL || 'postgres://postgres:postgres@localhost:5432/agendoai'
+  connectionString: process.env.DATABASE_URL || 'postgresql://agendoai:agendoaibd123dev@191.252.196.5:5432/agendoaibd'
 });
 
 async function createSampleData() {
@@ -205,11 +205,131 @@ async function createSampleData() {
       }
     }
 
+    // 5. Criar usuários prestadores
+    console.log('👨‍💼 Criando prestadores...');
+    const providers = [
+      {
+        name: 'João Silva',
+        email: 'joao@barbearia.com',
+        phone: '11999999999',
+        userType: 'provider',
+        isActive: true,
+        isVerified: true
+      },
+      {
+        name: 'Maria Santos',
+        email: 'maria@salon.com',
+        phone: '11888888888',
+        userType: 'provider',
+        isActive: true,
+        isVerified: true
+      },
+      {
+        name: 'Carlos Oliveira',
+        email: 'carlos@mecanica.com',
+        phone: '11777777777',
+        userType: 'provider',
+        isActive: true,
+        isVerified: true
+      }
+    ];
+
+    const createdProviders = [];
+    for (const provider of providers) {
+      try {
+        const result = await pool.query(`
+          INSERT INTO users (name, email, phone, user_type, is_active, is_verified, created_at, updated_at)
+          VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+          RETURNING id, name, email
+        `, [provider.name, provider.email, provider.phone, provider.userType, provider.isActive, provider.isVerified]);
+        
+        if (result.rows.length > 0) {
+          createdProviders.push(result.rows[0]);
+          console.log(`✅ Prestador criado: ${provider.name} (ID: ${result.rows[0].id})`);
+        }
+      } catch (error) {
+        if (error.message.includes('duplicate key')) {
+          console.log(`⚠️  Prestador já existe: ${provider.name}`);
+        } else {
+          console.error(`❌ Erro ao criar prestador ${provider.name}:`, error.message);
+        }
+      }
+    }
+
+    // 6. Criar provider services (conexão prestador-serviço)
+    console.log('🔗 Criando conexões prestador-serviço...');
+    const providerServices = [
+      // João Silva - Barbearia
+      { providerId: 1, serviceId: 1, duration: 30, price: 2500, executionTime: 30 }, // Corte Masculino
+      { providerId: 1, serviceId: 2, duration: 20, price: 1500, executionTime: 20 }, // Barba
+      
+      // Maria Santos - Salão
+      { providerId: 2, serviceId: 3, duration: 40, price: 3500, executionTime: 40 }, // Corte Feminino
+      { providerId: 2, serviceId: 4, duration: 30, price: 2500, executionTime: 30 }, // Manicure
+      
+      // Carlos Oliveira - Mecânica
+      { providerId: 3, serviceId: 5, duration: 45, price: 4000, executionTime: 45 }, // Lavagem de Carro
+      { providerId: 3, serviceId: 6, duration: 30, price: 3000, executionTime: 30 }, // Troca de Óleo
+    ];
+
+    for (const ps of providerServices) {
+      try {
+        await pool.query(`
+          INSERT INTO provider_services (provider_id, service_id, duration, price, execution_time, created_at, updated_at)
+          VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
+        `, [ps.providerId, ps.serviceId, ps.duration, ps.price, ps.executionTime]);
+        console.log(`✅ Provider Service criado: Prestador ${ps.providerId} - Serviço ${ps.serviceId}`);
+      } catch (err) {
+        console.log(`❌ Erro ao criar provider service:`, err.message);
+      }
+    }
+
+    // 7. Criar disponibilidade para os prestadores
+    console.log('📅 Criando disponibilidade dos prestadores...');
+    const availabilities = [
+      // João Silva - Segunda a Sexta, 8h às 18h
+      { providerId: 1, dayOfWeek: 1, startTime: '08:00', endTime: '18:00' },
+      { providerId: 1, dayOfWeek: 2, startTime: '08:00', endTime: '18:00' },
+      { providerId: 1, dayOfWeek: 3, startTime: '08:00', endTime: '18:00' },
+      { providerId: 1, dayOfWeek: 4, startTime: '08:00', endTime: '18:00' },
+      { providerId: 1, dayOfWeek: 5, startTime: '08:00', endTime: '18:00' },
+      
+      // Maria Santos - Segunda a Sábado, 9h às 19h
+      { providerId: 2, dayOfWeek: 1, startTime: '09:00', endTime: '19:00' },
+      { providerId: 2, dayOfWeek: 2, startTime: '09:00', endTime: '19:00' },
+      { providerId: 2, dayOfWeek: 3, startTime: '09:00', endTime: '19:00' },
+      { providerId: 2, dayOfWeek: 4, startTime: '09:00', endTime: '19:00' },
+      { providerId: 2, dayOfWeek: 5, startTime: '09:00', endTime: '19:00' },
+      { providerId: 2, dayOfWeek: 6, startTime: '09:00', endTime: '19:00' },
+      
+      // Carlos Oliveira - Segunda a Sexta, 7h às 17h
+      { providerId: 3, dayOfWeek: 1, startTime: '07:00', endTime: '17:00' },
+      { providerId: 3, dayOfWeek: 2, startTime: '07:00', endTime: '17:00' },
+      { providerId: 3, dayOfWeek: 3, startTime: '07:00', endTime: '17:00' },
+      { providerId: 3, dayOfWeek: 4, startTime: '07:00', endTime: '17:00' },
+      { providerId: 3, dayOfWeek: 5, startTime: '07:00', endTime: '17:00' },
+    ];
+
+    for (const avail of availabilities) {
+      try {
+        await pool.query(`
+          INSERT INTO availability (provider_id, day_of_week, start_time, end_time, created_at, updated_at)
+          VALUES ($1, $2, $3, $4, NOW(), NOW())
+        `, [avail.providerId, avail.dayOfWeek, avail.startTime, avail.endTime]);
+        console.log(`✅ Disponibilidade criada: Prestador ${avail.providerId} - Dia ${avail.dayOfWeek}`);
+      } catch (err) {
+        console.log(`❌ Erro ao criar disponibilidade:`, err.message);
+      }
+    }
+
     console.log('\n🎉 Dados de exemplo criados com sucesso!');
     console.log('\n📊 Resumo:');
     console.log(`- Nichos criados: ${existingNiches.rows.length}`);
     console.log(`- Categorias criadas: ${categories.length}`);
     console.log(`- Templates de serviços criados: ${serviceTemplates.length}`);
+    console.log(`- Prestadores criados: ${providers.length}`);
+    console.log(`- Provider Services criados: ${providerServices.length}`);
+    console.log(`- Disponibilidades criadas: ${availabilities.length}`);
 
   } catch (error) {
     console.error('❌ Erro ao criar dados de exemplo:', error);

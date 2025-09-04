@@ -406,15 +406,25 @@ async function filterProvidersByServices(
 			if (provider.id === 2) {
 				console.log("AQUI")
 			}
+			
 			// Buscar todos os serviços do prestador
 			const allServices = await storage.getProviderServicesByProviderId(
 				provider.id
 			)
 
-			// Extrair IDs de serviços oferecidos
-			const offeredServiceIds = new Set(
-				allServices.map((s) => s.serviceId)
-			)
+			// Extrair IDs de serviços oferecidos (incluindo templates)
+			const offeredServiceIds = new Set()
+			
+			// Adicionar IDs dos serviços personalizados
+			allServices.forEach(s => offeredServiceIds.add(s.serviceId))
+			
+			// Adicionar IDs dos templates de serviços que o prestador oferece
+			// (baseado nos serviceIds dos provider_services)
+			for (const ps of allServices) {
+				if (ps.serviceId) {
+					offeredServiceIds.add(ps.serviceId)
+				}
+			}
 
 			// Verificar se todos os serviços solicitados são oferecidos
 			const missingServices = serviceIds.filter(
@@ -436,28 +446,33 @@ async function filterProvidersByServices(
 			const durations = []
 
 			for (const serviceId of serviceIds) {
-				const service = allServices.find(
+				// Primeiro tentar encontrar no provider_services
+				const providerService = allServices.find(
 					(s) => s.serviceId === serviceId
 				)
-				if (service) {
-					const duration = service.duration || 30
-					totalDuration += duration
-
-					// Encontrar nome do serviço nas informações gerais
-					const serviceInfo = servicesInfo.find(
-						(s) => s.id === serviceId
-					)
-					const serviceName =
-						service.name ||
-						serviceInfo?.name ||
-						`Serviço ${serviceId}`
-
-					durations.push({
-						id: serviceId,
-						duration,
-						name: serviceName,
-					})
+				
+				let duration = 30 // duração padrão
+				let serviceName = `Serviço ${serviceId}`
+				
+				if (providerService) {
+					// Usar duração personalizada do prestador se disponível
+					duration = providerService.duration || providerService.executionTime || 30
+					serviceName = providerService.serviceName || `Serviço ${serviceId}`
+				} else {
+					// Se não encontrar no provider_services, buscar no template
+					const serviceTemplate = await storage.getServiceTemplate(serviceId)
+					if (serviceTemplate) {
+						duration = serviceTemplate.duration || 30
+						serviceName = serviceTemplate.name || `Serviço ${serviceId}`
+					}
 				}
+				
+				totalDuration += duration
+				durations.push({
+					id: serviceId,
+					duration,
+					name: serviceName,
+				})
 			}
 
 			// Verificar avaliação mínima

@@ -170,10 +170,11 @@ export function NewBookingWizard({
   });
 
   const { data: services, isLoading: isLoadingServices } = useQuery({
-    queryKey: ["/api/services", selectedCategoryId],
+    queryKey: ["/api/service-templates", selectedCategoryId],
     queryFn: () => {
       if (!selectedCategoryId) return null;
-      return apiCall(`/services?categoryId=${selectedCategoryId}`)
+      // Buscar apenas TEMPLATES de serviços (não serviços personalizados)
+      return apiCall(`/api/service-templates?categoryId=${selectedCategoryId}`)
         .then((res) => res.json());
     },
     enabled: !!selectedCategoryId,
@@ -189,21 +190,44 @@ export function NewBookingWizard({
     queryKey: ["/api/providers", selectedServiceIds, selectedDate],
     queryFn: async () => {
       if (selectedServiceIds.length === 0 || !selectedDate) return [];
-      // Usando a API existente de busca de prestadores por serviço
-      const serviceId = selectedServiceIds[0]; // Pega o primeiro serviço para consulta principal
-      const response = await fetch(
-        `/api/providers/service-search?serviceIds=${selectedServiceIds.join(',')}&date=${selectedDate.toISOString().split("T")[0]}`
-      );
+      
+
+      
+      // Buscar prestadores que oferecem o serviço selecionado
+      const url = `/api/providers/service-search?serviceIds=${selectedServiceIds.join(',')}&date=${selectedDate.toISOString().split("T")[0]}`;
+      
+
+      
+      const response = await apiCall(url);
+
+      
+      if (!response.ok) {
+        console.error('Erro na API:', response.status, response.statusText);
+        return [];
+      }
+      
       const data = await response.json();
+
       
-      // Verificar o formato e normalizar a resposta se necessário
+      // A API retorna { providers: [...], totalResults: X, filters: {...} }
       let providersData = data.providers || [];
+
       
-      // Se os prestadores estiverem dentro de um objeto 'provider', extrair os dados
-      const normalizedProviders = providersData.map(item => 
-        item.provider ? item.provider : item
-      );
+      // Cada prestador tem: { provider: {...}, services: [...], totalDuration: X, rating: X }
+      const normalizedProviders = providersData.map(item => {
+        // Extrair dados do prestador
+        const provider = item.provider || item;
+        
+        // Adicionar informações dos serviços e duração
+        return {
+          ...provider,
+          serviceDurations: item.services || [],
+          totalServiceDuration: item.totalDuration || 0,
+          rating: item.rating || 0
+        };
+      });
       
+
       return normalizedProviders;
     },
     enabled: selectedServiceIds.length > 0 && !!selectedDate,
@@ -213,22 +237,16 @@ export function NewBookingWizard({
   // Efeito para buscar os dados de serviços de cada prestador e verificar disponibilidade real
   useEffect(() => {
     if (providers && providers.length > 0 && selectedServiceIds.length > 0 && selectedDate) {
+
+      
       // Armazenar os prestadores válidos (com horários disponíveis)
       const validProviders = {};
       
-      // Contador para acompanhar verificações completas
-      let completedChecks = 0;
-      const totalProviders = providers.filter(p => p && p.id).length;
-      
-      // Verificar que temos prestadores válidos
-      if (totalProviders === 0) return;
-      
       // Para cada prestador, buscar seus serviços e verificar disponibilidade
-      providers.forEach((provider) => {
+      const providerPromises = providers.map(async (provider) => {
         // Verificar se o prestador é válido e tem ID
         if (!provider || !provider.id) {
-          completedChecks++;
-          return;
+          return { hasSlots: false, provider, services: [] };
         }
         
         // Marcar como carregando
@@ -237,90 +255,95 @@ export function NewBookingWizard({
           [provider.id]: true,
         }));
         
-        // Primeiro buscar os serviços do prestador usando a rota correta
-        apiCall(
-          `/provider-services/provider/${provider.id}`,
-        )
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error(`Erro ao buscar serviços: ${response.status}`);
-            }
-            return response.json();
-          })
-          .then((providerServices) => {
-            // Filtrar serviços relevantes
-            const services = Array.isArray(providerServices) ? providerServices
-              .filter(ps => ps && ps.serviceId && selectedServiceIds.includes(ps.serviceId))
-              .map(ps => ({
-                id: ps.serviceId,
-                name: ps.serviceName || "Serviço",
-                duration: ps.executionTime || ps.defaultDuration || 30,
-                price: ps.price || 0
-              })) : [];
-            
-            // Calcular duração total para este prestador
-            let providerDuration = 0;
-            
-            // Garantir que temos serviços válidos antes de calcular a duração
-            if (services && services.length > 0) {
-              services.forEach(service => {
-                const duration = parseInt(service.duration) || 0;
-                providerDuration += duration;
-              });
-            }
-            
-            // Usar duração calculada ou valor padrão para evitar NaN
-            const finalDuration = providerDuration > 0 ? providerDuration : (totalDuration || 60);
-            
-            // Verificar se este prestador tem horários disponíveis
-            return apiCall(
-              `/providers/${provider.id}/time-slots?date=${selectedDate.toISOString().split("T")[0]}&duration=${finalDuration}`
-            )
-              .then(slotsResponse => slotsResponse.json())
-              .then(slots => {
-                // Só adicionar o prestador se tiver slots disponíveis
-                if (Array.isArray(slots) && slots.length > 0) {
-                  validProviders[provider.id] = services;
-                }
-                
-                return { hasSlots: Array.isArray(slots) && slots.length > 0, provider, services };
-              });
-          })
-          .then(({ hasSlots, provider, services }) => {
+        try {
+
+          
+          // BUSCAR SERVIÇOS PERSONALIZADOS DO PRESTADOR
+          const providerServicesResponse = await apiCall(
+            `/api/provider-services/provider/${provider.id}`
+          );
+          
+          let providerServices = [];
+          if (providerServicesResponse.ok) {
+            const servicesData = await providerServicesResponse.json();
+            providerServices = servicesData || [];
+
+          } else {
+            console.error(`Erro ao buscar serviços do prestador ${provider.id}:`, providerServicesResponse.status);
+          }
+          
+          // Filtrar apenas os serviços que o cliente selecionou
+          const selectedServices = providerServices.filter(ps => 
+            selectedServiceIds.includes(ps.serviceId)  // Corrigido: era ps.service_id
+          );
+          
+
+
+          
+          // Mapear para o formato esperado COM PREÇOS
+          const services = selectedServices.map(ps => ({
+            id: ps.serviceId,  // Corrigido: era ps.service_id
+            name: ps.serviceName || "Serviço",
+            duration: ps.executionTime || ps.duration || 30,
+            price: ps.price || 0, // PREÇO PERSONALIZADO DO PRESTADOR
+            providerServiceId: ps.id
+          }));
+          
+
+          
+          // Usar a duração total que já vem da API
+          const finalDuration = provider.totalServiceDuration || (totalDuration || 60);
+          
+          // Verificar se este prestador tem horários disponíveis
+          const slotsResponse = await apiCall(
+            `/api/providers/${provider.id}/time-slots?date=${selectedDate.toISOString().split("T")[0]}&duration=${finalDuration}`
+          );
+          
+          const slots = await slotsResponse.json();
+          
+          // Só adicionar o prestador se tiver slots disponíveis
+          const hasSlots = Array.isArray(slots) && slots.length > 0;
+          if (hasSlots) {
+            validProviders[provider.id] = services;
+
+          } else {
+
+          }
+          
+          return { hasSlots, provider, services };
+        } catch (error) {
+          console.error(`Erro ao verificar prestador ${provider.id}:`, error);
+          return { hasSlots: false, provider, services: [] };
+        } finally {
+          setLoadingProviderServices((prev) => ({
+            ...prev,
+            [provider.id]: false,
+          }));
+        }
+      });
+      
+      // Aguardar todas as verificações completarem
+      Promise.all(providerPromises)
+        .then((results) => {
+
+          
+          results.forEach(({ hasSlots, provider, services }) => {
             if (hasSlots) {
               setProviderServices((prev) => ({
                 ...prev,
                 [provider.id]: services,
               }));
             }
-            
-            setLoadingProviderServices((prev) => ({
-              ...prev,
-              [provider.id]: false,
-            }));
-            
-            // Incrementar contador de verificações completas
-            completedChecks++;
-            
-            // Se todas as verificações foram concluídas, atualizar estado
-            if (completedChecks === totalProviders) {
-              // Filtrar providers para mostrar apenas os que têm slots disponíveis
-              const filteredProviders = providers.filter(p => validProviders[p.id]);
-              
-              // Forçar atualização da lista de prestadores
-              setProviderServices({...validProviders});
-            }
-          })
-          .catch((err) => {
-            setLoadingProviderServices((prev) => ({
-              ...prev,
-              [provider.id]: false,
-            }));
-            
-            // Incrementar contador mesmo em caso de erro
-            completedChecks++;
           });
-      });
+          
+          // Forçar atualização da lista de prestadores
+          setProviderServices({...validProviders});
+          
+
+        })
+        .catch((error) => {
+          console.error('Erro ao verificar prestadores:', error);
+        });
     }
   }, [providers, selectedServiceIds, selectedDate, totalDuration]);
 
@@ -539,7 +562,7 @@ export function NewBookingWizard({
       let response;
       if (selectedServiceIds.length === 1) {
         // Agendamento simples
-        response = await fetch('/api/booking', {
+        response = await apiCall('/api/booking', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -556,7 +579,7 @@ export function NewBookingWizard({
         });
       } else {
         // Agendamento de múltiplos serviços consecutivos
-        response = await fetch('/api/booking/consecutive', {
+        response = await apiCall('/api/booking/consecutive', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -600,12 +623,17 @@ export function NewBookingWizard({
     let duration = 0;
     let price = 0;
 
-    services
-      .filter((service) => selectedServiceIds.includes(service.id))
-      .forEach((service) => {
+
+
+    // Usar os serviços que já foram carregados
+    if (services && services.length > 0) {
+      services.forEach((service) => {
         duration += service.duration || 0;
         price += service.price || 0;
+
       });
+    }
+
 
     return { duration, price };
   };
@@ -937,11 +965,21 @@ export function NewBookingWizard({
                     </div>
                   </div>
                   <div className="text-right">
-                    {providerServices[provider.id] && providerServices[provider.id].length > 0 && providerServices[provider.id].map((service, idx) => (
-                      <div key={service.id} className="text-sm font-semibold text-neutral-800">
-                        {`${service.name} - R$ ${(Number(service.price) / 100).toFixed(2).replace('.', ',')}`}
+                    {/* Mostrar apenas os serviços selecionados pelo cliente */}
+                    {providerServices[provider.id] && providerServices[provider.id].length > 0 && (
+                      <div className="space-y-1">
+                        {providerServices[provider.id].map((service, idx) => (
+                          <div key={service.id} className="text-sm font-semibold text-neutral-800">
+                            {`${service.name} - R$ ${(Number(service.price) / 100).toFixed(2).replace('.', ',')}`}
+
+                          </div>
+                        ))}
+                        {/* Mostrar preço total */}
+                        <div className="text-xs text-neutral-600 border-t pt-1">
+                          Total: R$ {(totals.price / 100).toFixed(2).replace('.', ',')}
+                        </div>
                       </div>
-                    ))}
+                    )}
                     <div className={`text-sm ${
                       selectedProvider === provider.id ? 'text-white/70' : 'text-gray-500'
                     }`}>

@@ -302,20 +302,23 @@ export default function ServicesPageNew() {
       
       try {
         // Enviar solicitação diretamente via axios ou fetch nativo para evitar problemas de autenticação
-        const response = await fetch("/api/provider-services", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Provider-Auth": "true", // Header especial para indicar que é uma requisição do prestador
-          },
-          body: JSON.stringify({
+        const response = await apiRequest(
+          "POST",
+          "/api/provider-services",
+          {
             providerId: user.id,
             serviceId,
             executionTime,
             breakTime,
             isActive: true
-          })
-        });
+          },
+          {
+            headers: {
+              "Content-Type": "application/json",
+              "X-Provider-Auth": "true", // Header especial para indicar que é uma requisição do prestador
+            }
+          }
+        );
         
         console.log("Status da resposta:", response.status);
         
@@ -323,19 +326,22 @@ export default function ServicesPageNew() {
           if (response.status === 401) {
             console.error("Erro de autenticação. Tentando método alternativo...");
             // Tentar método alternativo
-            const altResponse = await fetch("/api/services/provider-add-service", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
+            const altResponse = await apiRequest(
+              "POST",
+              "/api/services/provider-add-service",
+              {
                 providerId: user.id,
                 serviceId,
                 executionTime,
                 breakTime,
                 isActive: true
-              })
-            });
+              },
+              {
+                headers: {
+                  "Content-Type": "application/json",
+                }
+              }
+            );
             
             if (!altResponse.ok) {
               const altErrorData = await altResponse.json();

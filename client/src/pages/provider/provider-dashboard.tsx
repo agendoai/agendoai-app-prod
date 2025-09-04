@@ -92,8 +92,13 @@ export default function ProviderDashboard() {
   
   // Adicionar busca do status da conta Stripe Connect
   const { data: stripeStatus, isLoading: isStripeStatusLoading, refetch: refetchStripeStatus } = useQuery({
-    queryKey: ["/api/provider/stripe-status"],
-    retry: 1,
+    queryKey: ["/api/provider/stripe-connect-status"],
+    queryFn: async () => {
+      const response = await apiRequest("/api/provider/stripe-connect-status");
+      if (!response.ok) throw new Error("Falha ao carregar status do Stripe");
+      return response.json();
+    },
+    enabled: !!user,
   });
 
   useEffect(() => {

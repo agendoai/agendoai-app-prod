@@ -40,7 +40,7 @@ export default function ServiceTemplatesPage() {
   const { data: templates = [], isLoading: isLoadingTemplates } = useQuery({
     queryKey: ["/api/service-templates"],
     queryFn: async () => {
-      const res = await fetch("/api/service-templates");
+      const res = await apiRequest("GET", "/api/service-templates");
       if (!res.ok) throw new Error("Falha ao carregar templates de serviço");
       return res.json() as Promise<ServiceTemplate[]>;
     }
@@ -50,7 +50,7 @@ export default function ServiceTemplatesPage() {
   const { data: categories = [], isLoading: isLoadingCategories } = useQuery({
     queryKey: ["/api/categories"],
     queryFn: async () => {
-      const res = await fetch("/api/categories");
+      const res = await apiRequest("GET", "/api/categories");
       if (!res.ok) throw new Error("Falha ao carregar categorias");
       return res.json() as Promise<Category[]>;
     }

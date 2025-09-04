@@ -149,7 +149,7 @@ export default function PaymentPage() {
                 paymentMethod: 'pix',
               }
             };
-            const paymentResponse = await fetch('/api/payments/create-payment-intent', {
+            const paymentResponse = await apiCall('/api/payments/create-payment-intent', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
@@ -252,7 +252,7 @@ export default function PaymentPage() {
       console.log('user:', user);
       console.log('Payload enviado:', payload);
       // Chamar backend para criar pagamento no Asaas
-      const paymentResponse = await fetch('/api/payments/create-payment-intent', {
+      const paymentResponse = await apiCall('/api/payments/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -317,7 +317,7 @@ export default function PaymentPage() {
       console.log('user:', user);
       console.log('Payload enviado:', payload);
       // Criar payment intent para PIX
-      const response = await fetch('/api/payments/create-payment-intent', {
+      const response = await apiCall('/api/payments/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -364,7 +364,7 @@ export default function PaymentPage() {
       console.log('user:', user);
       console.log('Payload enviado:', payload);
       // Criar payment intent para cartão
-      const response = await fetch('/api/payments/create-payment-intent', {
+      const response = await apiCall('/api/payments/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -399,7 +399,7 @@ export default function PaymentPage() {
       
       if (bookingData.multipleServices) {
         // Agendamento de múltiplos serviços
-        response = await fetch('/api/booking/consecutive', {
+        response = await apiCall('/api/booking/consecutive', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -413,7 +413,7 @@ export default function PaymentPage() {
         });
       } else {
         // Agendamento simples
-        response = await fetch('/api/booking', {
+        response = await apiCall('/api/booking', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

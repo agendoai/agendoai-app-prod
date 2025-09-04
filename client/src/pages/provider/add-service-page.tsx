@@ -14,6 +14,7 @@ import { apiCall } from "@/lib/api";
 import type { ServiceTemplate, Category } from "@shared/schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ProviderLayout from "@/components/layout/provider-layout";
+import type { Niche } from "@shared/schema";
 
 export default function AddServicePage() {
   const { toast } = useToast();
@@ -48,45 +49,25 @@ export default function AddServicePage() {
   const [showDialog, setShowDialog] = useState(false);
   const [step, setStep] = useState(1);
 
-  // Fetch niches com melhor tratamento de erro
-  const { data: niches = [], isLoading: isLoadingNiches, error: nichesError } = useQuery({
+  // Buscar nichos
+  const { data: niches = [], isLoading: isLoadingNiches } = useQuery({
     queryKey: ["/api/niches"],
     queryFn: async () => {
-      try {
-        const response = await fetch("/api/niches");
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error("Erro ao carregar nichos:", error);
-        return [];
-      }
+      const response = await apiCall("/api/niches");
+      if (!response.ok) throw new Error("Falha ao carregar nichos");
+      return response.json() as Promise<Niche[]>;
     },
-    retry: 2,
-    retryDelay: 1000,
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
 
-  // Buscar todas as categorias para os filtros
-  const { data: allCategories = [], isLoading: isLoadingAllCategories } = useQuery({
+  // Buscar categorias
+  const { data: allCategories = [], isLoading: isLoadingCategories } = useQuery({
     queryKey: ["/api/categories"],
     queryFn: async () => {
-      try {
-        const response = await fetch("/api/categories");
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        const data = await response.json();
-        return Array.isArray(data) ? data : [];
-      } catch (error) {
-        console.error("Erro ao carregar todas as categorias:", error);
-        return [];
-      }
+      const response = await apiCall("/api/categories");
+      if (!response.ok) throw new Error("Falha ao carregar categorias");
+      return response.json() as Promise<Category[]>;
     },
-    retry: 2,
-    retryDelay: 1000,
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
 
@@ -95,7 +76,7 @@ export default function AddServicePage() {
   const { data: templates = [], isLoading: isLoadingTemplates, error: templatesError } = useQuery({
     queryKey: ["/api/service-templates"],
     queryFn: async () => {
-      const res = await fetch("/api/service-templates");
+      const res = await apiCall("/api/service-templates");
       if (!res.ok) throw new Error("Falha ao carregar templates de serviço");
       return res.json() as Promise<ServiceTemplate[]>;
     }
@@ -146,7 +127,7 @@ export default function AddServicePage() {
     }
     try {
       // 1. Criar serviço real a partir do template
-      const createServiceRes = await fetch('/api/services', {
+      const createServiceRes = await apiCall('/api/services', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -207,10 +188,6 @@ export default function AddServicePage() {
       return <SelectItem value="loading" disabled>Carregando nichos...</SelectItem>;
     }
     
-    if (nichesError) {
-      return <SelectItem value="error" disabled>Erro ao carregar nichos</SelectItem>;
-    }
-    
     if (!Array.isArray(niches) || niches.length === 0) {
       return <SelectItem value="empty" disabled>Nenhum nicho disponível</SelectItem>;
     }
@@ -224,7 +201,7 @@ export default function AddServicePage() {
 
   // Função para renderizar categorias para filtros, agora filtrando pelo nicho selecionado
   const renderFilterCategories = () => {
-    if (isLoadingAllCategories) {
+    if (isLoadingCategories) {
       return <SelectItem value="loading" disabled>Carregando categorias...</SelectItem>;
     }
     if (!Array.isArray(allCategories) || allCategories.length === 0) {
@@ -276,19 +253,7 @@ export default function AddServicePage() {
           </div>
 
           {/* Verificação de segurança */}
-          {nichesError && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-red-600 font-medium">Erro ao carregar nichos: {nichesError.message}</p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="mt-3"
-                onClick={() => window.location.reload()}
-              >
-                Tentar novamente
-              </Button>
-            </div>
-          )}
+          {/* Removido verificação de nichesError pois não está mais sendo usado */}
 
           <div className="grid grid-cols-1 gap-8">
             {/* Main Content */}

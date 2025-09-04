@@ -42,7 +42,7 @@ export default function CategoriesManager() {
   const { data: categories, isLoading } = useQuery({
     queryKey: ['/api/categories'],
     queryFn: async () => {
-      const response = await fetch('/api/categories');
+      const response = await apiRequest('GET', '/api/categories');
       if (!response.ok) {
         throw new Error('Falha ao carregar categorias');
       }
