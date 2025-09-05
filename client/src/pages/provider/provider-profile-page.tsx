@@ -35,14 +35,12 @@ import {
 } from "@/components/ui/tabs";
 import { 
   Store, 
-  MapPin, 
   Image as ImageIcon, 
   Check, 
   LogOut,
   UploadCloud,
   X,
   Clock,
-  Phone,
   Globe,
   Instagram,
   Facebook,
@@ -52,7 +50,6 @@ import {
   MessageSquare,
   AlertCircle,
   CreditCardIcon,
-  BadgeHelp,
   AlertTriangle,
   DollarSign,
   Settings,
@@ -267,6 +264,289 @@ export default function ProviderProfilePage() {
     }, 500);
   };
   
+
+  // Função para capturar foto com a câmera (não utilizada - removida para evitar warnings)
+  /*
+  const handleCameraCapture = async (type: 'profile' | 'cover') => {
+    try {
+      // Verificar se o navegador suporta getUserMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast({
+          title: "Câmera não disponível",
+          description: "Seu navegador não suporta acesso à câmera. Tente usar um navegador mais recente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Verificar se estamos em HTTPS ou localhost (permitir HTTP em localhost para desenvolvimento)
+      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && !window.location.hostname.includes('192.168.')) {
+        toast({
+          title: "HTTPS necessário",
+          description: "O acesso à câmera requer HTTPS. Certifique-se de que está usando uma conexão segura.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Detectar se é iPhone/iOS
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isWebView = (window as any).ReactNativeWebView || (window as any).webkit?.messageHandlers;
+
+      if (isIOS && isWebView) {
+        toast({
+          title: "Use a opção nativa",
+          description: "No iPhone, use a opção 'Galeria / Câmera' que abre o seletor nativo do iOS.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Mostrar toast de carregamento
+      toast({
+        title: "Acessando câmera...",
+        description: "Solicitando permissão para acessar a câmera.",
+      });
+
+      // Configurações específicas para iPhone/iOS
+      const videoConstraints = isIOS ? {
+        video: { 
+          facingMode: { ideal: 'user' }, // Câmera frontal
+          width: { ideal: type === 'cover' ? 800 : 640, max: 1280 },
+          height: { ideal: type === 'cover' ? 400 : 640, max: 1280 }
+        },
+        audio: false
+      } : {
+        video: { 
+          facingMode: 'user', // Câmera frontal
+          width: { ideal: type === 'cover' ? 1200 : 800, max: 1920 },
+          height: { ideal: type === 'cover' ? 400 : 800, max: 1920 }
+        },
+        audio: false
+      };
+
+      // Solicitar acesso à câmera
+      const stream = await navigator.mediaDevices.getUserMedia(videoConstraints);
+
+      // Criar um elemento de vídeo temporário
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.autoplay = true;
+      video.muted = true;
+      video.playsInline = true;
+      
+      // Configurações específicas para iPhone/iOS
+      if (isIOS) {
+        video.setAttribute('webkit-playsinline', 'true');
+        video.setAttribute('playsinline', 'true');
+        video.style.width = '100%';
+        video.style.height = 'auto';
+      }
+
+      // Criar um canvas para capturar a foto
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Aguardar o vídeo carregar
+      video.addEventListener('loadedmetadata', () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // Desenhar o frame atual no canvas
+        ctx?.drawImage(video, 0, 0);
+        
+        // Converter para blob
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            // Criar um arquivo a partir do blob
+            const file = new File([blob], `camera-capture-${type}.jpg`, { type: 'image/jpeg' });
+            
+            // Fazer upload diretamente
+            if (type === 'profile') {
+              await uploadProfileImage(file);
+            } else {
+              await uploadCoverImage(file);
+            }
+            
+            toast({
+              title: "Foto capturada!",
+              description: `A foto de ${type === 'profile' ? 'perfil' : 'capa'} foi capturada e enviada com sucesso.`,
+            });
+          }
+          
+          // Parar a câmera
+          stream.getTracks().forEach(track => track.stop());
+        }, 'image/jpeg', 0.8);
+      });
+
+      // Tratar erro de carregamento do vídeo
+      video.addEventListener('error', () => {
+        stream.getTracks().forEach(track => track.stop());
+        toast({
+          title: "Erro ao carregar câmera",
+          description: "Não foi possível carregar a câmera. Tente novamente.",
+          variant: "destructive",
+        });
+      });
+
+    } catch (error: any) {
+      console.error('Erro ao acessar câmera:', error);
+      
+      let errorMessage = "Não foi possível acessar a câmera.";
+      let errorTitle = "Erro na câmera";
+      
+      if (error.name === 'NotAllowedError') {
+        errorTitle = "Permissão negada";
+        errorMessage = "Permissão negada. Por favor, permita o acesso à câmera nas configurações do navegador.";
+      } else if (error.name === 'NotFoundError') {
+        errorTitle = "Câmera não encontrada";
+        errorMessage = "Nenhuma câmera encontrada. Verifique se há uma câmera conectada.";
+      } else if (error.name === 'NotReadableError') {
+        errorTitle = "Câmera em uso";
+        errorMessage = "A câmera está sendo usada por outro aplicativo. Feche outros apps que possam estar usando a câmera.";
+      } else if (error.name === 'OverconstrainedError') {
+        errorTitle = "Configuração não suportada";
+        errorMessage = "As configurações da câmera não são suportadas. Tente usar a opção 'Galeria / Câmera'.";
+      } else if (error.name === 'SecurityError') {
+        errorTitle = "Erro de segurança";
+        errorMessage = "Erro de segurança. Certifique-se de que está usando HTTPS ou localhost.";
+      }
+      
+      toast({
+        title: errorTitle,
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
+  */
+
+  // Função auxiliar para upload de imagem de perfil
+  const uploadProfileImage = async (file: File) => {
+    setUploadingProfileImage(true);
+    try {
+      // Verificar tipo de arquivo
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Erro no upload",
+          description: "O arquivo selecionado não é uma imagem válida.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Verificar tamanho do arquivo (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Erro no upload",
+          description: "O arquivo é muito grande. Tamanho máximo: 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Criar FormData para enviar o arquivo
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      // Fazer upload para Cloudinary
+      const response = await apiCall(`/api/users/${user?.id}/profile-image-cloudinary`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (response.ok) {
+        await response.json();
+        
+        // Invalidar todas as queries relacionadas ao usuário e provider
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/provider-settings"] });
+        queryClient.invalidateQueries({ queryKey: ["user"] });
+        
+        // Refetch imediato dos dados do provider
+        refetch();
+        
+        toast({
+          title: "Sucesso",
+          description: "Imagem de perfil atualizada com sucesso!",
+        });
+      } else {
+        throw new Error('Erro no upload');
+      }
+    } catch (error) {
+      toast({
+        title: "Erro no upload",
+        description: "Não foi possível atualizar a imagem de perfil.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingProfileImage(false);
+    }
+  };
+
+  // Função auxiliar para upload de imagem de capa
+  const uploadCoverImage = async (file: File) => {
+    setUploadingCoverImage(true);
+    try {
+      // Verificar tipo de arquivo
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Erro no upload",
+          description: "O arquivo selecionado não é uma imagem válida.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Verificar tamanho do arquivo (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Erro no upload",
+          description: "O arquivo é muito grande. Tamanho máximo: 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Criar FormData para enviar o arquivo
+      const formData = new FormData();
+      formData.append('image', file);
+      
+      // Fazer upload para Cloudinary
+      const response = await apiCall(`/api/providers/${user?.id}/cover-image-cloudinary`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (response.ok) {
+        await response.json();
+        
+        // Invalidar todas as queries relacionadas ao provider
+        queryClient.invalidateQueries({ queryKey: ["/api/provider-settings"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        queryClient.invalidateQueries({ queryKey: ["user"] });
+        
+        // Refetch imediato dos dados do provider
+        refetch();
+        
+        toast({
+          title: "Sucesso",
+          description: "Imagem de capa atualizada com sucesso!",
+        });
+      } else {
+        throw new Error('Erro no upload');
+      }
+    } catch (error) {
+      toast({
+        title: "Erro no upload",
+        description: "Não foi possível atualizar a imagem de capa.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingCoverImage(false);
+    }
+  };
+
   // Função para upload de imagem de perfil usando Cloudinary
   const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || event.target.files.length === 0) {
@@ -274,69 +554,7 @@ export default function ProviderProfilePage() {
     }
     
     const file = event.target.files[0];
-    
-    // Verificar tipo de arquivo
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Erro no upload",
-        description: "O arquivo selecionado não é uma imagem válida.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Verificar tamanho do arquivo (máximo 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Erro no upload",
-        description: "O arquivo é muito grande. Tamanho máximo: 5MB",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const formData = new FormData();
-    formData.append('image', file);
-    
-    try {
-      setUploadingProfileImage(true);
-      
-      const response = await fetch(`/api/users/${user?.id}/profile-image-cloudinary`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao fazer upload da imagem');
-      }
-      
-      const result = await response.json();
-      
-      // Invalidar consultas para atualizar o perfil
-      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-      
-      toast({
-        title: "Imagem atualizada",
-        description: "Sua foto de perfil foi atualizada com sucesso.",
-      });
-      
-    } catch (error: any) {
-      toast({
-        title: "Erro no upload",
-        description: error.message || "Não foi possível enviar a imagem.",
-        variant: "destructive",
-      });
-    } finally {
-      setUploadingProfileImage(false);
-      // Limpar input de arquivo
-      if (profileImageInputRef.current) {
-        profileImageInputRef.current.value = '';
-      }
-    }
+    await uploadProfileImage(file);
   };
   
   // Função para upload de imagem de capa usando Cloudinary
@@ -346,69 +564,7 @@ export default function ProviderProfilePage() {
     }
     
     const file = event.target.files[0];
-    
-    // Verificar tipo de arquivo
-    if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Erro no upload",
-        description: "O arquivo selecionado não é uma imagem válida.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // Verificar tamanho do arquivo (máximo 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "Erro no upload",
-        description: "O arquivo é muito grande. Tamanho máximo: 5MB",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    const formData = new FormData();
-    formData.append('image', file);
-    
-    try {
-      setUploadingCoverImage(true);
-      
-      const response = await fetch(`/api/providers/${user?.id}/cover-image-cloudinary`, {
-        method: 'POST',
-        body: formData,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Erro ao fazer upload da imagem de capa');
-      }
-      
-      const result = await response.json();
-      
-      // Invalidar consultas para atualizar as configurações do prestador
-      queryClient.invalidateQueries({ queryKey: ["/api/provider-settings"] });
-      
-      toast({
-        title: "Imagem de capa atualizada",
-        description: "Sua imagem de capa foi atualizada com sucesso.",
-      });
-      
-    } catch (error: any) {
-      toast({
-        title: "Erro no upload",
-        description: error.message || "Não foi possível enviar a imagem de capa.",
-        variant: "destructive",
-      });
-    } finally {
-      setUploadingCoverImage(false);
-      // Limpar input de arquivo
-      if (coverImageInputRef.current) {
-        coverImageInputRef.current.value = '';
-      }
-    }
+    await uploadCoverImage(file);
   };
 
   // Função para conectar Stripe
@@ -434,7 +590,7 @@ export default function ProviderProfilePage() {
           variant: "destructive",
         });
       }
-    } catch (err) {
+    } catch (err: any) {
       toast({
         title: "Erro ao conectar Stripe",
         description: err.message || "Não foi possível conectar ao Stripe.",
@@ -1030,8 +1186,7 @@ export default function ProviderProfilePage() {
                                     placeholder="Digite seu código de comerciante"
                                     className="max-w-xs"
                                   />
-                                  <AlertCircle className="h-4 w-4 text-amber-500 cursor-help" 
-                                    title="Seu código de comerciante está disponível no painel da SumUp" />
+                                  <AlertCircle className="h-4 w-4 text-amber-500 cursor-help" />
                                 </div>
                                 {!merchantCode && acceptOnlinePayments && (
                                   <div className="mt-2 text-xs text-amber-500 flex items-center">
@@ -1202,20 +1357,22 @@ export default function ProviderProfilePage() {
                           className="hidden"
                           id="profile-image-input"
                         />
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-xs"
-                          onClick={() => profileImageInputRef.current?.click()}
-                          disabled={uploadingProfileImage}
-                        >
-                          {uploadingProfileImage ? (
-                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          ) : (
-                            <UploadCloud className="h-3 w-3 mr-1" />
-                          )}
-                          {uploadingProfileImage ? "Enviando..." : "Atualizar"}
-                        </Button>
+                        <div className="flex space-x-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="text-xs flex-1"
+                            onClick={() => profileImageInputRef.current?.click()}
+                            disabled={uploadingProfileImage}
+                          >
+                            {uploadingProfileImage ? (
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            ) : (
+                              <UploadCloud className="h-3 w-3 mr-1" />
+                            )}
+                            {uploadingProfileImage ? "Enviando..." : "Galeria / Câmera"}
+                          </Button>
+                        </div>
                       </div>
                     </div>
                     
@@ -1245,20 +1402,22 @@ export default function ProviderProfilePage() {
                         className="hidden"
                         id="cover-image-input"
                       />
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="text-xs w-full"
-                        onClick={() => coverImageInputRef.current?.click()}
-                        disabled={uploadingCoverImage}
-                      >
-                        {uploadingCoverImage ? (
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                        ) : (
-                          <UploadCloud className="h-3 w-3 mr-1" />
-                        )}
-                        {uploadingCoverImage ? "Enviando..." : "Atualizar Imagem de Capa"}
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="text-xs flex-1"
+                          onClick={() => coverImageInputRef.current?.click()}
+                          disabled={uploadingCoverImage}
+                        >
+                          {uploadingCoverImage ? (
+                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                          ) : (
+                            <UploadCloud className="h-3 w-3 mr-1" />
+                          )}
+                          {uploadingCoverImage ? "Enviando..." : "Galeria / Câmera"}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </CardContent>

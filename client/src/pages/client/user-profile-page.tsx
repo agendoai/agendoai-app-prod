@@ -2,17 +2,16 @@ import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
+import { useQueryClient } from "@tanstack/react-query";
+import { apiCall } from "@/lib/api";
 import { 
   User, 
-  Shield, 
   CreditCard, 
   MapPin, 
   HelpCircle, 
   Headphones, 
   LogOut,
-  Settings,
-  Calendar,
-  History
+  Calendar
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
@@ -32,6 +31,51 @@ import ClientLayout from "@/components/layout/client-layout";
 export default function UserProfilePage() {
   const [, setLocation] = useLocation();
   const { user, isLoading } = useAuth();
+  const queryClient = useQueryClient();
+
+
+  // Função para fazer upload da imagem
+  const uploadImage = async (file: File) => {
+    // Verificar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      alert('O arquivo selecionado não é uma imagem válida');
+      return;
+    }
+    
+    // Verificar tamanho do arquivo (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('O arquivo é muito grande. Tamanho máximo: 5MB');
+      return;
+    }
+    
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    try {
+      const response = await apiCall(`/api/users/${user?.id}/profile-image-cloudinary`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Erro ao fazer upload da imagem');
+      }
+      
+      await response.json();
+      
+      // Invalidar queries para atualizar a imagem automaticamente
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      
+      toast({
+        title: "Sucesso",
+        description: "Imagem de perfil atualizada com sucesso!",
+      });
+    } catch (error) {
+      alert(`Erro ao fazer upload: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+    }
+  };
   const { toast } = useToast();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   
@@ -201,59 +245,26 @@ export default function UserProfilePage() {
               {user?.name?.charAt(0) || 'C'}
             </div>
           )}
-          <button
-            type="button"
-            onClick={() => {
-              const input = document.createElement('input');
-              input.type = 'file';
-              input.accept = 'image/*';
-              input.onchange = async (e) => {
-                const file = (e.target as HTMLInputElement).files?.[0];
-                if (file) {
-                  // Verificar tipo de arquivo
-                  if (!file.type.startsWith('image/')) {
-                    alert('O arquivo selecionado não é uma imagem válida');
-                    return;
+          <div className="flex space-x-2">
+            <button
+              type="button"
+              onClick={() => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = async (e) => {
+                  const file = (e.target as HTMLInputElement).files?.[0];
+                  if (file) {
+                    await uploadImage(file);
                   }
-                  
-                  // Verificar tamanho do arquivo (máximo 5MB)
-                  if (file.size > 5 * 1024 * 1024) {
-                    alert('O arquivo é muito grande. Tamanho máximo: 5MB');
-                    return;
-                  }
-                  
-                  const formData = new FormData();
-                  formData.append('image', file);
-                  
-                  try {
-                    const response = await fetch(`/api/users/${user?.id}/profile-image-cloudinary`, {
-                      method: 'POST',
-                      body: formData,
-                      headers: {
-                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-                      }
-                    });
-                    
-                    if (!response.ok) {
-                      const errorData = await response.json();
-                      throw new Error(errorData.error || 'Erro ao fazer upload da imagem');
-                    }
-                    
-                    // Recarregar a página para mostrar a nova imagem
-                    window.location.reload();
-                  } catch (error) {
-                    alert(`Erro ao fazer upload: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
-                  }
-                }
-              };
-              input.click();
-            }}
-            className="absolute bottom-2 right-2 bg-primary text-white p-2 rounded-full shadow-lg border-2 border-white hover:bg-primary/80 transition-colors"
-            aria-label="Alterar foto de perfil"
-            title="Alterar foto de perfil"
-          >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2a2.828 2.828 0 11-4-4 2.828 2.828 0 014 4z" /></svg>
-          </button>
+                };
+                input.click();
+              }}
+              className="px-3 py-1 bg-white text-primary text-xs rounded-lg border border-primary hover:bg-primary hover:text-white transition-colors flex-1"
+            >
+              Galeria / Câmera
+            </button>
+          </div>
         </div>
         <div className="pt-32 flex flex-col items-center">
           <h1 className="text-xl font-bold text-white text-center">

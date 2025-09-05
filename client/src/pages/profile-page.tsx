@@ -232,6 +232,67 @@ export default function ProfilePage() {
   const handleProfilePhotoClick = () => {
     fileInputRef.current?.click();
   };
+
+  // Função para capturar foto com a câmera
+  const handleCameraCapture = async () => {
+    try {
+      // Verificar se o navegador suporta getUserMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast({
+          title: "Câmera não disponível",
+          description: "Seu navegador não suporta acesso à câmera.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Solicitar acesso à câmera
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'user', // Câmera frontal
+          width: { ideal: 800 },
+          height: { ideal: 800 }
+        } 
+      });
+
+      // Criar um elemento de vídeo temporário
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.play();
+
+      // Criar um canvas para capturar a foto
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Aguardar o vídeo carregar
+      video.addEventListener('loadedmetadata', () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // Desenhar o frame atual no canvas
+        ctx?.drawImage(video, 0, 0);
+        
+        // Converter para blob
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            // Criar um arquivo a partir do blob
+            const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+            await handleFileInputChange({ target: { files: [file] } } as any);
+          }
+          
+          // Parar a câmera
+          stream.getTracks().forEach(track => track.stop());
+        }, 'image/jpeg', 0.8);
+      });
+
+    } catch (error) {
+      toast({
+        title: "Erro ao acessar câmera",
+        description: "Não foi possível acessar a câmera. Verifique as permissões.",
+        variant: "destructive",
+      });
+    }
+  };
   
   const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -282,12 +343,9 @@ export default function ProfilePage() {
       const formData = new FormData();
       formData.append('image', file);
       
-      const response = await fetch(`/api/users/${user?.id}/profile-image-cloudinary`, {
+      const response = await apiCall(`/api/users/${user?.id}/profile-image-cloudinary`, {
         method: 'POST',
         body: formData,
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
       });
       
       if (!response.ok) {
@@ -511,14 +569,25 @@ export default function ProfilePage() {
                           onChange={handleFileInputChange}
                         />
                         
-                        <Button 
-                          variant="outline" 
-                          onClick={handleProfilePhotoClick}
-                          className="mt-2"
-                        >
-                          <Upload className="h-4 w-4 mr-2" />
-                          <span>Escolher Foto</span>
-                        </Button>
+                        <div className="flex space-x-2 mt-2">
+                          <Button 
+                            variant="outline" 
+                            onClick={handleProfilePhotoClick}
+                            className="flex-1"
+                          >
+                            <Upload className="h-4 w-4 mr-2" />
+                            <span>Galeria</span>
+                          </Button>
+                          
+                          <Button 
+                            variant="outline" 
+                            onClick={handleCameraCapture}
+                            className="flex-1"
+                          >
+                            <Camera className="h-4 w-4 mr-2" />
+                            <span>Câmera</span>
+                          </Button>
+                        </div>
                       </div>
                       
                       <div className="text-sm text-muted-foreground space-y-2">
@@ -966,14 +1035,25 @@ export default function ProfilePage() {
                         onChange={handleFileInputChange}
                       />
                       
-                      <Button 
-                        variant="outline" 
-                        onClick={handleProfilePhotoClick}
-                        className="mt-2"
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        <span>Escolher Foto</span>
-                      </Button>
+                      <div className="flex space-x-2 mt-2">
+                        <Button 
+                          variant="outline" 
+                          onClick={handleProfilePhotoClick}
+                          className="flex-1"
+                        >
+                          <Upload className="h-4 w-4 mr-2" />
+                          <span>Galeria</span>
+                        </Button>
+                        
+                        <Button 
+                          variant="outline" 
+                          onClick={handleCameraCapture}
+                          className="flex-1"
+                        >
+                          <Camera className="h-4 w-4 mr-2" />
+                          <span>Câmera</span>
+                        </Button>
+                      </div>
                     </div>
                     
                     <div className="text-sm text-muted-foreground space-y-2">

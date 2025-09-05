@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
+import { apiCall } from "@/lib/api";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import ClientLayout from "@/components/layout/client-layout";
 
@@ -144,12 +145,9 @@ export default function PersonalInfoPage() {
         formData.append('image', file);
         
         // Fazer upload para Cloudinary
-        const response = await fetch(`/api/users/${user?.id}/profile-image-cloudinary`, {
+        const response = await apiCall(`/api/users/${user?.id}/profile-image-cloudinary`, {
           method: 'POST',
           body: formData,
-          headers: {
-            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-          }
         });
         
         if (!response.ok) {
@@ -211,6 +209,160 @@ export default function PersonalInfoPage() {
     // Abrir o diálogo para mudar a imagem
     setImageDialogOpen(true);
   };
+
+  const handleCameraCapture = async () => {
+    try {
+      // Verificar se o navegador suporta getUserMedia
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        toast({
+          title: "Câmera não disponível",
+          description: "Seu navegador não suporta acesso à câmera. Tente usar um navegador mais recente.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Verificar se estamos em HTTPS ou localhost (permitir HTTP em localhost para desenvolvimento)
+      if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && !window.location.hostname.includes('192.168.')) {
+        toast({
+          title: "HTTPS necessário",
+          description: "O acesso à câmera requer HTTPS. Certifique-se de que está usando uma conexão segura.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Detectar se é iPhone/iOS
+      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      const isWebView = (window as any).ReactNativeWebView || (window as any).webkit?.messageHandlers;
+
+      if (isIOS && isWebView) {
+        toast({
+          title: "Use a opção nativa",
+          description: "No iPhone, use a opção 'Galeria / Câmera' que abre o seletor nativo do iOS.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Mostrar toast de carregamento
+      toast({
+        title: "Acessando câmera...",
+        description: "Solicitando permissão para acessar a câmera.",
+      });
+
+      // Configurações específicas para iPhone/iOS
+      const videoConstraints = isIOS ? {
+        video: { 
+          facingMode: { ideal: 'user' }, // Câmera frontal
+          width: { ideal: 640, max: 1280 },
+          height: { ideal: 640, max: 1280 }
+        },
+        audio: false
+      } : {
+        video: { 
+          facingMode: 'user', // Câmera frontal
+          width: { ideal: 800, max: 1920 },
+          height: { ideal: 800, max: 1920 }
+        },
+        audio: false
+      };
+
+      // Solicitar acesso à câmera
+      const stream = await navigator.mediaDevices.getUserMedia(videoConstraints);
+
+      // Criar um elemento de vídeo temporário
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.autoplay = true;
+      video.muted = true;
+      video.playsInline = true;
+      
+      // Configurações específicas para iPhone/iOS
+      if (isIOS) {
+        video.setAttribute('webkit-playsinline', 'true');
+        video.setAttribute('playsinline', 'true');
+        video.style.width = '100%';
+        video.style.height = 'auto';
+      }
+
+      // Criar um canvas para capturar a foto
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Aguardar o vídeo carregar
+      video.addEventListener('loadedmetadata', () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // Desenhar o frame atual no canvas
+        ctx?.drawImage(video, 0, 0);
+        
+        // Converter para blob
+        canvas.toBlob((blob) => {
+          if (blob) {
+            // Criar um arquivo a partir do blob
+            const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
+            setImageFile(file);
+            
+            // Criar preview
+            const reader = new FileReader();
+            reader.onload = () => {
+              setPreviewImage(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+            
+            toast({
+              title: "Foto capturada!",
+              description: "A foto foi capturada com sucesso. Clique em 'Salvar nova foto' para confirmar.",
+            });
+          }
+          
+          // Parar a câmera
+          stream.getTracks().forEach(track => track.stop());
+        }, 'image/jpeg', 0.8);
+      });
+
+      // Tratar erro de carregamento do vídeo
+      video.addEventListener('error', () => {
+        stream.getTracks().forEach(track => track.stop());
+        toast({
+          title: "Erro ao carregar câmera",
+          description: "Não foi possível carregar a câmera. Tente novamente.",
+          variant: "destructive",
+        });
+      });
+
+    } catch (error: any) {
+      console.error('Erro ao acessar câmera:', error);
+      
+      let errorMessage = "Não foi possível acessar a câmera.";
+      let errorTitle = "Erro na câmera";
+      
+      if (error.name === 'NotAllowedError') {
+        errorTitle = "Permissão negada";
+        errorMessage = "Permissão negada. Por favor, permita o acesso à câmera nas configurações do navegador.";
+      } else if (error.name === 'NotFoundError') {
+        errorTitle = "Câmera não encontrada";
+        errorMessage = "Nenhuma câmera encontrada. Verifique se há uma câmera conectada.";
+      } else if (error.name === 'NotReadableError') {
+        errorTitle = "Câmera em uso";
+        errorMessage = "A câmera está sendo usada por outro aplicativo. Feche outros apps que possam estar usando a câmera.";
+      } else if (error.name === 'OverconstrainedError') {
+        errorTitle = "Configuração não suportada";
+        errorMessage = "As configurações da câmera não são suportadas. Tente usar a opção 'Galeria / Câmera'.";
+      } else if (error.name === 'SecurityError') {
+        errorTitle = "Erro de segurança";
+        errorMessage = "Erro de segurança. Certifique-se de que está usando HTTPS ou localhost.";
+      }
+      
+      toast({
+        title: errorTitle,
+        description: errorMessage,
+        variant: "destructive",
+      });
+    }
+  };
   
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -223,6 +375,7 @@ export default function PersonalInfoPage() {
       reader.readAsDataURL(file);
     }
   };
+
   
   const handleImageUpload = () => {
     if (imageFile) {
@@ -401,7 +554,7 @@ export default function PersonalInfoPage() {
                 onClick={() => fileInputRef.current?.click()}
               >
                 <Upload className="mr-2 h-4 w-4" />
-                Selecionar imagem
+                Galeria / Câmera
               </Button>
               
               <Button 

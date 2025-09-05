@@ -75,8 +75,14 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   
   const token = getToken();
   
+  // Para FormData, não definir Content-Type para permitir que o navegador defina automaticamente
+  const isFormData = options.body instanceof FormData;
+  
   const defaultOptions: RequestInit = {
-    headers: {
+    headers: isFormData ? {
+      // Para FormData, não definir Content-Type - o navegador define automaticamente
+      ...options.headers,
+    } : {
       'Content-Type': 'application/json',
       ...options.headers,
     },

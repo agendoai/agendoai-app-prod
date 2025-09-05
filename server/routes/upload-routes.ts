@@ -16,6 +16,22 @@ import { cloudinary } from "../cloudinary-config";
 import multer from "multer";
 
 export function registerUploadRoutes(app: Express) {
+  // Middleware específico para interceptar uploads ANTES de qualquer processamento
+  app.use('/api/users/:userId/profile-image-cloudinary', (req, res, next) => {
+    console.log('🔍 Upload middleware - Content-Type:', req.headers['content-type']);
+    console.log('🔍 Upload middleware - Method:', req.method);
+    console.log('🔍 Upload middleware - URL:', req.url);
+    
+    // Se for FormData, não processar como JSON
+    if (req.headers['content-type']?.includes('multipart/form-data')) {
+      console.log('🔍 FormData detectado - pulando processamento JSON');
+      // Limpar qualquer processamento anterior do body
+      req.body = {};
+    }
+    
+    next();
+  });
+
   // Configurar multer para upload em memória (para Cloudinary)
   const upload = multer({
     storage: multer.memoryStorage(),
@@ -48,6 +64,10 @@ export function registerUploadRoutes(app: Express) {
   // Upload de imagem de perfil usando Cloudinary
   app.post('/api/users/:userId/profile-image-cloudinary', isAuthenticated, upload.single('image'), async (req: Request, res: Response) => {
     try {
+      console.log('🔍 Upload route - Content-Type:', req.headers['content-type']);
+      console.log('🔍 Upload route - Body keys:', Object.keys(req.body || {}));
+      console.log('🔍 Upload route - File:', req.file ? 'Present' : 'Missing');
+      
       const userId = parseInt(req.params.userId);
       
       // Verificar permissão

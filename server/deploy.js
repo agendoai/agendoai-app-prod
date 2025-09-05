@@ -68,9 +68,57 @@ app.use((req, res, next) => {
   next();
 });
 
-// Middlewares básicos
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: false }));
+// Middleware global para interceptar TODAS as requisições de upload ANTES dos parsers
+app.use((req, res, next) => {
+  const contentType = req.headers['content-type'] || '';
+  const isUploadRoute = req.path.includes('profile-image-cloudinary') || 
+                       req.path.includes('cover-image-cloudinary');
+  
+  if (isUploadRoute && contentType.includes('multipart/form-data')) {
+    console.log('🔍 FormData detectado - pulando TODOS os parsers de body');
+    console.log('🔍 Route:', req.path);
+    console.log('🔍 Method:', req.method);
+    console.log('🔍 Content-Type:', contentType);
+    
+    // Marcar que este request não deve ser processado pelos parsers
+    req.skipBodyParsing = true;
+    return next();
+  }
+  
+  next();
+});
+
+// Middlewares básicos - Parser JSON APENAS para Content-Type: application/json
+app.use((req, res, next) => {
+  // Pular se for requisição de upload
+  if (req.skipBodyParsing) {
+    console.log('🔍 Pulando parser JSON - requisição de upload');
+    return next();
+  }
+  
+  const contentType = req.headers['content-type'] || '';
+  if (contentType.includes('application/json')) {
+    express.json({ limit: '10mb' })(req, res, next);
+  } else {
+    next();
+  }
+});
+
+// Parser URL encoded - APENAS para Content-Type: application/x-www-form-urlencoded
+app.use((req, res, next) => {
+  // Pular se for requisição de upload
+  if (req.skipBodyParsing) {
+    console.log('🔍 Pulando parser URL encoded - requisição de upload');
+    return next();
+  }
+  
+  const contentType = req.headers['content-type'] || '';
+  if (contentType.includes('application/x-www-form-urlencoded')) {
+    express.urlencoded({ extended: false })(req, res, next);
+  } else {
+    next();
+  }
+});
 
 // Configuração para servir arquivos estáticos da pasta uploads
 app.use('/uploads', express.static(path.join(rootDir, 'uploads')));
