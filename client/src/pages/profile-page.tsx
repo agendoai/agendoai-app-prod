@@ -266,23 +266,41 @@ export default function ProfilePage() {
     };
     reader.readAsDataURL(file);
     
-    // Enviar para o servidor
+    // Enviar para o servidor usando Cloudinary
     setUploadProgress(10);
     try {
+      // Verificar tipo de arquivo
+      if (!file.type.startsWith('image/')) {
+        throw new Error('O arquivo selecionado não é uma imagem válida');
+      }
+      
+      // Verificar tamanho do arquivo (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('O arquivo é muito grande. Tamanho máximo: 5MB');
+      }
+      
       const formData = new FormData();
-      formData.append('profileImage', file);
-      const response = await apiCall(`/users/${user?.id}/profile-image`, {
+      formData.append('image', file);
+      
+      const response = await fetch(`/api/users/${user?.id}/profile-image-cloudinary`, {
         method: 'POST',
         body: formData,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
       });
+      
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.error || 'Erro ao fazer upload da imagem');
       }
+      
       const result = await response.json();
       setUploadProgress(100);
+      
       // Atualizar o usuário no cache
       queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+      
       toast({
         title: "Imagem atualizada",
         description: "Sua foto de perfil foi atualizada com sucesso.",

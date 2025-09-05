@@ -675,28 +675,7 @@ app.use('/api/webhook', asaasWebhookRoutes)
 	// Rotas de Usuários
 	// ---------------------------------------------------------------------
 
-	// Atualizar usuário
-	app.put("/api/users/:id", isAuthenticated, async (req, res) => {
-		try {
-			// Somente permitir usuários atualizarem seus próprios dados
-			// ou administradores atualizarem qualquer usuário
-			const userId = parseInt(req.params.id)
-			if (req.user!.id !== userId && req.user!.userType !== "admin") {
-				return res.status(403).json({ error: "Permissão negada" })
-			}
-
-			const userData = req.body
-			const updatedUser = await storage.updateUser(userId, userData)
-
-			if (!updatedUser) {
-				return res.status(404).json({ error: "Usuário não encontrado" })
-			}
-
-			res.json(updatedUser)
-		} catch (error) {
-			res.status(500).json({ error: "Erro ao atualizar usuário" })
-		}
-	})
+	// Rota de atualização de usuário movida para user-management-routes.ts
 
 	// ---------------------------------------------------------------------
 	// Rotas de Disponibilidade (Agenda)

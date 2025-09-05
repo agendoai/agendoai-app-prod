@@ -125,7 +125,7 @@ export default function PersonalInfoPage() {
     });
   };
 
-  // Mutation para fazer upload da imagem
+  // Mutation para fazer upload da imagem usando Cloudinary
   const uploadImageMutation = useMutation({
     mutationFn: async (file: File) => {
       try {
@@ -134,29 +134,57 @@ export default function PersonalInfoPage() {
           throw new Error('O arquivo selecionado não é uma imagem válida');
         }
         
-        // Comprimir e converter para base64
-        return await compressImage(file, 2); // Máximo 2MB após compressão
+        // Verificar tamanho do arquivo (máximo 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+          throw new Error('O arquivo é muito grande. Tamanho máximo: 5MB');
+        }
+        
+        // Criar FormData para enviar o arquivo
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        // Fazer upload para Cloudinary
+        const response = await fetch(`/api/users/${user?.id}/profile-image-cloudinary`, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+          }
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Erro ao fazer upload da imagem');
+        }
+        
+        const result = await response.json();
+        return result;
       } catch (error) {
-        throw new Error(`Falha ao processar imagem: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+        throw new Error(`Falha ao fazer upload: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
       }
     },
-    onSuccess: (base64Image: string) => {
-      // Atualizar o perfil com a nova imagem
-      updateProfileMutation.mutate({ 
-        ...formData, 
-        email: undefined,
-        profileImage: base64Image 
-      });
-      setFormData(prev => ({ ...prev, profileImage: base64Image }));
+    onSuccess: (result: any) => {
+      // Atualizar o estado local com a nova URL da imagem
+      setFormData(prev => ({ ...prev, profileImage: result.profileImage }));
+      
+      // Invalidar a query do usuário para atualizar os dados
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+      
+      // Fechar o diálogo e limpar o estado
       setImageDialogOpen(false);
       setPreviewImage(null);
       setImageFile(null);
+      
+      toast({
+        title: "Imagem atualizada",
+        description: "Sua foto de perfil foi atualizada com sucesso.",
+      });
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao fazer upload da imagem",
+        title: "Erro ao fazer upload",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   });
@@ -220,16 +248,15 @@ export default function PersonalInfoPage() {
         <div className="flex flex-col items-center mb-8">
           <button
             type="button"
-            className="w-28 h-28 rounded-full overflow-hidden bg-primary/10 relative mb-2 group shadow-lg border-4 border-white focus:outline-none focus:ring-2 focus:ring-primary opacity-60 cursor-not-allowed"
-            disabled
+            onClick={handleImageChange}
+            className="w-28 h-28 rounded-full overflow-hidden bg-primary/10 relative mb-2 group shadow-lg border-4 border-white focus:outline-none focus:ring-2 focus:ring-primary hover:opacity-80 transition-opacity"
             aria-label="Alterar foto de perfil"
-            tabIndex={-1}
           >
             {formData.profileImage ? (
               <img 
                 src={formData.profileImage} 
                 alt="Profile" 
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover rounded-full"
                 onError={(e) => {
                   e.currentTarget.onerror = null;
                   e.currentTarget.src = '/src/assets/service-images/perfil de usuario.png';
@@ -246,10 +273,10 @@ export default function PersonalInfoPage() {
           </button>
           <button
             type="button"
-            className="text-sm text-neutral-500 mt-2 cursor-not-allowed"
-            disabled
+            onClick={handleImageChange}
+            className="text-sm text-primary hover:text-primary/80 mt-2 transition-colors"
           >
-            Em breve disponível
+            Alterar foto
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-6 bg-white rounded-2xl shadow-lg p-6 mt-2">

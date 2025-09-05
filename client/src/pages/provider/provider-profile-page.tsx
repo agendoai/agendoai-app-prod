@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import {
   Card,
@@ -114,44 +115,55 @@ export default function ProviderProfilePage() {
   // Adicione o estado de carregamento do Stripe Connect
   const [stripeLoading, setStripeLoading] = useState(false);
 
-  // Fetch provider settings
-  const { data: providerSettings, isLoading } = useQuery({
-    queryKey: ["/api/provider-settings"],
-    onSuccess: (data) => {
-      if (data) {
-        // Business Information
-        setBusinessName(data.businessName || "");
-        setDescription(data.description || "");
-        setSpecialties(data.specialties || "");
-        
-        // Contact Information - COMENTADO TEMPORARIAMENTE
-        /*
-        setAddress(data.address || "");
-        setCity(data.city || "");
-        setState(data.state || "");
-        setPostalCode(data.postalCode || "");
-        setPhone(data.phone || "");
-        setWhatsapp(data.whatsapp || "");
-        setEmail(data.email || user?.email || "");
-        */
-        
-        // Online Presence
-        setWebsite(data.website || "");
-        setInstagram(data.instagram || "");
-        setFacebook(data.facebook || "");
-        
-        // Payment Options
-        setAcceptsCards(data.acceptsCards !== undefined ? data.acceptsCards : true);
-        setAcceptsPix(data.acceptsPix !== undefined ? data.acceptsPix : true);
-        setAcceptsCash(data.acceptsCash !== undefined ? data.acceptsCash : true);
-        setAcceptOnlinePayments(data.acceptOnlinePayments !== undefined ? data.acceptOnlinePayments : false);
-        setMerchantCode(data.merchantCode || "");
-        
-        // Business Hours
-        setBusinessHours(data.businessHours || "");
-      }
+  // Função para forçar status online
+  const forceOnlineStatus = async () => {
+    try {
+      await apiRequest("PUT", "/api/provider-settings", { isOnline: true });
+      refetch(); // Recarregar dados
+    } catch (error) {
+      // Erro silencioso
     }
+  };
+
+  // Fetch provider settings
+  const { data: providerSettings, isLoading, refetch } = useQuery({
+    queryKey: ["/api/provider-settings"],
+    refetchOnMount: true,
+    staleTime: 0,
   });
+
+  // Forçar status online quando a página carregar
+  useEffect(() => {
+    if (providerSettings && !(providerSettings as any).isOnline) {
+      forceOnlineStatus();
+    }
+  }, [providerSettings]);
+
+  // Effect para atualizar os estados quando os dados carregarem
+  useEffect(() => {
+    if (providerSettings) {
+      const settings = providerSettings as any;
+      // Business Information
+      setBusinessName(settings.businessName || "");
+      setDescription(settings.description || "");
+      setSpecialties(settings.specialties || "");
+      
+      // Online Presence
+      setWebsite(settings.website || "");
+      setInstagram(settings.instagram || "");
+      setFacebook(settings.facebook || "");
+      
+      // Payment Options
+      setAcceptsCards(settings.acceptsCards !== undefined ? settings.acceptsCards : true);
+      setAcceptsPix(settings.acceptsPix !== undefined ? settings.acceptsPix : true);
+      setAcceptsCash(settings.acceptsCash !== undefined ? settings.acceptsCash : true);
+      setAcceptOnlinePayments(settings.acceptOnlinePayments !== undefined ? settings.acceptOnlinePayments : false);
+      setMerchantCode(settings.merchantCode || "");
+      
+      // Business Hours
+      setBusinessHours(settings.businessHours || "");
+    }
+  }, [providerSettings]);
   
   // Update provider settings mutation
   const updateSettingsMutation = useMutation({
@@ -159,8 +171,9 @@ export default function ProviderProfilePage() {
       const res = await apiRequest("PUT", "/api/provider-settings", settingsData);
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/provider-settings"] });
+      queryClient.refetchQueries({ queryKey: ["/api/provider-settings"] });
       toast({
         title: "Perfil atualizado",
         description: "Suas informações foram atualizadas com sucesso.",
@@ -250,27 +263,50 @@ export default function ProviderProfilePage() {
     
     // Forçar recarregamento da página após um pequeno delay
     setTimeout(() => {
-      console.log('🔄 Recarregando página...');
       window.location.reload();
     }, 500);
   };
   
-  // Função para upload de imagem de perfil
+  // Função para upload de imagem de perfil usando Cloudinary
   const handleProfileImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || event.target.files.length === 0) {
       return;
     }
     
     const file = event.target.files[0];
+    
+    // Verificar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Erro no upload",
+        description: "O arquivo selecionado não é uma imagem válida.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Verificar tamanho do arquivo (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Erro no upload",
+        description: "O arquivo é muito grande. Tamanho máximo: 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const formData = new FormData();
-    formData.append('profileImage', file);
+    formData.append('image', file);
     
     try {
       setUploadingProfileImage(true);
       
-      const response = await apiCall(`/users/${user?.id}/profile-image`, {
+      const response = await fetch(`/api/users/${user?.id}/profile-image-cloudinary`, {
         method: 'POST',
         body: formData,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
       });
       
       if (!response.ok) {
@@ -303,22 +339,46 @@ export default function ProviderProfilePage() {
     }
   };
   
-  // Função para upload de imagem de capa
+  // Função para upload de imagem de capa usando Cloudinary
   const handleCoverImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     if (!event.target.files || event.target.files.length === 0) {
       return;
     }
     
     const file = event.target.files[0];
+    
+    // Verificar tipo de arquivo
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: "Erro no upload",
+        description: "O arquivo selecionado não é uma imagem válida.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Verificar tamanho do arquivo (máximo 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "Erro no upload",
+        description: "O arquivo é muito grande. Tamanho máximo: 5MB",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const formData = new FormData();
-    formData.append('coverImage', file);
+    formData.append('image', file);
     
     try {
       setUploadingCoverImage(true);
       
-      const response = await apiCall(`/providers/${user?.id}/cover-image`, {
+      const response = await fetch(`/api/providers/${user?.id}/cover-image-cloudinary`, {
         method: 'POST',
         body: formData,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
       });
       
       if (!response.ok) {
@@ -355,9 +415,7 @@ export default function ProviderProfilePage() {
   const handleConnectStripe = async () => {
     setStripeLoading(true);
     try {
-      console.log('[DEBUG] Chamando /api/provider/stripe-connect-onboarding');
       const res = await apiRequest("POST", "/api/provider/stripe-connect-onboarding", {});
-      console.log('[DEBUG] Resposta da API:', res);
       if (res.status === 401) {
         toast({
           title: "Não autenticado",
@@ -367,7 +425,6 @@ export default function ProviderProfilePage() {
         return;
       }
       const data = await res.json();
-      console.log('[DEBUG] Dados recebidos:', data);
       if (data.onboardingUrl) {
         window.location.href = data.onboardingUrl;
       } else {
@@ -400,17 +457,48 @@ export default function ProviderProfilePage() {
             <>
               {/* Status Card */}
               <Card className="border border-neutral-200">
-                <CardContent className="pt-4">
+                <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-sm font-medium text-neutral-500">Status</h3>
-                      <div className="flex items-center">
-                        <div className={`w-2 h-2 rounded-full ${providerSettings?.isOnline ? "bg-green-500" : "bg-red-500"} mr-2`}></div>
-                        <p className="font-medium">{providerSettings?.isOnline ? "Online" : "Offline"}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        {/* Imagem de perfil */}
+                        <div className="relative">
+                          {user?.profileImage ? (
+                            <img
+                              src={user.profileImage}
+                              alt={user.name || 'Prestador'}
+                              className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-lg"
+                            />
+                          ) : (
+                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#3EB9AA] to-[#2A9D8F] flex items-center justify-center text-white text-xl font-bold border-2 border-white shadow-lg">
+                              {user?.name?.charAt(0) || 'P'}
+                            </div>
+                          )}
+                          {/* Indicador de status */}
+                          <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white ${(providerSettings as any)?.isOnline ? "bg-green-500" : "bg-red-500"}`}></div>
+                        </div>
+                        
+                        <div>
+                          <div className="flex items-center">
+                            <div className={`w-3 h-3 rounded-full ${(providerSettings as any)?.isOnline ? "bg-green-500" : "bg-red-500"} mr-3`}></div>
+                            <p className="text-lg font-semibold text-neutral-900">{(providerSettings as any)?.isOnline ? "Online" : "Offline"}</p>
+                          </div>
+                        </div>
                       </div>
+                      
+                      {/* Botão de emergência para forçar online */}
+                      {!(providerSettings as any)?.isOnline && (
+                        <button
+                          onClick={forceOnlineStatus}
+                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                        >
+                          Ficar Online
+                        </button>
+                      )}
                     </div>
+                    
                     <Switch 
-                      checked={providerSettings?.isOnline || false}
+                      checked={(providerSettings as any)?.isOnline || false}
                       onCheckedChange={(checked) => {
                         updateSettingsMutation.mutate({ isOnline: checked });
                       }}

@@ -64,7 +64,7 @@ const isOwnerOrAdmin = (userId: number) => (req: Request, res: Response, next: F
 export function registerUserManagementRoutes(app: Express) {
   
   // Alterar senha do usuário
-  app.put("/api/users/:id/password", async (req: Request, res: Response) => {
+  app.put("/api/users/:id/password", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = parseInt(req.params.id);
       
@@ -201,7 +201,7 @@ export function registerUserManagementRoutes(app: Express) {
   });
   
   // Atualizar perfil do usuário
-  app.put("/api/users/:id", async (req: Request, res: Response) => {
+  app.put("/api/users/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const userId = parseInt(req.params.id);
       

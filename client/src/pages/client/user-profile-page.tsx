@@ -183,13 +183,14 @@ export default function UserProfilePage() {
   return (
     <ClientLayout>
       {/* User Banner */}
-      <div className="h-44 bg-gradient-to-br from-[#3EB9AA] to-[#2A9D8F] relative flex flex-col items-center justify-center">
-        <div className="absolute -top-14 left-1/2 -translate-x-1/2 w-28 h-28 bg-white rounded-full overflow-hidden border-4 border-white shadow-lg flex items-center justify-center group">
+      <div className="h-48 bg-gradient-to-br from-[#3EB9AA] to-[#2A9D8F] relative flex flex-col items-center justify-center">
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 w-17 h-28 bg-white rounded-full overflow-hidden border-4 border-white shadow-lg flex items-center justify-center group z-10">
           {user?.profileImage ? (
             <img
               src={user.profileImage}
               alt={user.name || 'User'}
               className="w-full h-full object-cover"
+              style={{ borderRadius: '50%' }}
               onError={(e) => {
                 e.currentTarget.onerror = null;
                 e.currentTarget.src = '/src/assets/service-images/perfil de usuario.png';
@@ -202,15 +203,59 @@ export default function UserProfilePage() {
           )}
           <button
             type="button"
-            className="absolute bottom-2 right-2 bg-neutral-400 text-white p-2 rounded-full shadow-lg border-2 border-white opacity-60 cursor-not-allowed"
+            onClick={() => {
+              const input = document.createElement('input');
+              input.type = 'file';
+              input.accept = 'image/*';
+              input.onchange = async (e) => {
+                const file = (e.target as HTMLInputElement).files?.[0];
+                if (file) {
+                  // Verificar tipo de arquivo
+                  if (!file.type.startsWith('image/')) {
+                    alert('O arquivo selecionado não é uma imagem válida');
+                    return;
+                  }
+                  
+                  // Verificar tamanho do arquivo (máximo 5MB)
+                  if (file.size > 5 * 1024 * 1024) {
+                    alert('O arquivo é muito grande. Tamanho máximo: 5MB');
+                    return;
+                  }
+                  
+                  const formData = new FormData();
+                  formData.append('image', file);
+                  
+                  try {
+                    const response = await fetch(`/api/users/${user?.id}/profile-image-cloudinary`, {
+                      method: 'POST',
+                      body: formData,
+                      headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+                      }
+                    });
+                    
+                    if (!response.ok) {
+                      const errorData = await response.json();
+                      throw new Error(errorData.error || 'Erro ao fazer upload da imagem');
+                    }
+                    
+                    // Recarregar a página para mostrar a nova imagem
+                    window.location.reload();
+                  } catch (error) {
+                    alert(`Erro ao fazer upload: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+                  }
+                }
+              };
+              input.click();
+            }}
+            className="absolute bottom-2 right-2 bg-primary text-white p-2 rounded-full shadow-lg border-2 border-white hover:bg-primary/80 transition-colors"
             aria-label="Alterar foto de perfil"
-            disabled
-            title="Em breve disponível"
+            title="Alterar foto de perfil"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M9 13l6-6m2 2a2.828 2.828 0 11-4-4 2.828 2.828 0 014 4z" /></svg>
           </button>
         </div>
-        <div className="pt-20 flex flex-col items-center">
+        <div className="pt-32 flex flex-col items-center">
           <h1 className="text-xl font-bold text-white text-center">
             {user?.name || user?.email?.split('@')[0] || 'Usuário'}
           </h1>
