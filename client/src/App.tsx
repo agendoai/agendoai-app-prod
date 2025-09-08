@@ -686,11 +686,12 @@ function App() {
   // Verifica se estamos na rota de admin ou suporte para aplicar um layout mais amplo
   const isAdmin = location.startsWith('/admin');
   const isSupport = location.startsWith('/support');
-  // A landing page, onboarding wizard, mapa de prestadores e página de teste de agendamento inteligente precisam ter largura total
+  // A landing page, onboarding wizard, mapa de prestadores, páginas de provider e página de teste de agendamento inteligente precisam ter largura total
   const needsFullWidth = isAdmin || isSupport || location === '/' || 
                         location.includes('/provider-map') || 
                         location.includes('/onboarding-wizard') ||
-                        location.includes('/smart-booking-test');
+                        location.includes('/smart-booking-test') ||
+                        location.includes('/provider/');
 
   // Se houver erro crítico de módulo, mostrar tela de erro
   if (moduleErrorHandler.hasCriticalError) {

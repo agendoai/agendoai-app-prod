@@ -603,10 +603,10 @@ export default function ProviderProfilePage() {
   
   return (
     <ProviderLayout>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <div className="min-h-screen w-full full-width-screen bg-gradient-to-br from-gray-50 to-gray-100">
         <AppHeader title="Perfil do Prestador" showBackButton />
         
-        <div className="p-4 space-y-6">
+        <div className="p-4 md:p-6 lg:p-8 xl:p-12 space-y-6 md:space-y-8 lg:space-y-10 xl:space-y-12 w-full">
           {isLoading ? (
             <p className="text-center py-8">Carregando informações do perfil...</p>
           ) : (
@@ -623,10 +623,10 @@ export default function ProviderProfilePage() {
                             <img
                               src={user.profileImage}
                               alt={user.name || 'Prestador'}
-                              className="w-16 h-16 rounded-full object-cover border-2 border-white shadow-lg"
+                              className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full object-cover border-2 border-white shadow-lg"
                             />
                           ) : (
-                            <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#3EB9AA] to-[#2A9D8F] flex items-center justify-center text-white text-xl font-bold border-2 border-white shadow-lg">
+                            <div className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-[#3EB9AA] to-[#2A9D8F] flex items-center justify-center text-white text-xl md:text-2xl lg:text-3xl font-bold border-2 border-white shadow-lg">
                               {user?.name?.charAt(0) || 'P'}
                             </div>
                           )}
@@ -665,101 +665,114 @@ export default function ProviderProfilePage() {
               
               {/* Tabs for different sections */}
               <Tabs defaultValue="business" value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-3 mb-4">
-                  <TabsTrigger value="business">Negócio</TabsTrigger>
+                <TabsList className="grid grid-cols-3 mb-6 md:mb-8 w-full">
+                  <TabsTrigger value="business" className="text-sm md:text-base lg:text-lg px-4 py-2 md:px-6 md:py-3">Negócio</TabsTrigger>
                   {/* <TabsTrigger value="contact">Contato</TabsTrigger> */}
-                  <TabsTrigger value="online">Online</TabsTrigger>
-                  <TabsTrigger value="payment">Pagamento</TabsTrigger>
+                  <TabsTrigger value="online" className="text-sm md:text-base lg:text-lg px-4 py-2 md:px-6 md:py-3">Online</TabsTrigger>
+                  <TabsTrigger value="payment" className="text-sm md:text-base lg:text-lg px-4 py-2 md:px-6 md:py-3">Pagamento</TabsTrigger>
                 </TabsList>
                 
                 {/* Business Information Tab */}
                 <TabsContent value="business">
-                  <Card className="border border-neutral-200">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg flex items-center">
-                        <Store className="h-5 w-5 mr-2 text-primary" />
-                        Informações do Negócio
-                      </CardTitle>
-                      <CardDescription>
-                        Configure os detalhes do seu estabelecimento
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
+                  <div className="w-full">
+                    <Card className="border border-neutral-200 md:shadow-lg">
+                      <CardHeader className="pb-4 md:pb-6">
+                        <CardTitle className="text-lg md:text-xl flex items-center">
+                          <Store className="h-5 w-5 mr-2 text-primary" />
+                          Informações do Negócio
+                        </CardTitle>
+                        <CardDescription className="text-sm md:text-base">
+                          Configure os detalhes do seu estabelecimento
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
                       {isEditing ? (
-                        <div className="space-y-4">
-                          <div>
-                            <Label htmlFor="business-name">Nome do Estabelecimento</Label>
-                            <Input
-                              id="business-name"
-                              value={businessName}
-                              onChange={(e) => setBusinessName(e.target.value)}
-                              placeholder="Nome do seu negócio"
-                            />
+                        <div className="space-y-6 md:space-y-8">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+                            <div>
+                              <Label htmlFor="business-name" className="text-sm md:text-base lg:text-lg">Nome do Estabelecimento</Label>
+                              <Input
+                                id="business-name"
+                                value={businessName}
+                                onChange={(e) => setBusinessName(e.target.value)}
+                                placeholder="Nome do seu negócio"
+                                className="text-sm md:text-base lg:text-lg mt-2"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="specialties" className="text-sm md:text-base lg:text-lg">Especialidades</Label>
+                              <Input
+                                id="specialties"
+                                value={specialties}
+                                onChange={(e) => setSpecialties(e.target.value)}
+                                placeholder="Ex: Corte masculino, Barba, Coloração"
+                                className="text-sm md:text-base lg:text-lg mt-2"
+                              />
+                              <p className="text-xs md:text-sm lg:text-base text-neutral-500 mt-2">
+                                Separe as especialidades por vírgula
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <Label htmlFor="description">Descrição do Negócio</Label>
-                            <Textarea
-                              id="description"
-                              value={description}
-                              onChange={(e) => setDescription(e.target.value)}
-                              placeholder="Descreva seu negócio"
-                              rows={3}
-                            />
-                          </div>
-                          <div>
-                            <Label htmlFor="specialties">Especialidades</Label>
-                            <Input
-                              id="specialties"
-                              value={specialties}
-                              onChange={(e) => setSpecialties(e.target.value)}
-                              placeholder="Ex: Corte masculino, Barba, Coloração"
-                            />
-                            <p className="text-xs text-neutral-500 mt-1">
-                              Separe as especialidades por vírgula
-                            </p>
-                          </div>
-                          <div>
-                            <Label htmlFor="business-hours">Horário de Funcionamento</Label>
-                            <Textarea
-                              id="business-hours"
-                              value={businessHours}
-                              onChange={(e) => setBusinessHours(e.target.value)}
-                              placeholder="Ex: Segunda a Sexta: 9h às 18h, Sábado: 9h às 13h"
-                              rows={3}
-                            />
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+                            <div>
+                              <Label htmlFor="description" className="text-sm md:text-base lg:text-lg">Descrição do Negócio</Label>
+                              <Textarea
+                                id="description"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                placeholder="Descreva seu negócio"
+                                rows={4}
+                                className="text-sm md:text-base lg:text-lg mt-2"
+                              />
+                            </div>
+                            <div>
+                              <Label htmlFor="business-hours" className="text-sm md:text-base lg:text-lg">Horário de Funcionamento</Label>
+                              <Textarea
+                                id="business-hours"
+                                value={businessHours}
+                                onChange={(e) => setBusinessHours(e.target.value)}
+                                placeholder="Ex: Segunda a Sexta: 9h às 18h, Sábado: 9h às 13h"
+                                rows={4}
+                                className="text-sm md:text-base lg:text-lg mt-2"
+                              />
+                            </div>
                           </div>
                         </div>
                       ) : (
-                        <div className="space-y-4">
-                          <div>
-                            <h3 className="text-sm font-medium text-neutral-500">Nome do Estabelecimento</h3>
-                            <p className="font-medium">
-                              {providerSettings?.businessName || user?.name || "Não configurado"}
-                            </p>
+                        <div className="space-y-6 md:space-y-8">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+                            <div className="bg-gray-50 p-4 md:p-6 rounded-lg">
+                              <h3 className="text-sm md:text-base lg:text-lg font-medium text-neutral-500 mb-2">Nome do Estabelecimento</h3>
+                              <p className="font-medium text-sm md:text-base lg:text-lg">
+                                {providerSettings?.businessName || user?.name || "Não configurado"}
+                              </p>
+                            </div>
+                            <div className="bg-gray-50 p-4 md:p-6 rounded-lg">
+                              <h3 className="text-sm md:text-base lg:text-lg font-medium text-neutral-500 mb-2">Especialidades</h3>
+                              <p className="font-medium text-sm md:text-base lg:text-lg">
+                                {providerSettings?.specialties ? 
+                                  providerSettings.specialties.split(',').map(item => 
+                                    item.trim()).join(', ') 
+                                : "Especialidades não configuradas"}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="text-sm font-medium text-neutral-500">Descrição</h3>
-                            <p className="font-medium">
-                              {providerSettings?.description || "Descrição não configurada"}
-                            </p>
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-medium text-neutral-500">Especialidades</h3>
-                            <p className="font-medium">
-                              {providerSettings?.specialties ? 
-                                providerSettings.specialties.split(',').map(item => 
-                                  item.trim()).join(', ') 
-                              : "Especialidades não configuradas"}
-                            </p>
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-medium text-neutral-500 flex items-center">
-                              <Clock className="h-4 w-4 mr-1 text-neutral-400" />
-                              Horário de Funcionamento
-                            </h3>
-                            <p className="font-medium whitespace-pre-line">
-                              {providerSettings?.businessHours || "Horários não configurados"}
-                            </p>
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
+                            <div className="bg-gray-50 p-4 md:p-6 rounded-lg">
+                              <h3 className="text-sm md:text-base lg:text-lg font-medium text-neutral-500 mb-2">Descrição</h3>
+                              <p className="font-medium text-sm md:text-base lg:text-lg">
+                                {providerSettings?.description || "Descrição não configurada"}
+                              </p>
+                            </div>
+                            <div className="bg-gray-50 p-4 md:p-6 rounded-lg">
+                              <h3 className="text-sm md:text-base lg:text-lg font-medium text-neutral-500 flex items-center mb-2">
+                                <Clock className="h-4 w-4 mr-2 text-neutral-400" />
+                                Horário de Funcionamento
+                              </h3>
+                              <p className="font-medium text-sm md:text-base lg:text-lg whitespace-pre-line">
+                                {providerSettings?.businessHours || "Horários não configurados"}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -791,14 +804,15 @@ export default function ProviderProfilePage() {
                         </Button>
                       )}
                     </CardFooter>
-                  </Card>
+                    </Card>
+                  </div>
                 </TabsContent>
                 
                 {/* Contact Information Tab - COMENTADO TEMPORARIAMENTE */}
                 {/* 
                 <TabsContent value="contact">
-                  <Card className="border border-neutral-200">
-                    <CardHeader className="pb-2">
+                  <Card className="border border-neutral-200 md:shadow-lg">
+                    <CardHeader className="pb-4 md:pb-6">
                       <CardTitle className="text-lg flex items-center">
                         <MapPin className="h-5 w-5 mr-2 text-primary" />
                         Informações de Contato
@@ -820,7 +834,7 @@ export default function ProviderProfilePage() {
                               rows={2}
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-4">
+                          <div className="grid grid-cols-2 gap-6 md:gap-8 lg:gap-10">
                             <div>
                               <Label htmlFor="city">Cidade</Label>
                               <Input
@@ -949,22 +963,24 @@ export default function ProviderProfilePage() {
                         </Button>
                       )}
                     </CardFooter>
-                  </Card>
+                    </Card>
+                  </div>
                 </TabsContent>
                 */}
                 
                 {/* Online Presence Tab */}
                 <TabsContent value="online">
-                  <Card className="border border-neutral-200">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg flex items-center">
-                        <Globe className="h-5 w-5 mr-2 text-primary" />
-                        Presença Online
-                      </CardTitle>
-                      <CardDescription>
-                        Configure suas redes sociais e website
-                      </CardDescription>
-                    </CardHeader>
+                  <div className="w-full">
+                    <Card className="border border-neutral-200 md:shadow-lg">
+                      <CardHeader className="pb-4 md:pb-6">
+                        <CardTitle className="text-lg md:text-xl flex items-center">
+                          <Globe className="h-5 w-5 mr-2 text-primary" />
+                          Presença Online
+                        </CardTitle>
+                        <CardDescription className="text-sm md:text-base">
+                          Configure suas redes sociais e website
+                        </CardDescription>
+                      </CardHeader>
                     <CardContent>
                       {isEditing ? (
                         <div className="space-y-4">
@@ -1067,21 +1083,23 @@ export default function ProviderProfilePage() {
                         </Button>
                       )}
                     </CardFooter>
-                  </Card>
+                    </Card>
+                  </div>
                 </TabsContent>
                 
                 {/* Payment Options Tab */}
                 <TabsContent value="payment">
-                  <Card className="border border-neutral-200">
-                    <CardHeader className="pb-2">
-                      <CardTitle className="text-lg flex items-center">
-                        <CircleDollarSign className="h-5 w-5 mr-2 text-primary" />
-                        Opções de Pagamento
-                      </CardTitle>
-                      <CardDescription>
-                        Configure as formas de pagamento que você aceita
-                      </CardDescription>
-                    </CardHeader>
+                  <div className="w-full">
+                    <Card className="border border-neutral-200 md:shadow-lg">
+                      <CardHeader className="pb-4 md:pb-6">
+                        <CardTitle className="text-lg md:text-xl flex items-center">
+                          <CircleDollarSign className="h-5 w-5 mr-2 text-primary" />
+                          Opções de Pagamento
+                        </CardTitle>
+                        <CardDescription className="text-sm md:text-base">
+                          Configure as formas de pagamento que você aceita
+                        </CardDescription>
+                      </CardHeader>
                     <CardContent>
                       {isEditing ? (
                         <div className="space-y-4">
@@ -1312,116 +1330,119 @@ export default function ProviderProfilePage() {
                         </Button>
                       )}
                     </CardFooter>
-                  </Card>
+                    </Card>
+                  </div>
                 </TabsContent>
               </Tabs>
               
               {/* Profile Image Card */}
-              <Card className="border border-neutral-200">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg flex items-center">
-                    <ImageIcon className="h-5 w-5 mr-2 text-primary" />
-                    Imagens
-                  </CardTitle>
-                  <CardDescription>
-                    Atualize suas imagens de perfil e capa
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-sm font-medium text-neutral-500 mb-2">Foto de Perfil</h3>
-                      <div className="flex items-center">
-                        <div className="w-16 h-16 rounded-full bg-neutral-100 overflow-hidden mr-4">
-                          {user?.profileImage ? (
-                            <img
-                              src={user.profileImage}
-                              alt="Profile"
-                              className="w-full h-full object-cover"
-                              onError={(e) => {
-                                e.currentTarget.onerror = null;
-                                e.currentTarget.src = "/src/assets/service-images/perfil de usuario.png";
-                              }}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Store className="h-8 w-8 text-neutral-400" />
+              <div className="w-full">
+                <Card className="border border-neutral-200">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg md:text-xl flex items-center">
+                      <ImageIcon className="h-5 w-5 mr-2 text-primary" />
+                      Imagens
+                    </CardTitle>
+                    <CardDescription className="text-sm md:text-base">
+                      Atualize suas imagens de perfil e capa
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-6 md:space-y-8">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 lg:gap-12">
+                        <div className="bg-white p-4 md:p-6 rounded-lg border border-neutral-200">
+                          <h3 className="text-sm md:text-base lg:text-lg font-medium text-neutral-500 mb-4">Foto de Perfil</h3>
+                          <div className="flex flex-col items-center space-y-4">
+                            <div className="w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 rounded-full bg-neutral-100 overflow-hidden flex-shrink-0 border-4 border-white shadow-lg">
+                              {user?.profileImage ? (
+                                <img
+                                  src={user.profileImage}
+                                  alt="Profile"
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.onerror = null;
+                                    e.currentTarget.src = "/src/assets/service-images/perfil de usuario.png";
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Store className="h-12 w-12 md:h-16 md:w-16 lg:h-20 lg:w-20 text-neutral-400" />
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                        <input
-                          type="file"
-                          ref={profileImageInputRef}
-                          onChange={handleProfileImageUpload}
-                          accept="image/*"
-                          className="hidden"
-                          id="profile-image-input"
-                        />
-                        <div className="flex space-x-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            className="text-xs flex-1"
-                            onClick={() => profileImageInputRef.current?.click()}
-                            disabled={uploadingProfileImage}
-                          >
-                            {uploadingProfileImage ? (
-                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                            ) : (
-                              <UploadCloud className="h-3 w-3 mr-1" />
-                            )}
-                            {uploadingProfileImage ? "Enviando..." : "Galeria / Câmera"}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="text-sm font-medium text-neutral-500 mb-2">Imagem de Capa</h3>
-                      <div className="rounded-lg bg-neutral-100 h-32 relative overflow-hidden mb-2">
-                        {providerSettings?.coverImage ? (
-                          <img
-                            src={providerSettings.coverImage}
-                            alt="Cover"
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src = "https://via.placeholder.com/400x150?text=Cover+Image";
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <ImageIcon className="h-12 w-12 text-neutral-400" />
+                            <input
+                              type="file"
+                              ref={profileImageInputRef}
+                              onChange={handleProfileImageUpload}
+                              accept="image/*"
+                              className="hidden"
+                              id="profile-image-input"
+                            />
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-sm md:text-base w-full max-w-xs"
+                              onClick={() => profileImageInputRef.current?.click()}
+                              disabled={uploadingProfileImage}
+                            >
+                              {uploadingProfileImage ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <UploadCloud className="h-4 w-4 mr-2" />
+                              )}
+                              {uploadingProfileImage ? "Enviando..." : "Galeria / Câmera"}
+                            </Button>
                           </div>
-                        )}
-                      </div>
-                      <input
-                        type="file"
-                        ref={coverImageInputRef}
-                        onChange={handleCoverImageUpload}
-                        accept="image/*"
-                        className="hidden"
-                        id="cover-image-input"
-                      />
-                      <div className="flex space-x-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          className="text-xs flex-1"
-                          onClick={() => coverImageInputRef.current?.click()}
-                          disabled={uploadingCoverImage}
-                        >
-                          {uploadingCoverImage ? (
-                            <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          ) : (
-                            <UploadCloud className="h-3 w-3 mr-1" />
-                          )}
-                          {uploadingCoverImage ? "Enviando..." : "Galeria / Câmera"}
-                        </Button>
+                        </div>
+                        
+                        <div className="bg-white p-4 md:p-6 rounded-lg border border-neutral-200">
+                          <h3 className="text-sm md:text-base lg:text-lg font-medium text-neutral-500 mb-4">Imagem de Capa</h3>
+                          <div className="space-y-4">
+                            <div className="rounded-lg bg-neutral-100 h-40 md:h-48 lg:h-56 xl:h-64 relative overflow-hidden border border-neutral-200">
+                              {providerSettings?.coverImage ? (
+                                <img
+                                  src={providerSettings.coverImage}
+                                  alt="Cover"
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.currentTarget.src = "https://via.placeholder.com/400x150?text=Cover+Image";
+                                  }}
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <ImageIcon className="h-16 w-16 md:h-20 md:w-20 lg:h-24 lg:w-24 text-neutral-400" />
+                                </div>
+                              )}
+                            </div>
+                            <input
+                              type="file"
+                              ref={coverImageInputRef}
+                              onChange={handleCoverImageUpload}
+                              accept="image/*"
+                              className="hidden"
+                              id="cover-image-input"
+                            />
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="text-sm md:text-base w-full"
+                              onClick={() => coverImageInputRef.current?.click()}
+                              disabled={uploadingCoverImage}
+                            >
+                              {uploadingCoverImage ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <UploadCloud className="h-4 w-4 mr-2" />
+                              )}
+                              {uploadingCoverImage ? "Enviando..." : "Galeria / Câmera"}
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              </div>
               
               {/* Receba pagamentos online Card - COMENTADO TEMPORARIAMENTE */}
               {/*
@@ -1467,25 +1488,26 @@ export default function ProviderProfilePage() {
               </Card>
               */}
               
-              {/* Support Button */}
-              <Button 
-                variant="outline" 
-                className="w-full mb-3"
-                onClick={() => window.location.href = "/provider/support"}
-              >
-                <MessageSquare className="mr-2 h-4 w-4" />
-                Suporte
-              </Button>
-              
-              {/* Logout Button */}
-              <Button 
-                variant="outline" 
-                className="w-full border-red-500 text-red-500 hover:bg-red-50"
-                onClick={handleLogout}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Sair da conta
-              </Button>
+              {/* Support and Logout Buttons */}
+              <div className="w-full space-y-3">
+                <Button 
+                  variant="outline" 
+                  className="w-full text-sm md:text-base"
+                  onClick={() => window.location.href = "/provider/support"}
+                >
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Suporte
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full border-red-500 text-red-500 hover:bg-red-50 text-sm md:text-base"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sair da conta
+                </Button>
+              </div>
             </>
           )}
         </div>
