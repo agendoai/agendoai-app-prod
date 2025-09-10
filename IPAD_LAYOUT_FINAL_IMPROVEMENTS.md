@@ -135,3 +135,4 @@ Baseado na imagem fornecida, o layout estava muito estreito no iPad, com element
 - Espaçamento baseado em múltiplos de 4
 - Seguindo princípios de design responsivo
 - Otimizado para touch em tablets
+

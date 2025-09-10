@@ -170,3 +170,4 @@ Testamos em iPad físico e todos os fluxos funcionam corretamente.
 Atenciosamente,
 Equipe de Desenvolvimento
 ```
+

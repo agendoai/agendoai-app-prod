@@ -110,3 +110,4 @@ A página `/provider/profile` estava funcionando apenas no mobile, mas não esta
 3. Testar em desktop/laptop
 4. Verificar responsividade em diferentes orientações
 5. Testar funcionalidade de upload em todos os dispositivos
+

@@ -62,7 +62,7 @@ import { apiCall } from '@/lib/api';
 
 export default function ProviderProfilePage() {
   const { user, logoutMutation } = useAuth();
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
   const { toast } = useToast();
   
@@ -77,6 +77,34 @@ export default function ProviderProfilePage() {
   // States de upload
   const [uploadingProfileImage, setUploadingProfileImage] = useState(false);
   const [uploadingCoverImage, setUploadingCoverImage] = useState(false);
+
+  // Detectar se é iPhone/iOS
+  const isIOS = () => {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  };
+
+  // Criar input dinâmico para iOS
+  const createIOSFileInput = (type: 'profile' | 'cover') => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.style.display = 'none';
+    
+    input.onchange = async (event) => {
+      const target = event.target as HTMLInputElement;
+      if (target.files && target.files.length > 0) {
+        if (type === 'profile') {
+          await handleProfileImageUpload(event as any);
+        } else {
+          await handleCoverImageUpload(event as any);
+        }
+      }
+    };
+    
+    return input;
+  };
   
   // Business Information states
   const [businessName, setBusinessName] = useState("");
@@ -289,11 +317,9 @@ export default function ProviderProfilePage() {
         return;
       }
 
-      // Detectar se é iPhone/iOS
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
       const isWebView = (window as any).ReactNativeWebView || (window as any).webkit?.messageHandlers;
 
-      if (isIOS && isWebView) {
+      if (isIOS() && isWebView) {
         toast({
           title: "Use a opção nativa",
           description: "No iPhone, use a opção 'Galeria / Câmera' que abre o seletor nativo do iOS.",
@@ -309,7 +335,7 @@ export default function ProviderProfilePage() {
       });
 
       // Configurações específicas para iPhone/iOS
-      const videoConstraints = isIOS ? {
+      const videoConstraints = isIOS() ? {
         video: { 
           facingMode: { ideal: 'user' }, // Câmera frontal
           width: { ideal: type === 'cover' ? 800 : 640, max: 1280 },
@@ -336,7 +362,7 @@ export default function ProviderProfilePage() {
       video.playsInline = true;
       
       // Configurações específicas para iPhone/iOS
-      if (isIOS) {
+      if (isIOS()) {
         video.setAttribute('webkit-playsinline', 'true');
         video.setAttribute('playsinline', 'true');
         video.style.width = '100%';
@@ -665,11 +691,10 @@ export default function ProviderProfilePage() {
               
               {/* Tabs for different sections */}
               <Tabs defaultValue="business" value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-3 mb-6 md:mb-8 w-full">
+                <TabsList className="grid grid-cols-2 mb-6 md:mb-8 w-full">
                   <TabsTrigger value="business" className="text-sm md:text-base lg:text-lg px-4 py-2 md:px-6 md:py-3">Negócio</TabsTrigger>
                   {/* <TabsTrigger value="contact">Contato</TabsTrigger> */}
                   <TabsTrigger value="online" className="text-sm md:text-base lg:text-lg px-4 py-2 md:px-6 md:py-3">Online</TabsTrigger>
-                  <TabsTrigger value="payment" className="text-sm md:text-base lg:text-lg px-4 py-2 md:px-6 md:py-3">Pagamento</TabsTrigger>
                 </TabsList>
                 
                 {/* Business Information Tab */}
@@ -1087,252 +1112,7 @@ export default function ProviderProfilePage() {
                   </div>
                 </TabsContent>
                 
-                {/* Payment Options Tab */}
-                <TabsContent value="payment">
-                  <div className="w-full">
-                    <Card className="border border-neutral-200 md:shadow-lg">
-                      <CardHeader className="pb-4 md:pb-6">
-                        <CardTitle className="text-lg md:text-xl flex items-center">
-                          <CircleDollarSign className="h-5 w-5 mr-2 text-primary" />
-                          Opções de Pagamento
-                        </CardTitle>
-                        <CardDescription className="text-sm md:text-base">
-                          Configure as formas de pagamento que você aceita
-                        </CardDescription>
-                      </CardHeader>
-                    <CardContent>
-                      {isEditing ? (
-                        <div className="space-y-4">
-                          <div className="flex items-center space-x-2">
-                            <Checkbox 
-                              id="acceptsCards" 
-                              checked={acceptsCards}
-                              onCheckedChange={(checked) => setAcceptsCards(!!checked)}
-                            />
-                            <Label htmlFor="acceptsCards" className="flex items-center">
-                              <CreditCard className="h-4 w-4 mr-2 text-neutral-500" />
-                              Aceita Cartões de Crédito/Débito
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox 
-                              id="acceptsPix" 
-                              checked={acceptsPix}
-                              onCheckedChange={(checked) => setAcceptsPix(!!checked)}
-                            />
-                            <Label htmlFor="acceptsPix" className="flex items-center">
-                              <img 
-                                src="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/logo_pix.png" 
-                                alt="Pix" 
-                                className="h-4 w-4 mr-2"
-                              />
-                              Aceita Pix
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <Checkbox 
-                              id="acceptsCash" 
-                              checked={acceptsCash}
-                              onCheckedChange={(checked) => setAcceptsCash(!!checked)}
-                            />
-                            <Label htmlFor="acceptsCash" className="flex items-center">
-                              <Banknote className="h-4 w-4 mr-2 text-neutral-500" />
-                              Aceita Dinheiro
-                            </Label>
-                          </div>
-
-                          <div className="mt-6 pt-4 border-t border-neutral-200">
-                            <h3 className="text-sm font-semibold mb-3">Pagamentos Online</h3>
-                            
-                            <div className="flex items-center space-x-2 mb-3">
-                              <Checkbox 
-                                id="acceptOnlinePayments" 
-                                checked={acceptOnlinePayments}
-                                onCheckedChange={(checked) => setAcceptOnlinePayments(!!checked)}
-                              />
-                              <Label htmlFor="acceptOnlinePayments" className="flex items-center">
-                                <CreditCardIcon className="h-4 w-4 mr-2 text-neutral-500" />
-                                Receber pagamentos online via SumUp
-                              </Label>
-                            </div>
-                            
-                            {/* Configuração Asaas */}
-                            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                              <div className="flex items-center justify-between mb-3">
-                                <div className="flex items-center">
-                                  <DollarSign className="h-5 w-5 mr-2 text-blue-600" />
-                                  <h4 className="font-medium text-blue-900">Sistema de Pagamentos Asaas</h4>
-                                </div>
-                                <Badge variant="secondary" className="text-xs">
-                                  Marketplace
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-blue-700 mb-3">
-                                Configure sua conta para receber pagamentos automaticamente dos clientes.
-                              </p>
-                              <div className="flex gap-2">
-                                <Button 
-                                  size="sm" 
-                                  variant="outline"
-                                  onClick={() => setLocation('/provider/asaas-onboarding')}
-                                  className="flex-1"
-                                >
-                                  <Settings className="h-4 w-4 mr-2" />
-                                  Configurar Conta
-                                </Button>
-                                <Button 
-                                  size="sm"
-                                  onClick={() => setLocation('/provider/payment-balance')}
-                                  className="flex-1"
-                                >
-                                  <DollarSign className="h-4 w-4 mr-2" />
-                                  Ver Saldo
-                                </Button>
-                              </div>
-                            </div>
-                            
-                            {acceptOnlinePayments && (
-                              <div className="ml-6 mt-2">
-                                <Label htmlFor="merchantCode" className="text-sm text-neutral-500 mb-1 block">
-                                  Código de Comerciante SumUp
-                                </Label>
-                                <div className="flex items-center gap-2">
-                                  <Input 
-                                    id="merchantCode"
-                                    value={merchantCode}
-                                    onChange={(e) => setMerchantCode(e.target.value)}
-                                    placeholder="Digite seu código de comerciante"
-                                    className="max-w-xs"
-                                  />
-                                  <AlertCircle className="h-4 w-4 text-amber-500 cursor-help" />
-                                </div>
-                                {!merchantCode && acceptOnlinePayments && (
-                                  <div className="mt-2 text-xs text-amber-500 flex items-center">
-                                    <AlertTriangle className="h-3 w-3 mr-1" />
-                                    Você precisa informar o código de comerciante para receber pagamentos online
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <h3 className="text-sm font-medium text-neutral-500">Formas de Pagamento Aceitas</h3>
-                          <div className="flex flex-col space-y-2">
-                            <div className={`flex items-center ${providerSettings?.acceptsCards ? "text-black" : "text-neutral-400"}`}>
-                              <CreditCard className="h-4 w-4 mr-2" />
-                              Cartões de Crédito/Débito
-                              {providerSettings?.acceptsCards && <Check className="h-4 w-4 ml-2 text-green-500" />}
-                            </div>
-                            <div className={`flex items-center ${providerSettings?.acceptsPix ? "text-black" : "text-neutral-400"}`}>
-                              <img 
-                                src="https://www.bcb.gov.br/content/estabilidadefinanceira/pix/logo_pix.png" 
-                                alt="Pix" 
-                                className="h-4 w-4 mr-2"
-                              />
-                              Pix
-                              {providerSettings?.acceptsPix && <Check className="h-4 w-4 ml-2 text-green-500" />}
-                            </div>
-                            <div className={`flex items-center ${providerSettings?.acceptsCash ? "text-black" : "text-neutral-400"}`}>
-                              <Banknote className="h-4 w-4 mr-2" />
-                              Dinheiro
-                              {providerSettings?.acceptsCash && <Check className="h-4 w-4 ml-2 text-green-500" />}
-                            </div>
-                            
-                            {providerSettings?.acceptOnlinePayments && (
-                              <div className="mt-4 pt-3 border-t border-neutral-200">
-                                <div className="flex items-center text-black">
-                                  <CreditCardIcon className="h-4 w-4 mr-2" />
-                                  Pagamentos online via SumUp
-                                  <span className="ml-2 text-xs px-2 py-0.5 bg-green-100 text-green-800 rounded-full">
-                                    Ativado
-                                  </span>
-                                </div>
-                                {providerSettings.merchantCode ? (
-                                  <div className="text-xs text-neutral-500 ml-6 mt-1">
-                                    Código de comerciante configurado
-                                  </div>
-                                ) : (
-                                  <div className="text-xs text-amber-500 ml-6 mt-1 flex items-center">
-                                    <AlertTriangle className="h-3 w-3 mr-1" />
-                                    Código de comerciante não configurado
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            
-                            {/* Sistema Asaas - Visualização */}
-                            <div className="mt-4 pt-3 border-t border-neutral-200">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center text-black">
-                                  <DollarSign className="h-4 w-4 mr-2 text-blue-600" />
-                                  Sistema de Pagamentos Asaas
-                                  <span className="ml-2 text-xs px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full">
-                                    Marketplace
-                                  </span>
-                                </div>
-                                <div className="flex gap-2">
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    onClick={() => setLocation('/provider/asaas-onboarding')}
-                                  >
-                                    <Settings className="h-4 w-4 mr-2" />
-                                    Configurar
-                                  </Button>
-                                  <Button 
-                                    size="sm"
-                                    onClick={() => setLocation('/provider/payment-balance')}
-                                  >
-                                    <DollarSign className="h-4 w-4 mr-2" />
-                                    Saldo
-                                  </Button>
-                                  <Button 
-                                    size="sm"
-                                    variant="secondary"
-                                    onClick={() => setLocation('/provider/asaas-payments')}
-                                  >
-                                    <Shield className="h-4 w-4 mr-2" />
-                                    Pagamentos
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </CardContent>
-                    <CardFooter className="pt-0 flex justify-end">
-                      {isEditing ? (
-                        <div className="flex space-x-2">
-                          <Button 
-                            variant="outline" 
-                            onClick={() => setIsEditing(false)}
-                          >
-                            <X className="h-4 w-4 mr-2" />
-                            Cancelar
-                          </Button>
-                          <Button 
-                            onClick={handleSaveChanges}
-                            disabled={updateSettingsMutation.isPending}
-                          >
-                            <Check className="h-4 w-4 mr-2" />
-                            {updateSettingsMutation.isPending ? "Salvando..." : "Salvar"}
-                          </Button>
-                        </div>
-                      ) : (
-                        <Button 
-                          variant="outline" 
-                          onClick={() => setIsEditing(true)}
-                        >
-                          Editar Informações
-                        </Button>
-                      )}
-                    </CardFooter>
-                    </Card>
-                  </div>
-                </TabsContent>
+                {/* Payment Options Tab - REMOVIDO TEMPORARIAMENTE */}
               </Tabs>
               
               {/* Profile Image Card */}
@@ -1375,6 +1155,7 @@ export default function ProviderProfilePage() {
                               ref={profileImageInputRef}
                               onChange={handleProfileImageUpload}
                               accept="image/*"
+                              capture="environment"
                               className="hidden"
                               id="profile-image-input"
                             />
@@ -1382,7 +1163,16 @@ export default function ProviderProfilePage() {
                               variant="outline" 
                               size="sm" 
                               className="text-sm md:text-base w-full max-w-xs"
-                              onClick={() => profileImageInputRef.current?.click()}
+                              onClick={() => {
+                                if (isIOS()) {
+                                  const iosInput = createIOSFileInput('profile');
+                                  document.body.appendChild(iosInput);
+                                  iosInput.click();
+                                  document.body.removeChild(iosInput);
+                                } else {
+                                  profileImageInputRef.current?.click();
+                                }
+                              }}
                               disabled={uploadingProfileImage}
                             >
                               {uploadingProfileImage ? (
@@ -1419,6 +1209,7 @@ export default function ProviderProfilePage() {
                               ref={coverImageInputRef}
                               onChange={handleCoverImageUpload}
                               accept="image/*"
+                              capture="environment"
                               className="hidden"
                               id="cover-image-input"
                             />
@@ -1426,7 +1217,16 @@ export default function ProviderProfilePage() {
                               variant="outline" 
                               size="sm" 
                               className="text-sm md:text-base w-full"
-                              onClick={() => coverImageInputRef.current?.click()}
+                              onClick={() => {
+                                if (isIOS()) {
+                                  const iosInput = createIOSFileInput('cover');
+                                  document.body.appendChild(iosInput);
+                                  iosInput.click();
+                                  document.body.removeChild(iosInput);
+                                } else {
+                                  coverImageInputRef.current?.click();
+                                }
+                              }}
                               disabled={uploadingCoverImage}
                             >
                               {uploadingCoverImage ? (
@@ -1493,7 +1293,7 @@ export default function ProviderProfilePage() {
                 <Button 
                   variant="outline" 
                   className="w-full text-sm md:text-base"
-                  onClick={() => window.location.href = "/provider/support"}
+                  onClick={() => setLocation("/provider/support")}
                 >
                   <MessageSquare className="mr-2 h-4 w-4" />
                   Suporte

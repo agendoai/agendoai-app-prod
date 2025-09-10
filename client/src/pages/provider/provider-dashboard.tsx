@@ -704,11 +704,6 @@ export default function ProviderDashboard() {
             href: '/provider/manual-booking'
           },
           {
-            icon: <Search size={26} />,
-            label: 'Buscar',
-            href: '/provider/search'
-          },
-          {
             icon: <User size={26} />,
             label: 'Perfil',
             href: '/provider/profile'

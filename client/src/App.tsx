@@ -77,6 +77,7 @@ const ProviderSettingsPage = lazy(() => import("@/pages/provider/settings-page")
 const ProviderSchedulePage = lazy(() => import("@/pages/provider/provider-schedule-page"));
 const ProviderCalendarPage = lazy(() => import("@/pages/provider/provider-calendar-page"));
 const ProviderServicesPage = lazy(() => import("@/pages/provider/services-page"));
+const ProviderSearchPage = lazy(() => import("@/pages/provider/search-page"));
 const EditServicePage = lazy(() => import("@/pages/provider/edit-service-page"));
 const ViewServicePage = lazy(() => import("@/pages/provider/view-service-page"));
 const AddServicePage = lazy(() => import("@/pages/provider/add-service-page"));
@@ -427,6 +428,11 @@ function RouterWithTransitions() {
         <ProtectedRoute
           path="/provider/services"
           component={() => <LazyWrapper component={ProviderServicesPage} />}
+          userType="provider"
+        />
+        <ProtectedRoute
+          path="/provider/search"
+          component={() => <LazyWrapper component={ProviderSearchPage} />}
           userType="provider"
         />
         <ProtectedRoute

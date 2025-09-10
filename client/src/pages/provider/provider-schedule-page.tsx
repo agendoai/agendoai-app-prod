@@ -933,11 +933,6 @@ export default function ProviderSchedulePage() {
             href: '/provider/manual-booking'
           },
           {
-            icon: <Search size={26} />,
-            label: 'Buscar',
-            href: '/provider/search'
-          },
-          {
             icon: <Users size={26} />,
             label: 'Perfil',
             href: '/provider/profile'

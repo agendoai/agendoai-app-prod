@@ -12,30 +12,39 @@ let asaasConfig: {
 } | null = null;
 
 /**
- * Inicializa o cliente Asaas com as configurações salvas no banco de dados
+ * Inicializa o cliente Asaas com a API key do .env
  */
 export async function initializeAsaas(): Promise<void> {
   try {
-    // Buscar configurações do banco de dados
-    const [settings] = await db.select().from(paymentSettings).limit(1);
-
-    if (!settings?.asaasEnabled || !settings?.asaasApiKey) {
-      console.log('Asaas não configurado ou desativado');
+    // Usar API key diretamente do .env
+    const apiKey = process.env.ASAAS_API_KEY;
+    
+    if (!apiKey) {
+      console.log('Asaas não configurado - ASAAS_API_KEY não encontrada no .env');
       asaasConfig = null;
       return;
     }
 
-    // Configurar cliente Asaas
+    // Configurar cliente Asaas - sempre usar sandbox para testes
     asaasConfig = {
-      apiKey: settings.asaasApiKey,
-      liveMode: settings.asaasLiveMode || false,
-      webhookToken: settings.asaasWebhookToken || undefined,
-      walletId: settings.asaasWalletId || undefined,
+      apiKey: apiKey,
+      liveMode: false, // Forçar sandbox para testes
+      webhookToken: process.env.ASAAS_WEBHOOK_TOKEN || undefined,
+      walletId: process.env.ASAAS_WALLET_ID || undefined,
     };
 
-    console.log(`Asaas inicializado em modo ${settings.asaasLiveMode ? 'produção' : 'teste'}`);
+    console.log('Asaas inicializado em modo sandbox (teste)');
   } catch (error) {
-    console.error('Erro ao inicializar Asaas:', error);
+    console.error('❌ Erro ao inicializar Asaas:', error);
+    console.error('🔍 Detalhes do erro:', {
+      message: error.message,
+      stack: error.stack,
+      env: {
+        hasApiKey: !!process.env.ASAAS_API_KEY,
+        hasWebhookToken: !!process.env.ASAAS_WEBHOOK_TOKEN,
+        hasWalletId: !!process.env.ASAAS_WALLET_ID
+      }
+    });
     asaasConfig = null;
   }
 }
@@ -291,18 +300,49 @@ export async function createAsaasCustomer(data: {
   if (!asaasConfig) {
     return { success: false, error: 'Asaas não configurado' };
   }
-  // ROTA FIXA PRODUÇÃO
-  const baseURL = 'https://api.asaas.com/v3';
+  // Usar sandbox para testes
+  const baseURL = getAsaasBaseUrl(asaasConfig.liveMode);
+  
   try {
-    const response = await axios.post(`${baseURL}/customers`, data, {
+    console.log('🔧 Criando cliente no Asaas:', {
+      url: `${baseURL}/customers`,
+      data: { ...data, cpfCnpj: data.cpfCnpj.replace(/\D/g, '') }, // Remove formatação do CPF
+      hasApiKey: !!asaasConfig.apiKey
+    });
+    
+    const response = await axios.post(`${baseURL}/customers`, {
+      ...data,
+      cpfCnpj: data.cpfCnpj.replace(/\D/g, '') // Remove formatação do CPF
+    }, {
       headers: {
         'access_token': asaasConfig.apiKey,
         'Content-Type': 'application/json'
       }
     });
+    
+    console.log('✅ Cliente criado com sucesso:', response.data);
     return { success: true, customerId: response.data.id };
+    
   } catch (error: any) {
-    return { success: false, error: error.response?.data?.message || error.message };
+    console.error('❌ Erro ao criar cliente no Asaas:');
+    console.error('🔍 Detalhes do erro:', {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      url: `${baseURL}/customers`,
+      headers: {
+        hasApiKey: !!asaasConfig.apiKey,
+        apiKeyLength: asaasConfig.apiKey?.length
+      }
+    });
+    
+    const errorMessage = error.response?.data?.errors?.[0]?.description || 
+                        error.response?.data?.message || 
+                        error.message || 
+                        'Erro desconhecido ao criar cliente';
+    
+    return { success: false, error: errorMessage };
   }
 }
 

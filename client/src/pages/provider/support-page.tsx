@@ -1,91 +1,65 @@
-import React, { useState } from "react";
+import React from "react";
 import ProviderLayout from "@/components/layout/provider-layout";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import AppHeader from "@/components/layout/app-header";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MessageCircle, MailOpen, SendHorizontal, CheckCircle2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { MessageCircle } from "lucide-react";
 
 export default function ProviderSupportPage() {
-  const { toast } = useToast();
-  const [ticketType, setTicketType] = useState("technical");
-  const [ticketPriority, setTicketPriority] = useState("normal");
-  const [ticketMessage, setTicketMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submittedTicket, setSubmittedTicket] = useState(false);
-
-  // Lista de tickets de exemplo
-  const exampleTickets = [
-    {
-      id: "T-2023-1254",
-      title: "Problema ao visualizar agendamentos",
-      status: "Em análise",
-      date: "10/05/2025",
-      category: "Técnico",
-      priority: "Normal"
-    },
-    {
-      id: "T-2023-1180",
-      title: "Dúvida sobre recebimento de valores",
-      status: "Respondido",
-      date: "02/05/2025",
-      category: "Financeiro",
-      priority: "Baixa"
-    },
-    {
-      id: "T-2023-0987",
-      title: "App não está enviando notificações",
-      status: "Resolvido",
-      date: "21/04/2025",
-      category: "Técnico",
-      priority: "Alta"
-    }
-  ];
-
-  const handleSubmitTicket = () => {
-    if (!ticketMessage.trim()) {
-      toast({
-        title: "Mensagem obrigatória",
-        description: "Por favor, descreva seu problema para prosseguir.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    // Simulação de envio para API
-    setTimeout(() => {
-      setIsSubmitting(false);
-      setSubmittedTicket(true);
-      
-      toast({
-        title: "Ticket enviado com sucesso",
-        description: "Nossa equipe irá analisar seu problema e responder em breve.",
-      });
-    }, 1500);
-  };
-
   return (
     <ProviderLayout title="Suporte">
-      <div className="space-y-8">
-        <h1 className="text-3xl font-bold">Suporte ao Prestador</h1>
-        <p className="text-muted-foreground">
-          Nossa equipe está pronta para ajudar com qualquer problema que você encontrar em nossa plataforma.
-        </p>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <AppHeader title="Suporte" showBackButton />
+        <div className="p-4 md:p-6 lg:p-8 space-y-6 md:space-y-8 lg:space-y-10 w-full">
+          <h1 className="text-3xl font-bold">Suporte ao Prestador</h1>
+          <p className="text-muted-foreground">
+            Nossa equipe está pronta para ajudar com qualquer problema que você encontrar em nossa plataforma.
+          </p>
 
-        <Tabs defaultValue="new-ticket">
-          <TabsList className="grid grid-cols-2 max-w-md mb-6">
-            <TabsTrigger value="new-ticket">Novo Ticket</TabsTrigger>
-            <TabsTrigger value="my-tickets">Meus Tickets</TabsTrigger>
-          </TabsList>
+          {/* Contato via WhatsApp */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <MessageCircle className="h-5 w-5" />
+                Suporte via WhatsApp
+              </CardTitle>
+              <CardDescription>
+                Entre em contato conosco diretamente pelo WhatsApp para um atendimento mais rápido e personalizado.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <MessageCircle className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">Fale Conosco no WhatsApp</h3>
+                <p className="text-muted-foreground mb-6">
+                  Nossa equipe de suporte está disponível para ajudar você com qualquer dúvida ou problema.
+                </p>
+                <Button 
+                  onClick={() => window.open('https://wa.me/5511974668605', '_blank')}
+                  className="bg-green-500 hover:bg-green-600 text-white px-8 py-3 text-lg"
+                  size="lg"
+                >
+                  <MessageCircle className="h-5 w-5 mr-2" />
+                  Entrar em Contato
+                </Button>
+                <p className="text-sm text-muted-foreground mt-4">
+                  Número: (11) 97466-8605
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
-          <TabsContent value="new-ticket">
-            {!submittedTicket ? (
+          {/* Sistema de Tickets - COMENTADO TEMPORARIAMENTE */}
+          {/*
+          <Tabs defaultValue="new-ticket">
+            <TabsList className="grid grid-cols-2 max-w-md mb-6">
+              <TabsTrigger value="new-ticket">Novo Ticket</TabsTrigger>
+              <TabsTrigger value="my-tickets">Meus Tickets</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="new-ticket">
               <Card>
                 <CardHeader>
                   <CardTitle>Enviar novo ticket de suporte</CardTitle>
@@ -103,15 +77,14 @@ export default function ProviderSupportPage() {
                             <SelectValue placeholder="Selecione o tipo" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="technical">Técnico</SelectItem>
-                            <SelectItem value="financial">Financeiro</SelectItem>
-                            <SelectItem value="account">Conta e Acesso</SelectItem>
-                            <SelectItem value="service">Serviços</SelectItem>
+                            <SelectItem value="technical">Problema Técnico</SelectItem>
+                            <SelectItem value="billing">Cobrança/Pagamento</SelectItem>
+                            <SelectItem value="account">Conta/Perfil</SelectItem>
+                            <SelectItem value="feature">Solicitação de Funcionalidade</SelectItem>
                             <SelectItem value="other">Outro</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
-
                       <div className="space-y-2">
                         <Label htmlFor="ticket-priority">Prioridade</Label>
                         <Select value={ticketPriority} onValueChange={setTicketPriority}>
@@ -127,32 +100,29 @@ export default function ProviderSupportPage() {
                         </Select>
                       </div>
                     </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="ticket-subject">Assunto</Label>
-                      <Input id="ticket-subject" placeholder="Resumo do problema" />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="ticket-message">Descreva seu problema</Label>
-                      <Textarea 
-                        id="ticket-message" 
-                        placeholder="Informe todos os detalhes relevantes, como data, horário e passos para reproduzir o problema" 
-                        rows={5}
+                      <Label htmlFor="ticket-message">Mensagem</Label>
+                      <Textarea
+                        id="ticket-message"
+                        placeholder="Descreva seu problema em detalhes..."
                         value={ticketMessage}
                         onChange={(e) => setTicketMessage(e.target.value)}
+                        rows={6}
                       />
                     </div>
                   </div>
                 </CardContent>
-                <CardFooter className="flex justify-between">
-                  <Button variant="outline">Cancelar</Button>
+                <CardFooter>
                   <Button 
                     onClick={handleSubmitTicket} 
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !ticketMessage.trim()}
+                    className="w-full"
                   >
                     {isSubmitting ? (
-                      "Enviando..."
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Enviando...
+                      </>
                     ) : (
                       <>
                         <SendHorizontal className="h-4 w-4 mr-2" />
@@ -162,95 +132,44 @@ export default function ProviderSupportPage() {
                   </Button>
                 </CardFooter>
               </Card>
-            ) : (
+            </TabsContent>
+
+            <TabsContent value="my-tickets">
               <Card>
-                <CardHeader className="text-center">
-                  <CheckCircle2 className="h-16 w-16 mx-auto text-green-500 mb-2" />
-                  <CardTitle>Ticket enviado com sucesso</CardTitle>
+                <CardHeader>
+                  <CardTitle>Meus Tickets de Suporte</CardTitle>
                   <CardDescription>
-                    Seu ticket foi registrado com o número <strong>T-2023-1289</strong>
+                    Acompanhe o status dos seus tickets de suporte.
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="text-center space-y-4">
-                  <p>Nossa equipe está analisando seu problema e você receberá uma resposta em breve.</p>
-                  <p className="text-sm text-muted-foreground">
-                    O tempo médio de resposta é de 1 dia útil para problemas técnicos.
-                  </p>
+                <CardContent>
+                  {submittedTicket ? (
+                    <div className="text-center py-8">
+                      <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Ticket Enviado com Sucesso!</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Seu ticket foi enviado e nossa equipe irá responder em breve.
+                      </p>
+                      <Button onClick={() => setSubmittedTicket(false)}>
+                        Criar Novo Ticket
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <MailOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Nenhum ticket encontrado</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Você ainda não criou nenhum ticket de suporte.
+                      </p>
+                      <Button>Abrir novo ticket</Button>
+                    </div>
+                  )}
                 </CardContent>
-                <CardFooter className="justify-center">
-                  <Button onClick={() => setSubmittedTicket(false)}>
-                    Enviar novo ticket
-                  </Button>
-                </CardFooter>
               </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="my-tickets">
-            <Card>
-              <CardHeader>
-                <CardTitle>Meus tickets de suporte</CardTitle>
-                <CardDescription>
-                  Acompanhe o status dos seus tickets de suporte
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {exampleTickets.length > 0 ? (
-                  <div className="space-y-4">
-                    {exampleTickets.map((ticket) => (
-                      <div key={ticket.id} className="flex items-start gap-4 p-4 border rounded-lg hover:bg-muted/50 transition">
-                        <div className="flex-shrink-0">
-                          {ticket.status === "Respondido" ? (
-                            <div className="bg-blue-100 rounded-full p-2">
-                              <MailOpen className="h-5 w-5 text-blue-600" />
-                            </div>
-                          ) : ticket.status === "Resolvido" ? (
-                            <div className="bg-green-100 rounded-full p-2">
-                              <CheckCircle2 className="h-5 w-5 text-green-600" />
-                            </div>
-                          ) : (
-                            <div className="bg-amber-100 rounded-full p-2">
-                              <MessageCircle className="h-5 w-5 text-amber-600" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-grow">
-                          <div className="flex items-center justify-between">
-                            <h3 className="font-medium">{ticket.title}</h3>
-                            <span className="text-xs text-muted-foreground">{ticket.date}</span>
-                          </div>
-                          <div className="flex items-center text-xs space-x-2 mt-1">
-                            <span className="bg-muted rounded-full px-2 py-1">{ticket.category}</span>
-                            <span className="bg-muted rounded-full px-2 py-1">Prioridade: {ticket.priority}</span>
-                            <span className={`rounded-full px-2 py-1 ${
-                              ticket.status === "Resolvido" ? "bg-green-100 text-green-800" :
-                              ticket.status === "Respondido" ? "bg-blue-100 text-blue-800" :
-                              "bg-amber-100 text-amber-800"
-                            }`}>
-                              {ticket.status}
-                            </span>
-                          </div>
-                        </div>
-                        <Button variant="ghost" size="sm" className="flex-shrink-0">
-                          Ver detalhes
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8">
-                    <MessageCircle className="h-12 w-12 text-muted mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">Nenhum ticket encontrado</h3>
-                    <p className="text-muted-foreground mb-4">
-                      Você ainda não abriu nenhum ticket de suporte.
-                    </p>
-                    <Button>Abrir novo ticket</Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+            </TabsContent>
+          </Tabs>
+          */}
+        </div>
       </div>
     </ProviderLayout>
   );

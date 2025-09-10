@@ -161,3 +161,4 @@ className="text-sm md:text-base w-full md:w-auto px-4 py-2"
 - Layout progressivo (mobile → tablet → desktop)
 - Espaçamento baseado em múltiplos de 4 (Tailwind)
 - Tamanhos de fonte seguindo escala tipográfica
+

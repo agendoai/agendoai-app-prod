@@ -87,3 +87,4 @@ onClick={() => {
 - O atributo `capture="environment"` especifica o uso da câmera traseira
 - A detecção de iOS inclui iPad Pro com touch (que reporta como MacIntel)
 - O input dinâmico é criado e removido do DOM para evitar conflitos
+
