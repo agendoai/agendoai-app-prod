@@ -74,6 +74,7 @@ import { registerUploadRoutes } from "./routes/upload-routes"
 import { registerUserManagementRoutes } from "./routes/user-management-routes"
 import sumupPaymentRouter from "./routes/sumup-payment-routes"
 import optimizedProviderSearchRouter from "./routes/optimized-provider-search"
+import withdrawalRouter from "./routes/withdrawal"
 // Funcionalidade de chatbot do WhatsApp removida
 import {
 	analyzeProviderSchedule,
@@ -225,6 +226,10 @@ export function registerRoutes(app: Express): Server {
 	
 	// Registrar rotas de autenticação - SEM middleware de autenticação
 	app.use("/api", authRoutes)
+
+	// IMPORTANTE: Registrar rotas de prestadores ANTES das rotas com parâmetros :id para evitar conflitos
+	// A rota /analytics deve ser processada antes de /api/providers/:id
+	app.use("/api/providers", providersRoutes)
 
 	// Registrar rotas de notificações push
 
@@ -436,6 +441,9 @@ app.use('/api/webhook', asaasWebhookRoutes)
 	// Registrar rotas de serviços personalizados dos prestadores
 	app.use("/api/provider-services", providerServicesRoutes)
 	app.use("/api/service-templates", serviceTemplatesRoutes)
+
+	// Registrar rotas de solicitações de saque
+	app.use("/api/provider", withdrawalRouter)
 
 	// Adicionar rota de busca de templates diretamente
 	app.get(
@@ -652,8 +660,8 @@ app.use('/api/webhook', asaasWebhookRoutes)
 	app.use("/api/providers-optimized", optimizedProviderSearchRouter)
 	app.use("/api/providers/optimized", optimizedProviderSearchRouter) // Adicionar rota correta
 	
-	// Registrar rotas genéricas de prestadores (depois das específicas)
-	app.use("/api/providers", providersRoutes)
+	// Registrar rotas genéricas de prestadores (depois das específicas) - REMOVIDAS PARA EVITAR CONFLITO
+	// app.use("/api/providers", providersRoutes)
 	app.use("/api/providers", specializedProviderSearchRouter)
 	app.use("/api/providers", providerSearchWithServicesRouter)
 

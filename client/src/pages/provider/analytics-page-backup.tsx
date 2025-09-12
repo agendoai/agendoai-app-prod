@@ -831,7 +831,457 @@ export default function AnalyticsPage() {
         )}
       </div>
     </div>
-  </div>
-</ProviderLayout>
-);
+    </ProviderLayout>
+  );
+                              {withdrawalMutation.isPending ? "Enviando..." : "Solicitar Saque"}
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* My Withdrawal Requests - Quick View */}
+              <Card className="border border-[#58c9d1]/20 bg-white shadow-xl shadow-[#58c9d1]/10 rounded-2xl overflow-hidden relative group hover:shadow-2xl hover:shadow-[#58c9d1]/15 transition-all duration-500">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#58c9d1]/50 via-[#58c9d1] to-[#58c9d1]/50"></div>
+                <CardHeader>
+                  <CardTitle className="text-lg font-medium text-[#58c9d1] flex items-center">
+                    <ClipboardList className="h-5 w-5 mr-2" />
+                    Minhas Solicitações Recentes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {isLoadingWithdrawals ? (
+                    <div className="space-y-3">
+                      {[...Array(2)].map((_, i) => (
+                        <div key={i} className="flex items-center justify-between p-3 border border-neutral-200 rounded-lg">
+                          <div className="space-y-2">
+                            <div className="h-4 bg-neutral-200 rounded w-20"></div>
+                            <div className="h-3 bg-neutral-100 rounded w-24"></div>
+                          </div>
+                          <div className="h-6 bg-neutral-200 rounded w-16"></div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : withdrawalRequests && withdrawalRequests.length > 0 ? (
+                    <div className="space-y-3 max-h-48 overflow-y-auto">
+                      {withdrawalRequests.slice(0, 3).map((request: any) => {
+                        const getStatusIcon = (status: string) => {
+                          switch (status) {
+                            case 'completed':
+                              return <CheckCircle className="h-4 w-4 text-green-500" />;
+                            case 'pending':
+                              return <AlertCircle className="h-4 w-4 text-yellow-500" />;
+                            case 'processing':
+                              return <Clock className="h-4 w-4 text-blue-500" />;
+                            case 'failed':
+                              return <XCircle className="h-4 w-4 text-red-500" />;
+                            default:
+                              return <AlertCircle className="h-4 w-4 text-gray-500" />;
+                          }
+                        };
+
+                        const getStatusText = (status: string) => {
+                          switch (status) {
+                            case 'completed': return 'Concluído';
+                            case 'pending': return 'Pendente';
+                            case 'processing': return 'Processando';
+                            case 'failed': return 'Falhou';
+                            default: return status;
+                          }
+                        };
+
+                        return (
+                          <div key={request.id} className="flex items-center justify-between p-3 border border-neutral-100 rounded-lg hover:bg-neutral-50 transition-colors">
+                            <div className="flex items-center space-x-3">
+                              {getStatusIcon(request.status)}
+                              <div>
+                                <p className="font-medium text-sm text-gray-900">
+                                  {formatCurrencyFromReais(request.amount)}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  {new Date(request.requestedAt).toLocaleDateString('pt-BR')}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="text-xs text-gray-600">
+                              {getStatusText(request.status)}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      {withdrawalRequests.length > 3 && (
+                        <div className="text-center pt-2">
+                          <p className="text-xs text-gray-500">Ver todas na aba "Saques"</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <Banknote className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-500 text-sm">Nenhuma solicitação ainda</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+            
+            {/* Abas para os diferentes tipos de dados */}
+            <Tabs defaultValue="appointments" className="w-full">
+              <TabsList className="w-full justify-start mb-4 overflow-x-auto whitespace-nowrap bg-white border border-[#58c9d1]/20 shadow-lg shadow-[#58c9d1]/10 rounded-xl p-1">
+                <TabsTrigger value="appointments" className="flex items-center text-sm md:text-base px-6 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#58c9d1] data-[state=active]:to-[#4aadb5] data-[state=active]:text-white data-[state=active]:shadow-md font-medium transition-all duration-300 rounded-lg">
+                  <BarChart4 className="h-4 w-4 mr-2" />
+                  <span>Agendamentos</span>
+                </TabsTrigger>
+                <TabsTrigger value="revenue" className="flex items-center text-sm md:text-base px-6 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#58c9d1] data-[state=active]:to-[#4aadb5] data-[state=active]:text-white data-[state=active]:shadow-md font-medium transition-all duration-300 rounded-lg">
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  <span>Faturamento</span>
+                </TabsTrigger>
+
+                <TabsTrigger value="withdrawals" className="flex items-center text-sm md:text-base px-6 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#58c9d1] data-[state=active]:to-[#4aadb5] data-[state=active]:text-white data-[state=active]:shadow-md font-medium transition-all duration-300 rounded-lg">
+                  <Banknote className="h-4 w-4 mr-2" />
+                  <span>Saques</span>
+                </TabsTrigger>
+              </TabsList>
+              
+              {/* Conteúdo: Agendamentos */}
+              <TabsContent value="appointments">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Status dos agendamentos */}
+                  <Card className="md:col-span-1 border border-[#58c9d1]/20 bg-white shadow-xl shadow-[#58c9d1]/10 rounded-2xl overflow-hidden relative group hover:shadow-2xl hover:shadow-[#58c9d1]/15 transition-all duration-500">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#58c9d1]/50 via-[#58c9d1] to-[#58c9d1]/50"></div>
+                    <CardHeader>
+                      <CardTitle className="text-lg font-medium text-[#58c9d1]">Status dos agendamentos</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {analytics && (
+                        <ResponsiveContainer width="100%" height={200}>
+                          <PieChart>
+                            <Pie
+                              data={[
+                                { name: 'Concluídos', value: analytics.completedAppointments },
+                                { name: 'Pendentes', value: analytics.pendingAppointments },
+                                { name: 'Cancelados', value: analytics.canceledAppointments }
+                              ]}
+                              cx="50%"
+                              cy="50%"
+                              innerRadius={40}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              paddingAngle={5}
+                              dataKey="value"
+                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                              labelLine={false}
+                            >
+                              <Cell key="completed" fill={STATUS_COLORS.completed} />
+                              <Cell key="pending" fill={STATUS_COLORS.pending} />
+                              <Cell key="canceled" fill={STATUS_COLORS.canceled} />
+                            </Pie>
+                            <Tooltip formatter={(value) => [value, 'Quantidade']} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      )}
+                      <div className="grid grid-cols-3 text-center mt-4">
+                        <div>
+                          <div className="w-3 h-3 bg-green-500 rounded-full inline-block mr-1"></div>
+                          <p className="text-xs">Concluídos</p>
+                          <p className="font-bold">{analytics?.completedAppointments || 0}</p>
+                        </div>
+                        <div>
+                          <div className="w-3 h-3 bg-blue-500 rounded-full inline-block mr-1"></div>
+                          <p className="text-xs">Pendentes</p>
+                          <p className="font-bold">{analytics?.pendingAppointments || 0}</p>
+                        </div>
+                        <div>
+                          <div className="w-3 h-3 bg-red-500 rounded-full inline-block mr-1"></div>
+                          <p className="text-xs">Cancelados</p>
+                          <p className="font-bold">{analytics?.canceledAppointments || 0}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Agendamentos por mês */}
+                  <Card className="md:col-span-2 border border-[#58c9d1]/20 bg-white shadow-xl shadow-[#58c9d1]/10 rounded-2xl overflow-hidden relative group hover:shadow-2xl hover:shadow-[#58c9d1]/15 transition-all duration-500">
+                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#58c9d1]/50 via-[#58c9d1] to-[#58c9d1]/50"></div>
+                    <CardHeader>
+                      <CardTitle className="text-lg font-medium text-[#58c9d1]">Agendamentos por mês</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {analytics?.appointmentsByMonth && analytics.appointmentsByMonth.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={250}>
+                          <BarChart
+                            data={analytics.appointmentsByMonth.map(item => ({
+                              ...item,
+                              month: formatMonth(item.month)
+                            }))}
+                            margin={{ top: 10, right: 30, left: 0, bottom: 30 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis 
+                              dataKey="month" 
+                              angle={-45} 
+                              textAnchor="end" 
+                              height={70}
+                              interval={0}
+                            />
+                            <YAxis />
+                            <Tooltip formatter={(value) => [value, 'Agendamentos']} />
+                            <Bar dataKey="count" fill="#3b82f6" barSize={30} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-[250px] flex items-center justify-center">
+                          <p className="text-neutral-500">Dados insuficientes para exibir o gráfico</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Tendências de agendamentos */}
+                  {analytics?.appointmentTrends && analytics.appointmentTrends.length > 0 && (
+                    <Card className="md:col-span-3">
+                      <CardHeader>
+                        <CardTitle className="text-lg">Tendências de agendamentos</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left p-2">Período</th>
+                                <th className="text-right p-2">Atual</th>
+                                <th className="text-right p-2">Anterior</th>
+                                <th className="text-right p-2">Variação</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {analytics.appointmentTrends.map((trend, index) => (
+                                <tr key={index} className="border-b hover:bg-gray-50">
+                                  <td className="p-2">{formatMonth(trend.month)}</td>
+                                  <td className="text-right p-2">{trend.count}</td>
+                                  <td className="text-right p-2">{trend.previousCount}</td>
+                                  <td className={`text-right p-2 ${trend.percentChange > 0 ? 'text-green-500' : trend.percentChange < 0 ? 'text-red-500' : ''}`}>
+                                    {trend.percentChange > 0 ? '+' : ''}{trend.percentChange}%
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </TabsContent>
+              
+              {/* Conteúdo: Faturamento */}
+              <TabsContent value="revenue">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Receita por mês */}
+                  <Card className="md:col-span-3">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Receita por mês</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {analytics?.revenueByMonth && analytics.revenueByMonth.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={300}>
+                          <LineChart
+                            data={analytics.revenueByMonth.map(item => ({
+                              ...item,
+                              month: formatMonth(item.month),
+                              formattedTotal: item.total / 100 // Para exibir em reais no tooltip
+                            }))}
+                            margin={{ top: 10, right: 30, left: 0, bottom: 30 }}
+                          >
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis 
+                              dataKey="month" 
+                              angle={-45} 
+                              textAnchor="end" 
+                              height={70}
+                              interval={0}
+                            />
+                            <YAxis />
+                            <Tooltip 
+                              formatter={(value, name) => {
+                                if (name === "total") return [formatCurrency(value as number), "Receita"];
+                                return [value, name];
+                              }} 
+                            />
+                            <Line 
+                              type="monotone" 
+                              dataKey="total" 
+                              stroke="#16a34a" 
+                              strokeWidth={2} 
+                              dot={{ r: 4 }} 
+                              activeDot={{ r: 6 }} 
+                            />
+                          </LineChart>
+                        </ResponsiveContainer>
+                      ) : (
+                        <div className="h-[300px] flex items-center justify-center">
+                          <p className="text-neutral-500">Dados insuficientes para exibir o gráfico</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                  
+                  {/* Tendências de receita */}
+                  {analytics?.revenueTrends && analytics.revenueTrends.length > 0 && (
+                    <Card className="md:col-span-3">
+                      <CardHeader>
+                        <CardTitle className="text-lg">Tendências de receita</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="overflow-x-auto">
+                          <table className="w-full">
+                            <thead>
+                              <tr className="border-b">
+                                <th className="text-left p-2">Período</th>
+                                <th className="text-right p-2">Atual</th>
+                                <th className="text-right p-2">Anterior</th>
+                                <th className="text-right p-2">Variação</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {analytics.revenueTrends.map((trend, index) => (
+                                <tr key={index} className="border-b hover:bg-gray-50">
+                                  <td className="p-2">{formatMonth(trend.month)}</td>
+                                  <td className="text-right p-2">{formatCurrency(trend.total)}</td>
+                                  <td className="text-right p-2">{formatCurrency(trend.previousTotal)}</td>
+                                  <td className={`text-right p-2 ${trend.percentChange > 0 ? 'text-green-500' : trend.percentChange < 0 ? 'text-red-500' : ''}`}>
+                                    {trend.percentChange > 0 ? '+' : ''}{trend.percentChange}%
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              </TabsContent>
+              
+
+              
+              {/* Conteúdo: Solicitações de Saque */}
+              <TabsContent value="withdrawals">
+                <Card className="border border-[#58c9d1]/20 bg-white shadow-xl shadow-[#58c9d1]/10 rounded-2xl overflow-hidden relative group hover:shadow-2xl hover:shadow-[#58c9d1]/15 transition-all duration-500">
+                  <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#58c9d1]/50 via-[#58c9d1] to-[#58c9d1]/50"></div>
+                  <CardHeader>
+                    <CardTitle className="text-lg font-medium text-[#58c9d1] flex items-center">
+                      <Banknote className="h-5 w-5 mr-2" />
+                      Minhas Solicitações de Saque
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingWithdrawals ? (
+                      <div className="space-y-3">
+                        {[...Array(3)].map((_, i) => (
+                          <div key={i} className="flex items-center justify-between p-4 border border-neutral-200 rounded-lg">
+                            <div className="space-y-2">
+                              <div className="h-4 bg-neutral-200 rounded w-24"></div>
+                              <div className="h-3 bg-neutral-100 rounded w-32"></div>
+                            </div>
+                            <div className="h-6 bg-neutral-200 rounded w-16"></div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : withdrawalRequests && withdrawalRequests.length > 0 ? (
+                      <div className="space-y-3">
+                        {withdrawalRequests.map((request: any) => {
+                          const getStatusIcon = (status: string) => {
+                            switch (status) {
+                              case 'completed':
+                                return <CheckCircle className="h-5 w-5 text-green-500" />;
+                              case 'pending':
+                                return <AlertCircle className="h-5 w-5 text-yellow-500" />;
+                              case 'processing':
+                                return <Clock className="h-5 w-5 text-blue-500" />;
+                              case 'failed':
+                                return <XCircle className="h-5 w-5 text-red-500" />;
+                              default:
+                                return <AlertCircle className="h-5 w-5 text-gray-500" />;
+                            }
+                          };
+
+                          const getStatusText = (status: string) => {
+                            switch (status) {
+                              case 'completed':
+                                return 'Concluído';
+                              case 'pending':
+                                return 'Pendente';
+                              case 'processing':
+                                return 'Processando';
+                              case 'failed':
+                                return 'Falhou';
+                              default:
+                                return status;
+                            }
+                          };
+
+                          const getStatusColor = (status: string) => {
+                            switch (status) {
+                              case 'completed':
+                                return 'text-green-600 bg-green-50 border-green-200';
+                              case 'pending':
+                                return 'text-yellow-600 bg-yellow-50 border-yellow-200';
+                              case 'processing':
+                                return 'text-blue-600 bg-blue-50 border-blue-200';
+                              case 'failed':
+                                return 'text-red-600 bg-red-50 border-red-200';
+                              default:
+                                return 'text-gray-600 bg-gray-50 border-gray-200';
+                            }
+                          };
+
+                          return (
+                            <div key={request.id} className="flex items-center justify-between p-4 border border-neutral-200 rounded-lg hover:bg-neutral-50 transition-colors">
+                              <div className="flex items-center space-x-4">
+                                <div className="flex items-center space-x-2">
+                                  {getStatusIcon(request.status)}
+                                  <div>
+                                    <p className="font-medium text-gray-900">
+                                      {formatCurrencyFromReais(request.amount)}
+                                    </p>
+                                    <p className="text-sm text-gray-500">
+                                      {request.pixInfo?.pixKey} ({request.pixInfo?.pixKeyType?.toUpperCase()})
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(request.status)}`}>
+                                  {getStatusText(request.status)}
+                                </span>
+                                <p className="text-xs text-gray-500 mt-1">
+                                  {new Date(request.requestedAt).toLocaleDateString('pt-BR')}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Banknote className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-gray-500 text-lg font-medium">Nenhuma solicitação de saque encontrada</p>
+                        <p className="text-gray-400 text-sm mt-1">Suas solicitações de saque aparecerão aqui</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        )}
+      </div>
+    </ProviderLayout>
+  );
 }
+
+export default AnalyticsPage;

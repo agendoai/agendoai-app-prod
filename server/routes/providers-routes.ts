@@ -11,14 +11,6 @@ import { storage } from "../storage";
 import { Request, Response, NextFunction } from "express";
 import { ParsedQs } from "qs";
 
-// Middleware para verificar se o usuário está autenticado
-function isAuthenticated(req: Request, res: Response, next: NextFunction) {
-  if (req.user) {
-    return next();
-  }
-  res.status(401).json({ error: 'Não autorizado' });
-}
-
 const router = Router();
 
 /**
@@ -128,6 +120,166 @@ router.get("/", async (req: Request, res: Response) => {
   } catch (error) {
     console.error("Erro ao buscar prestadores:", error);
     return res.status(500).json({ error: "Erro ao buscar prestadores" });
+  }
+});
+
+// Rota de analytics para provider (dashboard) - DEVE vir ANTES da rota /:id
+router.get("/analytics", (req, res, next) => {
+  console.log('🏗️ ANALYTICS PRE-AUTH - Rota /analytics acessada diretamente');
+  console.log('🏗️ ANALYTICS PRE-AUTH - Headers:', {
+    authorization: req.headers.authorization ? 'PRESENT' : 'MISSING',
+    'content-type': req.headers['content-type'],
+    origin: req.headers.origin
+  });
+  next();
+}, isAuthenticated, async (req, res) => {
+  console.log('🔍 ANALYTICS DEBUG - Iniciando rota analytics');
+  console.log('🔍 ANALYTICS DEBUG - req.user:', req.user);
+  console.log('🔍 ANALYTICS DEBUG - req.session?.user:', req.session?.user);
+  console.log('🔍 ANALYTICS DEBUG - req.headers.authorization:', req.headers.authorization ? 'PRESENT' : 'ABSENT');
+  
+  try {
+    // Obter usuário de req.user ou req.session.user
+    const user = req.user || req.session?.user;
+    
+    console.log('🔍 ANALYTICS DEBUG - user obtido:', user);
+    
+    // Verificar se o usuário está autenticado e tem ID
+    if (!user || !user.id) {
+      console.log('❌ ANALYTICS DEBUG - Usuário não autenticado:', { 
+        user, 
+        hasReqUser: !!req.user, 
+        hasSessionUser: !!req.session?.user,
+        reqUserType: req.user?.userType,
+        sessionUserType: req.session?.user?.userType
+      });
+      return res.status(401).json({ error: "Usuário não autenticado" });
+    }
+    
+    const providerId = user.id;
+    console.log('🔍 ANALYTICS DEBUG - providerId:', providerId);
+    
+    // Verificar se o usuário é um prestador
+    if (user.userType !== 'provider') {
+      console.log('❌ ANALYTICS DEBUG - Usuário não é prestador:', { userType: user.userType });
+      return res.status(403).json({ error: "Apenas prestadores podem acessar analytics" });
+    }
+    
+    // Obter período do query parameter
+    const period = req.query.period as string || 'month';
+    console.log('🔍 ANALYTICS DEBUG - Período solicitado:', period);
+    
+    console.log('✅ ANALYTICS DEBUG - Processando analytics para provider:', providerId);
+    // Buscar todos os agendamentos do provider
+    const allAppointments = await storage.getProviderAppointments(providerId);
+    
+    // Filtrar agendamentos por período
+    let appointments = allAppointments;
+    const now = new Date();
+    
+    if (period === 'week') {
+      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      appointments = appointments.filter(a => new Date(a.date) >= oneWeekAgo);
+    } else if (period === 'month') {
+      const oneMonthAgo = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate());
+      appointments = appointments.filter(a => new Date(a.date) >= oneMonthAgo);
+    } else if (period === 'year') {
+      const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+      appointments = appointments.filter(a => new Date(a.date) >= oneYearAgo);
+    }
+    // Se period === 'all', usar todos os agendamentos sem filtro
+    
+    console.log(`🔍 ANALYTICS DEBUG - Total appointments: ${allAppointments.length}, Filtered by ${period}: ${appointments.length}`);
+    
+    // Buscar todos os serviços do provider
+    const services = await storage.getServicesByProvider(providerId);
+    // Buscar todas as avaliações do provider
+    const reviews = await storage.getProviderReviews(providerId);
+
+    // Faturamento total (somando appointments com pagamento confirmado)
+    const totalRevenue = appointments
+      .filter(a => (a.status === "completed" || a.status === "confirmed") && 
+                   (a.paymentStatus === "paid" || a.paymentStatus === "confirmed") && 
+                   a.totalPrice)
+      .reduce((sum, a) => sum + (a.totalPrice || 0), 0);
+    
+    console.log('🔍 ANALYTICS DEBUG - Revenue calculation:', {
+      totalAppointments: appointments.length,
+      completedWithPayment: appointments.filter(a => 
+        (a.status === "completed" || a.status === "confirmed") && 
+        (a.paymentStatus === "paid" || a.paymentStatus === "confirmed") && 
+        a.totalPrice
+      ).length,
+      totalRevenue
+    });
+
+    // Total de agendamentos
+    const totalAppointments = appointments.length;
+    // Agendamentos concluídos
+    const completedAppointments = appointments.filter(a => a.status === "completed").length;
+    // Agendamentos pendentes
+    const pendingAppointments = appointments.filter(a => a.status === "pending").length;
+    // Agendamentos cancelados
+    const canceledAppointments = appointments.filter(a => a.status === "canceled").length;
+
+    // Média de avaliações
+    const averageRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length) : 0;
+    // Total de avaliações
+    const totalReviews = reviews.length;
+
+    // Top serviços por quantidade de agendamentos
+    const topServices = services.map(service => {
+      const count = appointments.filter(a => a.serviceId === service.id).length;
+      const revenue = appointments
+        .filter(a => a.serviceId === service.id && 
+                     (a.status === "completed" || a.status === "confirmed") && 
+                     (a.paymentStatus === "paid" || a.paymentStatus === "confirmed") && 
+                     a.totalPrice)
+        .reduce((sum, a) => sum + (a.totalPrice || 0), 0);
+      return { name: service.name, count, revenue };
+    }).sort((a, b) => b.count - a.count).slice(0, 5);
+
+    // Estatísticas por mês (últimos 12 meses)
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    }).reverse();
+    
+    const appointmentsByMonth = months.map(month => {
+      const [year, m] = month.split('-');
+      const count = appointments.filter(a => {
+        const date = new Date(a.date);
+        return date.getFullYear() === Number(year) && (date.getMonth() + 1) === Number(m);
+      }).length;
+      return { month, count };
+    });
+    
+    const revenueByMonth = months.map(month => {
+      const [year, m] = month.split('-');
+      const total = appointments.filter(a => {
+        const date = new Date(a.date);
+        return (a.status === "completed" || a.status === "confirmed") && 
+               (a.paymentStatus === "paid" || a.paymentStatus === "confirmed") &&
+               date.getFullYear() === Number(year) && (date.getMonth() + 1) === Number(m);
+      }).reduce((sum, a) => sum + (a.totalPrice || 0), 0);
+      return { month, total };
+    });
+
+    res.json({
+      totalAppointments,
+      completedAppointments,
+      pendingAppointments,
+      canceledAppointments,
+      totalRevenue,
+      averageRating,
+      totalReviews,
+      topServices,
+      appointmentsByMonth,
+      revenueByMonth
+    });
+  } catch (error) {
+    console.error("Erro ao gerar analytics do provider:", error);
+    res.status(500).json({ error: "Erro ao gerar analytics do provider" });
   }
 });
 
@@ -303,8 +455,11 @@ router.post("/:id/update-timezone", isAuthenticated, async (req, res) => {
   try {
     const providerId = parseInt(req.params.id);
     
+    // Obter usuário de req.user ou req.session.user
+    const authUser = req.user || req.session?.user;
+    
     // Verificar se o usuário está autenticado e é o mesmo que está sendo atualizado
-    if (!req.user || req.user.id !== providerId) {
+    if (!authUser || authUser.id !== providerId) {
       return res.status(403).json({ error: "Permissão negada. Você só pode atualizar seu próprio fuso horário." });
     }
     
@@ -331,13 +486,13 @@ router.post("/:id/update-timezone", isAuthenticated, async (req, res) => {
     
     // Atualizar o fuso horário do usuário nos metadados
     // Primeiro, buscamos o usuário para obter os metadados atuais
-    const user = await storage.getUser(providerId);
-    if (!user) {
+    const providerUser = await storage.getUser(providerId);
+    if (!providerUser) {
       return res.status(404).json({ error: "Usuário não encontrado" });
     }
 
     // Obter metadados existentes ou criar novo objeto
-    const currentMetadata = user.metadata ? JSON.parse(user.metadata) : {};
+    const currentMetadata = providerUser.metadata ? JSON.parse(providerUser.metadata) : {};
     
     // Atualizar com o novo fuso horário
     const newMetadata = {
@@ -404,85 +559,6 @@ router.post("/:id/available-slots-check", async (req, res) => {
   } catch (error) {
     console.error("Erro ao verificar slots disponíveis:", error);
     return res.status(500).json({ error: "Erro ao verificar slots disponíveis" });
-  }
-});
-
-// Rota de analytics para provider (dashboard)
-router.get("/analytics", isAuthenticated, async (req, res) => {
-  console.log('DEBUG /analytics req.user:', req.user);
-  console.log('DEBUG /analytics isAuthenticated:', req.isAuthenticated && req.user);
-  try {
-    const providerId = req.user.id;
-    // Buscar todos os agendamentos do provider
-    const appointments = await storage.getProviderAppointments(providerId);
-    // Buscar todos os serviços do provider
-    const services = await storage.getServicesByProvider(providerId);
-    // Buscar todas as avaliações do provider
-    const reviews = await storage.getProviderReviews(providerId);
-
-    // Faturamento total (somando appointments pagos)
-    const totalRevenue = appointments
-      .filter(a => a.status === "completed" && a.price)
-      .reduce((sum, a) => sum + (a.price || 0), 0);
-
-    // Total de agendamentos
-    const totalAppointments = appointments.length;
-    // Agendamentos concluídos
-    const completedAppointments = appointments.filter(a => a.status === "completed").length;
-    // Agendamentos pendentes
-    const pendingAppointments = appointments.filter(a => a.status === "pending").length;
-    // Agendamentos cancelados
-    const canceledAppointments = appointments.filter(a => a.status === "canceled").length;
-
-    // Média de avaliações
-    const averageRating = reviews.length > 0 ? (reviews.reduce((sum, r) => sum + (r.rating || 0), 0) / reviews.length) : 0;
-    // Total de avaliações
-    const totalReviews = reviews.length;
-
-    // Top serviços por quantidade de agendamentos
-    const topServices = services.map(service => {
-      const count = appointments.filter(a => a.serviceId === service.id).length;
-      return { name: service.name, count };
-    }).sort((a, b) => b.count - a.count).slice(0, 5);
-
-    // Estatísticas por mês (últimos 12 meses)
-    const now = new Date();
-    const months = Array.from({ length: 12 }, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    }).reverse();
-    const appointmentsByMonth = months.map(month => {
-      const [year, m] = month.split('-');
-      const count = appointments.filter(a => {
-        const date = new Date(a.startTime);
-        return date.getFullYear() === Number(year) && (date.getMonth() + 1) === Number(m);
-      }).length;
-      return { month, count };
-    });
-    const revenueByMonth = months.map(month => {
-      const [year, m] = month.split('-');
-      const value = appointments.filter(a => {
-        const date = new Date(a.startTime);
-        return a.status === "completed" && date.getFullYear() === Number(year) && (date.getMonth() + 1) === Number(m);
-      }).reduce((sum, a) => sum + (a.price || 0), 0);
-      return { month, value };
-    });
-
-    res.json({
-      totalAppointments,
-      completedAppointments,
-      pendingAppointments,
-      canceledAppointments,
-      totalRevenue,
-      averageRating,
-      totalReviews,
-      topServices,
-      appointmentsByMonth,
-      revenueByMonth
-    });
-  } catch (error) {
-    console.error("Erro ao gerar analytics do provider:", error);
-    res.status(500).json({ error: "Erro ao gerar analytics do provider" });
   }
 });
 

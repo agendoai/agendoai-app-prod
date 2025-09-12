@@ -631,7 +631,7 @@ export default function ProviderProfilePage() {
         </div>
         
         <div className="relative z-10">
-        <AppHeader title="💼 Perfil do Prestador" showBackButton />
+        <AppHeader title="Perfil" showBackButton showUserInfo={false} showNotificationIcon={false} showMenuIcon={false} />
         
         <div className="p-4 md:p-6 lg:p-8 xl:p-12 space-y-6 md:space-y-8 lg:space-y-10 xl:space-y-12 w-full">
           {isLoading ? (
@@ -644,8 +644,8 @@ export default function ProviderProfilePage() {
                 <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#58c9d1]/50 via-[#58c9d1] to-[#58c9d1]/50"></div>
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
+                    <div className="flex flex-col items-start">
+                      <div className="flex items-center space-x-4 mb-3">
                         {/* Imagem de perfil */}
                         <div className="relative">
                           {user?.profileImage ? (
@@ -671,11 +671,18 @@ export default function ProviderProfilePage() {
                         </div>
                       </div>
                       
+                      {/* Nome do usuário abaixo da foto e status */}
+                      <div className="ml-2">
+                        <p className="text-sm font-medium text-neutral-700 truncate max-w-[200px] md:max-w-[250px]" title={user?.name || 'Prestador'}>
+                          {user?.name || 'Prestador'}
+                        </p>
+                      </div>
+                      
                       {/* Botão de emergência para forçar online */}
                       {!(providerSettings as ProviderSettings)?.isOnline && (
                         <Button
                           onClick={forceOnlineStatus}
-                          className="bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] hover:from-[#4aadb5] hover:to-[#58c9d1] text-white font-medium shadow-lg shadow-[#58c9d1]/30 hover:shadow-xl hover:shadow-[#58c9d1]/40 transition-all duration-300 transform hover:scale-105 border-0 rounded-xl"
+                          className="bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] hover:from-[#4aadb5] hover:to-[#58c9d1] text-white font-medium shadow-lg shadow-[#58c9d1]/30 hover:shadow-xl hover:shadow-[#58c9d1]/40 transition-all duration-300 transform hover:scale-105 border-0 rounded-xl mt-2"
                           size="sm"
                         >
                           <div className="flex items-center space-x-2">
@@ -1211,40 +1218,30 @@ export default function ProviderProfilePage() {
                               id="profile-image-input"
                             />
                             <div className="flex flex-col space-y-2 w-full max-w-xs">
+                              {/* Single button for all screen sizes */}
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                className="text-sm w-full border-[#58c9d1] text-[#58c9d1] hover:bg-[#58c9d1]/10 hover:border-[#58c9d1] transition-all duration-300 font-medium shadow-md hover:shadow-lg disabled:opacity-70 rounded-lg mb-2"
+                                className="text-xs md:text-sm w-full border-[#58c9d1] text-[#58c9d1] hover:bg-[#58c9d1]/10 hover:border-[#58c9d1] transition-all duration-300 font-medium shadow-md hover:shadow-lg disabled:opacity-70 rounded-lg py-2 px-3"
                                 onClick={() => {
-                                  // ... existing onClick logic ...
+                                  if (profileImageInputRef.current) {
+                                    profileImageInputRef.current.click();
+                                  }
                                 }}
                                 disabled={uploadingProfileImage}
                               >
                                 {uploadingProfileImage ? (
                                   <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    <span>Enviando...</span>
+                                    <Loader2 className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2 animate-spin" />
+                                    <span className="text-xs md:text-sm">Enviando...</span>
                                   </>
                                 ) : (
                                   <>
-                                    <UploadCloud className="h-4 w-4 mr-2" />
-                                    <span>Escolher da Galeria</span>
+                                    <UploadCloud className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                                    <span className="text-xs md:text-sm">Trocar Foto</span>
                                   </>
                                 )}
                               </Button>
-                              
-                              {!isIOSWebView() && (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="text-sm w-full border-blue-500 text-blue-600 hover:bg-blue-50 hover:border-blue-600 transition-all duration-300 font-medium shadow-md hover:shadow-lg disabled:opacity-70 rounded-lg"
-                                  onClick={() => handleCameraCapture('profile')}
-                                  disabled={uploadingProfileImage}
-                                >
-                                  <Camera className="h-4 w-4 mr-2" />
-                                  <span>Tirar Foto</span>
-                                </Button>
-                              )}
                             </div>
                           </div>
                         </div>
@@ -1281,66 +1278,30 @@ export default function ProviderProfilePage() {
                               id="cover-image-input"
                             />
                             <div className="flex flex-col space-y-2 w-full">
+                              {/* Single button for all screen sizes */}
                               <Button 
                                 variant="outline" 
                                 size="sm" 
-                                className="text-sm md:text-base w-full border-[#58c9d1]/60 text-[#58c9d1] hover:bg-[#58c9d1]/10 hover:border-[#58c9d1] transition-all duration-300 font-medium shadow-lg shadow-[#58c9d1]/10 hover:shadow-xl hover:shadow-[#58c9d1]/20 disabled:opacity-70 transform hover:scale-105"
+                                className="text-xs md:text-sm w-full border-[#58c9d1]/60 text-[#58c9d1] hover:bg-[#58c9d1]/10 hover:border-[#58c9d1] transition-all duration-300 font-medium shadow-lg shadow-[#58c9d1]/10 hover:shadow-xl hover:shadow-[#58c9d1]/20 disabled:opacity-70 transform hover:scale-105 py-2 px-3 md:py-3 md:px-4"
                                 onClick={() => {
-                                  // Verificar se está em iOS WebView
-                                  if (isIOSWebView()) {
-                                    // No iOS WebView, usar input que aceita apenas imagens (força galeria)
-                                    const input = document.createElement('input');
-                                    input.type = 'file';
-                                    input.accept = 'image/png,image/jpeg,image/jpg,image/gif,image/webp';
-                                    input.style.display = 'none';
-                                    
-                                    // NÃO usar capture - isso força apenas galeria
-                                    
-                                    input.onchange = async (e) => {
-                                      const target = e.target as HTMLInputElement;
-                                      if (target.files && target.files[0]) {
-                                        const file = target.files[0];
-                                        await uploadCoverImage(file);
-                                      }
-                                      document.body.removeChild(input);
-                                    };
-                                    
-                                    document.body.appendChild(input);
-                                    input.click();
-                                  } else {
-                                    // Android/Desktop: Input original
-                                    if (coverImageInputRef.current) {
-                                      coverImageInputRef.current.click();
-                                    }
+                                  if (coverImageInputRef.current) {
+                                    coverImageInputRef.current.click();
                                   }
                                 }}
                                 disabled={uploadingCoverImage}
                               >
                                 {uploadingCoverImage ? (
                                   <>
-                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                    <span>Enviando...</span>
+                                    <Loader2 className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2 animate-spin" />
+                                    <span className="text-xs md:text-sm">Enviando...</span>
                                   </>
                                 ) : (
                                   <>
-                                    <UploadCloud className="h-4 w-4 mr-2" />
-                                    <span>🇮�️ Escolher da Galeria</span>
+                                    <UploadCloud className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                                    <span className="text-xs md:text-sm">Trocar Capa</span>
                                   </>
                                 )}
                               </Button>
-                              
-                              {!isIOSWebView() && (
-                                <Button 
-                                  variant="outline" 
-                                  size="sm" 
-                                  className="text-sm md:text-base w-full border-blue-500/60 text-blue-600 hover:bg-blue-50 hover:border-blue-600 transition-all duration-300 font-medium shadow-lg shadow-blue-500/10 hover:shadow-xl hover:shadow-blue-500/20 disabled:opacity-70 transform hover:scale-105"
-                                  onClick={() => handleCameraCapture('cover')}
-                                  disabled={uploadingCoverImage}
-                                >
-                                  <Camera className="h-4 w-4 mr-2" />
-                                  <span>📸 Tirar Foto</span>
-                                </Button>
-                              )}
                             </div>
                           </div>
                         </div>

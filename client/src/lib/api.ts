@@ -35,6 +35,12 @@ if (typeof window !== 'undefined') {
 export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   // Construir URL corretamente
   let url: string;
+  
+  // Add safety check for undefined endpoint
+  if (!endpoint) {
+    throw new Error('Endpoint is required');
+  }
+  
   if (endpoint.startsWith('http')) {
     url = endpoint;
   } else if (endpoint.startsWith('/api')) {

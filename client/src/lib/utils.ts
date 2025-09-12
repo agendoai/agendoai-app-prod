@@ -74,6 +74,16 @@ export function formatCurrency(value: number | null): string {
   }).format(value / 100);
 }
 
+// Função para formatação de valores monetários que já estão em reais (como saques)
+export function formatCurrencyFromReais(value: number | null): string {
+  if (value === null) return 'R$ 0,00';
+  // O valor já está em reais, não dividir por 100
+  return new Intl.NumberFormat('pt-BR', { 
+    style: 'currency', 
+    currency: 'BRL' 
+  }).format(value);
+}
+
 // Alias para formatCurrency para manter compatibilidade com outros componentes
 export const formatPrice = formatCurrency;
 

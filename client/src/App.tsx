@@ -35,6 +35,7 @@ const OnboardingStripeRefreshPage = lazy(() => import("@/pages/onboarding-stripe
 
 // Páginas de cliente
 const ClientDashboard = lazy(() => import("@/pages/client/client-dashboard"));
+const ClientNotificationsPage = lazy(() => import("@/pages/client/notifications-page"));
 
 const NichesPage = lazy(() => import("@/pages/client/niches-page"));
 const CategoriesPage = lazy(() => import("@/pages/client/categories-page"));
@@ -380,6 +381,11 @@ function RouterWithTransitions() {
         <ProtectedRoute
           path="/client/settings"
           component={() => <LazyWrapper component={ClientSettingsPage} />}
+          userType="client"
+        />
+        <ProtectedRoute
+          path="/client/notifications"
+          component={() => <LazyWrapper component={ClientNotificationsPage} />}
           userType="client"
         />
         

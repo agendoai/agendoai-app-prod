@@ -94,7 +94,7 @@ export default function ProviderDashboard() {
   const { data: stripeStatus, isLoading: isStripeStatusLoading, refetch: refetchStripeStatus } = useQuery({
     queryKey: ["/api/provider/stripe-connect-status"],
     queryFn: async () => {
-      const response = await apiRequest("/api/provider/stripe-connect-status");
+      const response = await apiRequest("GET", "/api/provider/stripe-connect-status");
       if (!response.ok) throw new Error("Falha ao carregar status do Stripe");
       return response.json();
     },
@@ -130,9 +130,9 @@ export default function ProviderDashboard() {
   // Stats
   const stats = {
     todayAppointments: todayAppointments.length,
-    // Calcula a receita total somando todos os agendamentos com paymentStatus 'paid'
+    // Calcula a receita total somando todos os agendamentos com paymentStatus confirmado
     monthlyRevenue: appointments
-      .filter(a => a.paymentStatus === 'paid' && a.totalPrice)
+      .filter(a => (a.paymentStatus === 'paid' || a.paymentStatus === 'confirmed') && a.totalPrice)
       .reduce((sum, a) => sum + (a.totalPrice || 0), 0),
     manualAppointments: 3,
     manualRevenue: 85000
@@ -628,7 +628,7 @@ export default function ProviderDashboard() {
                         scrollbarWidth: 'thin',
                         scrollbarColor: '#d1d5db #f3f4f6'
                       }}>
-                        {upcomingAppointments.map((appointment) => (
+                        {upcomingAppointments.slice(0, 3).map((appointment) => (
                           <AppointmentItem 
                             key={appointment.id} 
                             appointment={appointment} 
