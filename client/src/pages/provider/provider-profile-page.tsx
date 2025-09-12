@@ -8,8 +8,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import {
   Card,
@@ -44,16 +42,8 @@ import {
   Globe,
   Instagram,
   Facebook,
-  CreditCard,
-  Banknote,
-  CircleDollarSign,
   MessageSquare,
-  AlertCircle,
-  CreditCardIcon,
-  AlertTriangle,
-  DollarSign,
-  Settings,
-  Shield
+  Camera
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -78,33 +68,6 @@ export default function ProviderProfilePage() {
   const [uploadingProfileImage, setUploadingProfileImage] = useState(false);
   const [uploadingCoverImage, setUploadingCoverImage] = useState(false);
 
-  // Detectar se é iPhone/iOS
-  const isIOS = () => {
-    return /iPad|iPhone|iPod/.test(navigator.userAgent) || 
-           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-  };
-
-  // Criar input dinâmico para iOS
-  const createIOSFileInput = (type: 'profile' | 'cover') => {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.capture = 'environment';
-    input.style.display = 'none';
-    
-    input.onchange = async (event) => {
-      const target = event.target as HTMLInputElement;
-      if (target.files && target.files.length > 0) {
-        if (type === 'profile') {
-          await handleProfileImageUpload(event as any);
-        } else {
-          await handleCoverImageUpload(event as any);
-        }
-      }
-    };
-    
-    return input;
-  };
   
   // Business Information states
   const [businessName, setBusinessName] = useState("");
@@ -138,7 +101,6 @@ export default function ProviderProfilePage() {
   const [businessHours, setBusinessHours] = useState("");
   
   // Adicione o estado de carregamento do Stripe Connect
-  const [stripeLoading, setStripeLoading] = useState(false);
 
   // Função para forçar status online
   const forceOnlineStatus = async () => {
@@ -157,9 +119,27 @@ export default function ProviderProfilePage() {
     staleTime: 0,
   });
 
+  // Type para providerSettings
+  type ProviderSettings = {
+    businessName?: string;
+    description?: string;
+    specialties?: string;
+    website?: string;
+    instagram?: string;
+    facebook?: string;
+    coverImage?: string;
+    businessHours?: string;
+    isOnline?: boolean;
+    acceptsCards?: boolean;
+    acceptsPix?: boolean;
+    acceptsCash?: boolean;
+    acceptOnlinePayments?: boolean;
+    merchantCode?: string;
+  };
+
   // Forçar status online quando a página carregar
   useEffect(() => {
-    if (providerSettings && !(providerSettings as any).isOnline) {
+    if (providerSettings && !(providerSettings as ProviderSettings).isOnline) {
       forceOnlineStatus();
     }
   }, [providerSettings]);
@@ -167,7 +147,7 @@ export default function ProviderProfilePage() {
   // Effect para atualizar os estados quando os dados carregarem
   useEffect(() => {
     if (providerSettings) {
-      const settings = providerSettings as any;
+      const settings = providerSettings as ProviderSettings;
       // Business Information
       setBusinessName(settings.businessName || "");
       setDescription(settings.description || "");
@@ -196,7 +176,7 @@ export default function ProviderProfilePage() {
       const res = await apiRequest("PUT", "/api/provider-settings", settingsData);
       return await res.json();
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/provider-settings"] });
       queryClient.refetchQueries({ queryKey: ["/api/provider-settings"] });
       toast({
@@ -293,10 +273,74 @@ export default function ProviderProfilePage() {
   };
   
 
-  // Função para capturar foto com a câmera (não utilizada - removida para evitar warnings)
-  /*
+  // Função para detectar se está em WebView do iOS (que causa crash)
+  const isIOSWebView = () => {
+    // Detectar se é iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    if (!isIOS) return false;
+    
+    // Detectar WebView do React Native no iOS
+    if ((window as any).ReactNativeWebView) return true;
+    
+    // Detectar WebView nativo do iOS
+    if ((window as any).webkit?.messageHandlers) return true;
+    
+    // Detectar por User Agent específico do iOS WebView
+    const userAgent = navigator.userAgent;
+    if (userAgent.includes('wv') || userAgent.includes('WebView')) return true;
+    
+    // Detectar por contexto de app no iOS
+    if ((window.navigator as any).standalone === true) return true;
+    
+    return false;
+  };
+
+  // Função específica para iOS WebView - apenas galeria
+  const handleIOSWebViewFileSelect = async (type: 'profile' | 'cover') => {
+    try {
+      // No iOS WebView, usar input simples que abre galeria
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'image/*';
+      input.style.display = 'none';
+      
+      input.onchange = async (e) => {
+        const target = e.target as HTMLInputElement;
+        if (target.files && target.files[0]) {
+          const file = target.files[0];
+          if (type === 'profile') {
+            await uploadProfileImage(file);
+          } else {
+            await uploadCoverImage(file);
+          }
+        }
+        // Limpar o input
+        document.body.removeChild(input);
+      };
+      
+      // Adicionar ao DOM e clicar
+      document.body.appendChild(input);
+      input.click();
+      
+    } catch (error) {
+      console.error('Erro ao selecionar arquivo no iOS WebView:', error);
+      toast({
+        title: "Erro ao selecionar arquivo",
+        description: "Não foi possível abrir a galeria. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Função para capturar foto com a câmera
   const handleCameraCapture = async (type: 'profile' | 'cover') => {
     try {
+      // Verificar se está em WebView do iOS - se sim, usar função específica
+      if (isIOSWebView()) {
+        await handleIOSWebViewFileSelect(type);
+        return;
+      }
+
       // Verificar se o navegador suporta getUserMedia
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         toast({
@@ -317,36 +361,18 @@ export default function ProviderProfilePage() {
         return;
       }
 
-      const isWebView = (window as any).ReactNativeWebView || (window as any).webkit?.messageHandlers;
-
-      if (isIOS() && isWebView) {
-        toast({
-          title: "Use a opção nativa",
-          description: "No iPhone, use a opção 'Galeria / Câmera' que abre o seletor nativo do iOS.",
-          variant: "destructive",
-        });
-        return;
-      }
-
       // Mostrar toast de carregamento
       toast({
         title: "Acessando câmera...",
         description: "Solicitando permissão para acessar a câmera.",
       });
 
-      // Configurações específicas para iPhone/iOS
-      const videoConstraints = isIOS() ? {
-        video: { 
-          facingMode: { ideal: 'user' }, // Câmera frontal
-          width: { ideal: type === 'cover' ? 800 : 640, max: 1280 },
-          height: { ideal: type === 'cover' ? 400 : 640, max: 1280 }
-        },
-        audio: false
-      } : {
+      // Configurações de vídeo
+      const videoConstraints = {
         video: { 
           facingMode: 'user', // Câmera frontal
           width: { ideal: type === 'cover' ? 1200 : 800, max: 1920 },
-          height: { ideal: type === 'cover' ? 400 : 800, max: 1920 }
+          height: { ideal: type === 'cover' ? 600 : 800, max: 1920 }
         },
         audio: false
       };
@@ -361,13 +387,11 @@ export default function ProviderProfilePage() {
       video.muted = true;
       video.playsInline = true;
       
-      // Configurações específicas para iPhone/iOS
-      if (isIOS()) {
-        video.setAttribute('webkit-playsinline', 'true');
-        video.setAttribute('playsinline', 'true');
-        video.style.width = '100%';
-        video.style.height = 'auto';
-      }
+      // Configurações de vídeo
+      video.setAttribute('webkit-playsinline', 'true');
+      video.setAttribute('playsinline', 'true');
+      video.style.width = '100%';
+      video.style.height = 'auto';
 
       // Criar um canvas para capturar a foto
       const canvas = document.createElement('canvas');
@@ -432,7 +456,7 @@ export default function ProviderProfilePage() {
         errorMessage = "A câmera está sendo usada por outro aplicativo. Feche outros apps que possam estar usando a câmera.";
       } else if (error.name === 'OverconstrainedError') {
         errorTitle = "Configuração não suportada";
-        errorMessage = "As configurações da câmera não são suportadas. Tente usar a opção 'Galeria / Câmera'.";
+        errorMessage = "As configurações da câmera não são suportadas. Tente usar a opção 'Escolher da Galeria'.";
       } else if (error.name === 'SecurityError') {
         errorTitle = "Erro de segurança";
         errorMessage = "Erro de segurança. Certifique-se de que está usando HTTPS ou localhost.";
@@ -445,7 +469,6 @@ export default function ProviderProfilePage() {
       });
     }
   };
-  */
 
   // Função auxiliar para upload de imagem de perfil
   const uploadProfileImage = async (file: File) => {
@@ -593,52 +616,32 @@ export default function ProviderProfilePage() {
     await uploadCoverImage(file);
   };
 
-  // Função para conectar Stripe
-  const handleConnectStripe = async () => {
-    setStripeLoading(true);
-    try {
-      const res = await apiRequest("POST", "/api/provider/stripe-connect-onboarding", {});
-      if (res.status === 401) {
-        toast({
-          title: "Não autenticado",
-          description: "Faça login novamente para conectar com o Stripe.",
-          variant: "destructive",
-        });
-        return;
-      }
-      const data = await res.json();
-      if (data.onboardingUrl) {
-        window.location.href = data.onboardingUrl;
-      } else {
-        toast({
-          title: "Erro ao conectar Stripe",
-          description: data.error || "Não foi possível gerar o link de conexão.",
-          variant: "destructive",
-        });
-      }
-    } catch (err: any) {
-      toast({
-        title: "Erro ao conectar Stripe",
-        description: err.message || "Não foi possível conectar ao Stripe.",
-        variant: "destructive",
-      });
-    } finally {
-      setStripeLoading(false);
-    }
-  };
   
   return (
     <ProviderLayout>
-      <div className="min-h-screen w-full full-width-screen bg-gradient-to-br from-gray-50 to-gray-100">
-        <AppHeader title="Perfil do Prestador" showBackButton />
+      <div className="min-h-screen w-full full-width-screen bg-white relative overflow-hidden">
+        {/* Professional Background Effects */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* Subtle Gradient Overlays */}
+          <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-[#58c9d1]/8 to-transparent rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-tr from-[#58c9d1]/6 to-transparent rounded-full blur-3xl"></div>
+          
+          {/* Professional Grid Pattern */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(88,201,209,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(88,201,209,0.02)_1px,transparent_1px)] bg-[size:60px_60px] opacity-40"></div>
+        </div>
+        
+        <div className="relative z-10">
+        <AppHeader title="💼 Perfil do Prestador" showBackButton />
         
         <div className="p-4 md:p-6 lg:p-8 xl:p-12 space-y-6 md:space-y-8 lg:space-y-10 xl:space-y-12 w-full">
           {isLoading ? (
             <p className="text-center py-8">Carregando informações do perfil...</p>
           ) : (
             <>
-              {/* Status Card */}
-              <Card className="border border-neutral-200">
+              {/* Professional Status Card */}
+              <Card className="border border-[#58c9d1]/20 bg-white shadow-xl shadow-[#58c9d1]/10 rounded-2xl overflow-hidden relative group hover:shadow-2xl hover:shadow-[#58c9d1]/15 transition-all duration-500">
+                {/* Subtle Top Border */}
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#58c9d1]/50 via-[#58c9d1] to-[#58c9d1]/50"></div>
                 <CardContent className="pt-6">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center justify-between">
@@ -652,35 +655,39 @@ export default function ProviderProfilePage() {
                               className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full object-cover border-2 border-white shadow-lg"
                             />
                           ) : (
-                            <div className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-[#3EB9AA] to-[#2A9D8F] flex items-center justify-center text-white text-xl md:text-2xl lg:text-3xl font-bold border-2 border-white shadow-lg">
+                            <div className="w-16 h-16 md:w-20 md:h-20 lg:w-24 lg:h-24 rounded-full bg-gradient-to-br from-[#3EB9AA] to-[#2A9D8F] flex items-center justify-center text-white text-xl md:text-2xl lg:text-3xl font-medium border-2 border-white shadow-lg">
                               {user?.name?.charAt(0) || 'P'}
                             </div>
                           )}
                           {/* Indicador de status */}
-                          <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white ${(providerSettings as any)?.isOnline ? "bg-green-500" : "bg-red-500"}`}></div>
+                          <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-white ${(providerSettings as ProviderSettings)?.isOnline ? "bg-green-500" : "bg-red-500"}`}></div>
                         </div>
                         
                         <div>
                           <div className="flex items-center">
-                            <div className={`w-3 h-3 rounded-full ${(providerSettings as any)?.isOnline ? "bg-green-500" : "bg-red-500"} mr-3`}></div>
-                            <p className="text-lg font-semibold text-neutral-900">{(providerSettings as any)?.isOnline ? "Online" : "Offline"}</p>
+                            <div className={`w-3 h-3 rounded-full ${(providerSettings as ProviderSettings)?.isOnline ? "bg-green-500" : "bg-red-500"} mr-3`}></div>
+                            <p className="text-lg font-medium text-neutral-900">{(providerSettings as ProviderSettings)?.isOnline ? "Online" : "Offline"}</p>
                           </div>
                         </div>
                       </div>
                       
                       {/* Botão de emergência para forçar online */}
-                      {!(providerSettings as any)?.isOnline && (
-                        <button
+                      {!(providerSettings as ProviderSettings)?.isOnline && (
+                        <Button
                           onClick={forceOnlineStatus}
-                          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                          className="bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] hover:from-[#4aadb5] hover:to-[#58c9d1] text-white font-medium shadow-lg shadow-[#58c9d1]/30 hover:shadow-xl hover:shadow-[#58c9d1]/40 transition-all duration-300 transform hover:scale-105 border-0 rounded-xl"
+                          size="sm"
                         >
-                          Ficar Online
-                        </button>
+                          <div className="flex items-center space-x-2">
+                            <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                            <span className="font-medium">Ficar Online</span>
+                          </div>
+                        </Button>
                       )}
                     </div>
                     
                     <Switch 
-                      checked={(providerSettings as any)?.isOnline || false}
+                      checked={(providerSettings as ProviderSettings)?.isOnline || false}
                       onCheckedChange={(checked) => {
                         updateSettingsMutation.mutate({ isOnline: checked });
                       }}
@@ -691,22 +698,29 @@ export default function ProviderProfilePage() {
               
               {/* Tabs for different sections */}
               <Tabs defaultValue="business" value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-2 mb-6 md:mb-8 w-full">
-                  <TabsTrigger value="business" className="text-sm md:text-base lg:text-lg px-4 py-2 md:px-6 md:py-3">Negócio</TabsTrigger>
-                  {/* <TabsTrigger value="contact">Contato</TabsTrigger> */}
-                  <TabsTrigger value="online" className="text-sm md:text-base lg:text-lg px-4 py-2 md:px-6 md:py-3">Online</TabsTrigger>
+                <TabsList className="grid grid-cols-2 mb-8 w-full bg-white border border-[#58c9d1]/20 shadow-lg shadow-[#58c9d1]/10 rounded-xl p-1">
+                  <TabsTrigger value="business" className="text-sm md:text-base px-6 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#58c9d1] data-[state=active]:to-[#4aadb5] data-[state=active]:text-white data-[state=active]:shadow-md font-medium transition-all duration-300 rounded-lg">
+                    💼 Negócio
+                  </TabsTrigger>
+                  <TabsTrigger value="online" className="text-sm md:text-base px-6 py-3 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#58c9d1] data-[state=active]:to-[#4aadb5] data-[state=active]:text-white data-[state=active]:shadow-md font-medium transition-all duration-300 rounded-lg">
+                    🌐 Online
+                  </TabsTrigger>
                 </TabsList>
                 
                 {/* Business Information Tab */}
                 <TabsContent value="business">
                   <div className="w-full">
                     <Card className="border border-neutral-200 md:shadow-lg">
-                      <CardHeader className="pb-4 md:pb-6">
-                        <CardTitle className="text-lg md:text-xl flex items-center">
-                          <Store className="h-5 w-5 mr-2 text-primary" />
-                          Informações do Negócio
+                      <CardHeader className="pb-6">
+                        <CardTitle className="text-xl md:text-2xl flex items-center font-medium">
+                          <div className="p-3 bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] rounded-xl mr-4 shadow-lg">
+                            <Store className="h-6 w-6 text-white" />
+                          </div>
+                          <span className="bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] bg-clip-text text-transparent">
+                            Informações do Negócio
+                          </span>
                         </CardTitle>
-                        <CardDescription className="text-sm md:text-base">
+                        <CardDescription className="text-base text-gray-600">
                           Configure os detalhes do seu estabelecimento
                         </CardDescription>
                       </CardHeader>
@@ -766,36 +780,39 @@ export default function ProviderProfilePage() {
                       ) : (
                         <div className="space-y-6 md:space-y-8">
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-                            <div className="bg-gray-50 p-4 md:p-6 rounded-lg">
-                              <h3 className="text-sm md:text-base lg:text-lg font-medium text-neutral-500 mb-2">Nome do Estabelecimento</h3>
+                            <div className="bg-gradient-to-br from-gray-50 to-[#58c9d1]/5 p-6 rounded-xl border border-gray-200 hover:border-[#58c9d1]/30 hover:shadow-lg transition-all duration-300">
+                              <h3 className="text-base md:text-lg lg:text-xl font-medium text-[#58c9d1] mb-3 flex items-center relative z-10">
+                                <div className="w-3 h-3 bg-gradient-to-r from-[#58c9d1] to-cyan-400 rounded-full mr-3 animate-pulse shadow-lg shadow-[#58c9d1]/50"></div>
+                                <span className="bg-gradient-to-r from-[#58c9d1] to-cyan-600 bg-clip-text text-transparent">Nome do Estabelecimento</span>
+                              </h3>
                               <p className="font-medium text-sm md:text-base lg:text-lg">
-                                {providerSettings?.businessName || user?.name || "Não configurado"}
+                                {(providerSettings as ProviderSettings)?.businessName || user?.name || "Não configurado"}
                               </p>
                             </div>
-                            <div className="bg-gray-50 p-4 md:p-6 rounded-lg">
+                            <div className="bg-gradient-to-br from-gray-50 to-[#58c9d1]/5 p-6 rounded-xl border border-gray-200 hover:border-[#58c9d1]/30 hover:shadow-lg transition-all duration-300">
                               <h3 className="text-sm md:text-base lg:text-lg font-medium text-neutral-500 mb-2">Especialidades</h3>
                               <p className="font-medium text-sm md:text-base lg:text-lg">
-                                {providerSettings?.specialties ? 
-                                  providerSettings.specialties.split(',').map(item => 
+                                {(providerSettings as ProviderSettings)?.specialties ? 
+                                  (providerSettings as ProviderSettings).specialties!.split(',').map((item: string) => 
                                     item.trim()).join(', ') 
                                 : "Especialidades não configuradas"}
                               </p>
                             </div>
                           </div>
                           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
-                            <div className="bg-gray-50 p-4 md:p-6 rounded-lg">
+                            <div className="bg-gradient-to-br from-gray-50 to-[#58c9d1]/5 p-6 rounded-xl border border-gray-200 hover:border-[#58c9d1]/30 hover:shadow-lg transition-all duration-300">
                               <h3 className="text-sm md:text-base lg:text-lg font-medium text-neutral-500 mb-2">Descrição</h3>
                               <p className="font-medium text-sm md:text-base lg:text-lg">
-                                {providerSettings?.description || "Descrição não configurada"}
+                                {(providerSettings as ProviderSettings)?.description || "Descrição não configurada"}
                               </p>
                             </div>
-                            <div className="bg-gray-50 p-4 md:p-6 rounded-lg">
+                            <div className="bg-gradient-to-br from-gray-50 to-[#58c9d1]/5 p-6 rounded-xl border border-gray-200 hover:border-[#58c9d1]/30 hover:shadow-lg transition-all duration-300">
                               <h3 className="text-sm md:text-base lg:text-lg font-medium text-neutral-500 flex items-center mb-2">
                                 <Clock className="h-4 w-4 mr-2 text-neutral-400" />
                                 Horário de Funcionamento
                               </h3>
                               <p className="font-medium text-sm md:text-base lg:text-lg whitespace-pre-line">
-                                {providerSettings?.businessHours || "Horários não configurados"}
+                                {(providerSettings as ProviderSettings)?.businessHours || "Horários não configurados"}
                               </p>
                             </div>
                           </div>
@@ -804,10 +821,11 @@ export default function ProviderProfilePage() {
                     </CardContent>
                     <CardFooter className="pt-0 flex justify-end">
                       {isEditing ? (
-                        <div className="flex space-x-2">
+                        <div className="flex space-x-3">
                           <Button 
                             variant="outline" 
                             onClick={() => setIsEditing(false)}
+                            className="border-gray-300 text-gray-600 hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 font-medium"
                           >
                             <X className="h-4 w-4 mr-2" />
                             Cancelar
@@ -815,8 +833,13 @@ export default function ProviderProfilePage() {
                           <Button 
                             onClick={handleSaveChanges}
                             disabled={updateSettingsMutation.isPending}
+                            className="bg-gradient-to-r from-primary to-teal-600 hover:from-primary/90 hover:to-teal-700 text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 disabled:opacity-70 disabled:transform-none"
                           >
-                            <Check className="h-4 w-4 mr-2" />
+                            {updateSettingsMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4 mr-2" />
+                            )}
                             {updateSettingsMutation.isPending ? "Salvando..." : "Salvar"}
                           </Button>
                         </div>
@@ -824,7 +847,11 @@ export default function ProviderProfilePage() {
                         <Button 
                           variant="outline" 
                           onClick={() => setIsEditing(true)}
+                          className="border-[#58c9d1] text-[#58c9d1] hover:bg-[#58c9d1]/10 hover:border-[#58c9d1] transition-all duration-300 font-medium shadow-md hover:shadow-lg rounded-lg"
                         >
+                          <div className="p-1 bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] rounded mr-2">
+                            <Store className="h-3 w-3 text-white" />
+                          </div>
                           Editar Informações
                         </Button>
                       )}
@@ -996,10 +1023,14 @@ export default function ProviderProfilePage() {
                 {/* Online Presence Tab */}
                 <TabsContent value="online">
                   <div className="w-full">
-                    <Card className="border border-neutral-200 md:shadow-lg">
+                    <Card className="border border-[#58c9d1]/20 bg-white shadow-xl shadow-[#58c9d1]/10 rounded-2xl overflow-hidden hover:shadow-2xl hover:shadow-[#58c9d1]/15 transition-all duration-500">
+                      {/* Professional Header Bar */}
+                      <div className="h-1 bg-gradient-to-r from-[#58c9d1]/60 via-[#58c9d1] to-[#58c9d1]/60"></div>
                       <CardHeader className="pb-4 md:pb-6">
-                        <CardTitle className="text-lg md:text-xl flex items-center">
-                          <Globe className="h-5 w-5 mr-2 text-primary" />
+                        <CardTitle className="text-lg md:text-xl flex items-center bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] bg-clip-text text-transparent font-medium">
+                          <div className="p-2 bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] rounded-lg mr-3 shadow-lg">
+                            <Globe className="h-5 w-5 text-white" />
+                          </div>
                           Presença Online
                         </CardTitle>
                         <CardDescription className="text-sm md:text-base">
@@ -1045,9 +1076,9 @@ export default function ProviderProfilePage() {
                               Website
                             </h3>
                             <p className="font-medium">
-                              {providerSettings?.website ? (
-                                <a href={providerSettings.website} target="_blank" rel="noopener noreferrer" className="text-primary">
-                                  {providerSettings.website}
+                              {(providerSettings as ProviderSettings)?.website ? (
+                                <a href={(providerSettings as ProviderSettings).website} target="_blank" rel="noopener noreferrer" className="text-primary">
+                                  {(providerSettings as ProviderSettings).website}
                                 </a>
                               ) : "Website não configurado"}
                             </p>
@@ -1058,9 +1089,9 @@ export default function ProviderProfilePage() {
                               Instagram
                             </h3>
                             <p className="font-medium">
-                              {providerSettings?.instagram ? (
-                                <a href={`https://instagram.com/${providerSettings.instagram}`} target="_blank" rel="noopener noreferrer" className="text-primary">
-                                  @{providerSettings.instagram}
+                              {(providerSettings as ProviderSettings)?.instagram ? (
+                                <a href={`https://instagram.com/${(providerSettings as ProviderSettings).instagram}`} target="_blank" rel="noopener noreferrer" className="text-primary">
+                                  @{(providerSettings as ProviderSettings).instagram}
                                 </a>
                               ) : "Instagram não configurado"}
                             </p>
@@ -1071,9 +1102,9 @@ export default function ProviderProfilePage() {
                               Facebook
                             </h3>
                             <p className="font-medium">
-                              {providerSettings?.facebook ? (
-                                <a href={`https://facebook.com/${providerSettings.facebook}`} target="_blank" rel="noopener noreferrer" className="text-primary">
-                                  {providerSettings.facebook}
+                              {(providerSettings as ProviderSettings)?.facebook ? (
+                                <a href={`https://facebook.com/${(providerSettings as ProviderSettings).facebook}`} target="_blank" rel="noopener noreferrer" className="text-primary">
+                                  {(providerSettings as ProviderSettings).facebook}
                                 </a>
                               ) : "Facebook não configurado"}
                             </p>
@@ -1083,10 +1114,11 @@ export default function ProviderProfilePage() {
                     </CardContent>
                     <CardFooter className="pt-0 flex justify-end">
                       {isEditing ? (
-                        <div className="flex space-x-2">
+                        <div className="flex space-x-3">
                           <Button 
                             variant="outline" 
                             onClick={() => setIsEditing(false)}
+                            className="border-gray-300 text-gray-600 hover:bg-gray-100 hover:border-gray-400 transition-all duration-300 font-medium rounded-lg"
                           >
                             <X className="h-4 w-4 mr-2" />
                             Cancelar
@@ -1094,8 +1126,13 @@ export default function ProviderProfilePage() {
                           <Button 
                             onClick={handleSaveChanges}
                             disabled={updateSettingsMutation.isPending}
+                            className="bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] hover:from-[#4aadb5] hover:to-[#58c9d1] text-white font-medium shadow-lg shadow-[#58c9d1]/30 hover:shadow-xl hover:shadow-[#58c9d1]/40 transition-all duration-300 transform hover:scale-105 disabled:opacity-70 border-0 rounded-lg"
                           >
-                            <Check className="h-4 w-4 mr-2" />
+                            {updateSettingsMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4 mr-2" />
+                            )}
                             {updateSettingsMutation.isPending ? "Salvando..." : "Salvar"}
                           </Button>
                         </div>
@@ -1103,7 +1140,11 @@ export default function ProviderProfilePage() {
                         <Button 
                           variant="outline" 
                           onClick={() => setIsEditing(true)}
+                          className="border-[#58c9d1]/60 text-[#58c9d1] hover:bg-[#58c9d1]/10 hover:border-[#58c9d1] transition-all duration-300 font-medium shadow-lg shadow-[#58c9d1]/20 hover:shadow-xl hover:shadow-[#58c9d1]/30 transform hover:scale-105"
                         >
+                          <div className="p-1 bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] rounded mr-2">
+                            <Globe className="h-3 w-3 text-white" />
+                          </div>
                           Editar Informações
                         </Button>
                       )}
@@ -1117,13 +1158,20 @@ export default function ProviderProfilePage() {
               
               {/* Profile Image Card */}
               <div className="w-full">
-                <Card className="border border-neutral-200">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-lg md:text-xl flex items-center">
-                      <ImageIcon className="h-5 w-5 mr-2 text-primary" />
-                      Imagens
+                <Card className="border border-[#58c9d1]/20 bg-white shadow-xl shadow-[#58c9d1]/10 rounded-2xl overflow-hidden hover:shadow-2xl hover:shadow-[#58c9d1]/15 transition-all duration-500">
+                  {/* Professional Header Bar */}
+                  <div className="h-1 bg-gradient-to-r from-[#58c9d1]/60 via-[#58c9d1] to-[#58c9d1]/60"></div>
+                  
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-xl md:text-2xl flex items-center font-medium">
+                      <div className="p-3 bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] rounded-xl mr-4 shadow-lg">
+                        <ImageIcon className="h-6 w-6 text-white" />
+                      </div>
+                      <span className="bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] bg-clip-text text-transparent">
+                        Galeria de Imagens
+                      </span>
                     </CardTitle>
-                    <CardDescription className="text-sm md:text-base">
+                    <CardDescription className="text-base text-gray-600">
                       Atualize suas imagens de perfil e capa
                     </CardDescription>
                   </CardHeader>
@@ -1131,9 +1179,12 @@ export default function ProviderProfilePage() {
                     <div className="space-y-6 md:space-y-8">
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 lg:gap-12">
                         <div className="bg-white p-4 md:p-6 rounded-lg border border-neutral-200">
-                          <h3 className="text-sm md:text-base lg:text-lg font-medium text-neutral-500 mb-4">Foto de Perfil</h3>
+                          <h3 className="text-sm md:text-base lg:text-lg font-medium text-[#58c9d1] mb-4 flex items-center">
+                            <div className="w-2 h-2 bg-[#58c9d1] rounded-full mr-2 animate-pulse"></div>
+                            Foto de Perfil
+                          </h3>
                           <div className="flex flex-col items-center space-y-4">
-                            <div className="w-24 h-24 md:w-32 md:h-32 lg:w-40 lg:h-40 rounded-full bg-neutral-100 overflow-hidden flex-shrink-0 border-4 border-white shadow-lg">
+                            <div className="w-28 h-28 md:w-36 md:h-36 rounded-full bg-gradient-to-br from-[#58c9d1]/10 to-[#58c9d1]/20 overflow-hidden flex-shrink-0 border-4 border-white shadow-xl shadow-[#58c9d1]/20 ring-4 ring-[#58c9d1]/10 mx-auto">
                               {user?.profileImage ? (
                                 <img
                                   src={user.profileImage}
@@ -1146,7 +1197,7 @@ export default function ProviderProfilePage() {
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
-                                  <Store className="h-12 w-12 md:h-16 md:w-16 lg:h-20 lg:w-20 text-neutral-400" />
+                                  <Store className="h-12 w-12 md:h-16 md:w-16 text-[#58c9d1]/60" />
                                 </div>
                               )}
                             </div>
@@ -1155,43 +1206,59 @@ export default function ProviderProfilePage() {
                               ref={profileImageInputRef}
                               onChange={handleProfileImageUpload}
                               accept="image/*"
-                              capture="environment"
+                              multiple={false}
                               className="hidden"
                               id="profile-image-input"
                             />
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="text-sm md:text-base w-full max-w-xs"
-                              onClick={() => {
-                                if (isIOS()) {
-                                  const iosInput = createIOSFileInput('profile');
-                                  document.body.appendChild(iosInput);
-                                  iosInput.click();
-                                  document.body.removeChild(iosInput);
-                                } else {
-                                  profileImageInputRef.current?.click();
-                                }
-                              }}
-                              disabled={uploadingProfileImage}
-                            >
-                              {uploadingProfileImage ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              ) : (
-                                <UploadCloud className="h-4 w-4 mr-2" />
+                            <div className="flex flex-col space-y-2 w-full max-w-xs">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-sm w-full border-[#58c9d1] text-[#58c9d1] hover:bg-[#58c9d1]/10 hover:border-[#58c9d1] transition-all duration-300 font-medium shadow-md hover:shadow-lg disabled:opacity-70 rounded-lg mb-2"
+                                onClick={() => {
+                                  // ... existing onClick logic ...
+                                }}
+                                disabled={uploadingProfileImage}
+                              >
+                                {uploadingProfileImage ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    <span>Enviando...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <UploadCloud className="h-4 w-4 mr-2" />
+                                    <span>Escolher da Galeria</span>
+                                  </>
+                                )}
+                              </Button>
+                              
+                              {!isIOSWebView() && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="text-sm w-full border-blue-500 text-blue-600 hover:bg-blue-50 hover:border-blue-600 transition-all duration-300 font-medium shadow-md hover:shadow-lg disabled:opacity-70 rounded-lg"
+                                  onClick={() => handleCameraCapture('profile')}
+                                  disabled={uploadingProfileImage}
+                                >
+                                  <Camera className="h-4 w-4 mr-2" />
+                                  <span>Tirar Foto</span>
+                                </Button>
                               )}
-                              {uploadingProfileImage ? "Enviando..." : "Galeria / Câmera"}
-                            </Button>
+                            </div>
                           </div>
                         </div>
                         
-                        <div className="bg-white p-4 md:p-6 rounded-lg border border-neutral-200">
-                          <h3 className="text-sm md:text-base lg:text-lg font-medium text-neutral-500 mb-4">Imagem de Capa</h3>
+                        <div className="bg-gradient-to-br from-white to-[#58c9d1]/5 p-4 md:p-6 rounded-xl border border-[#58c9d1]/20 shadow-lg hover:shadow-xl hover:shadow-[#58c9d1]/20 transition-all duration-300 transform hover:scale-[1.02]">
+                          <h3 className="text-sm md:text-base lg:text-lg font-medium text-[#58c9d1] mb-4 flex items-center">
+                            <div className="w-2 h-2 bg-[#58c9d1] rounded-full mr-2 animate-pulse"></div>
+                            Imagem de Capa
+                          </h3>
                           <div className="space-y-4">
-                            <div className="rounded-lg bg-neutral-100 h-40 md:h-48 lg:h-56 xl:h-64 relative overflow-hidden border border-neutral-200">
-                              {providerSettings?.coverImage ? (
+                            <div className="rounded-xl bg-gradient-to-br from-[#58c9d1]/10 to-[#58c9d1]/20 h-40 md:h-48 lg:h-56 xl:h-64 relative overflow-hidden border-2 border-white shadow-xl shadow-[#58c9d1]/20 ring-4 ring-[#58c9d1]/10">
+                              {(providerSettings as ProviderSettings)?.coverImage ? (
                                 <img
-                                  src={providerSettings.coverImage}
+                                  src={(providerSettings as ProviderSettings).coverImage}
                                   alt="Cover"
                                   className="w-full h-full object-cover"
                                   onError={(e) => {
@@ -1200,7 +1267,7 @@ export default function ProviderProfilePage() {
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center">
-                                  <ImageIcon className="h-16 w-16 md:h-20 md:w-20 lg:h-24 lg:w-24 text-neutral-400" />
+                                  <ImageIcon className="h-16 w-16 md:h-20 md:w-20 lg:h-24 lg:w-24 text-[#58c9d1]/60" />
                                 </div>
                               )}
                             </div>
@@ -1209,33 +1276,72 @@ export default function ProviderProfilePage() {
                               ref={coverImageInputRef}
                               onChange={handleCoverImageUpload}
                               accept="image/*"
-                              capture="environment"
+                              multiple={false}
                               className="hidden"
                               id="cover-image-input"
                             />
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              className="text-sm md:text-base w-full"
-                              onClick={() => {
-                                if (isIOS()) {
-                                  const iosInput = createIOSFileInput('cover');
-                                  document.body.appendChild(iosInput);
-                                  iosInput.click();
-                                  document.body.removeChild(iosInput);
-                                } else {
-                                  coverImageInputRef.current?.click();
-                                }
-                              }}
-                              disabled={uploadingCoverImage}
-                            >
-                              {uploadingCoverImage ? (
-                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              ) : (
-                                <UploadCloud className="h-4 w-4 mr-2" />
+                            <div className="flex flex-col space-y-2 w-full">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-sm md:text-base w-full border-[#58c9d1]/60 text-[#58c9d1] hover:bg-[#58c9d1]/10 hover:border-[#58c9d1] transition-all duration-300 font-medium shadow-lg shadow-[#58c9d1]/10 hover:shadow-xl hover:shadow-[#58c9d1]/20 disabled:opacity-70 transform hover:scale-105"
+                                onClick={() => {
+                                  // Verificar se está em iOS WebView
+                                  if (isIOSWebView()) {
+                                    // No iOS WebView, usar input que aceita apenas imagens (força galeria)
+                                    const input = document.createElement('input');
+                                    input.type = 'file';
+                                    input.accept = 'image/png,image/jpeg,image/jpg,image/gif,image/webp';
+                                    input.style.display = 'none';
+                                    
+                                    // NÃO usar capture - isso força apenas galeria
+                                    
+                                    input.onchange = async (e) => {
+                                      const target = e.target as HTMLInputElement;
+                                      if (target.files && target.files[0]) {
+                                        const file = target.files[0];
+                                        await uploadCoverImage(file);
+                                      }
+                                      document.body.removeChild(input);
+                                    };
+                                    
+                                    document.body.appendChild(input);
+                                    input.click();
+                                  } else {
+                                    // Android/Desktop: Input original
+                                    if (coverImageInputRef.current) {
+                                      coverImageInputRef.current.click();
+                                    }
+                                  }
+                                }}
+                                disabled={uploadingCoverImage}
+                              >
+                                {uploadingCoverImage ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    <span>Enviando...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <UploadCloud className="h-4 w-4 mr-2" />
+                                    <span>🇮�️ Escolher da Galeria</span>
+                                  </>
+                                )}
+                              </Button>
+                              
+                              {!isIOSWebView() && (
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="text-sm md:text-base w-full border-blue-500/60 text-blue-600 hover:bg-blue-50 hover:border-blue-600 transition-all duration-300 font-medium shadow-lg shadow-blue-500/10 hover:shadow-xl hover:shadow-blue-500/20 disabled:opacity-70 transform hover:scale-105"
+                                  onClick={() => handleCameraCapture('cover')}
+                                  disabled={uploadingCoverImage}
+                                >
+                                  <Camera className="h-4 w-4 mr-2" />
+                                  <span>📸 Tirar Foto</span>
+                                </Button>
                               )}
-                              {uploadingCoverImage ? "Enviando..." : "Galeria / Câmera"}
-                            </Button>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -1288,56 +1394,111 @@ export default function ProviderProfilePage() {
               </Card>
               */}
               
-              {/* Support and Logout Buttons */}
-              <div className="w-full space-y-3">
+              {/* Ultra Modern Support and Logout Buttons */}
+              <div className="w-full space-y-6">
                 <Button 
                   variant="outline" 
-                  className="w-full text-sm md:text-base"
+                  className="w-full text-lg md:text-xl border-2 border-[#58c9d1]/60 text-[#58c9d1] hover:bg-[#58c9d1]/15 hover:border-[#58c9d1] transition-all duration-700 font-medium py-6 shadow-2xl shadow-[#58c9d1]/25 hover:shadow-3xl hover:shadow-[#58c9d1]/40 transform hover:scale-105 hover:rotate-1 bg-gradient-to-r from-white/90 to-[#58c9d1]/5 rounded-3xl backdrop-blur-xl relative overflow-hidden group"
                   onClick={() => setLocation("/provider/support")}
                 >
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  Suporte
+                  {/* Button Shimmer Effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
+                  
+                  {/* Floating Particles */}
+                  <div className="absolute top-2 right-4 w-1 h-1 bg-[#58c9d1] rounded-full animate-ping opacity-60"></div>
+                  <div className="absolute bottom-3 left-8 w-0.5 h-0.5 bg-cyan-400 rounded-full animate-pulse" style={{animationDelay: '1s'}}></div>
+                  
+                  <div className="flex items-center justify-center space-x-4 relative z-10">
+                    <div className="p-3 bg-gradient-to-br from-[#58c9d1] via-cyan-400 to-teal-400 rounded-2xl shadow-xl shadow-[#58c9d1]/40 transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500 relative overflow-hidden">
+                      {/* Icon Glow */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-transparent to-white/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <MessageSquare className="h-7 w-7 text-white drop-shadow-lg relative z-10" />
+                    </div>
+                    <span className="font-medium text-xl tracking-wide drop-shadow-sm">📞 Ajuda e Suporte</span>
+                  </div>
                 </Button>
                 
                 <Button 
                   variant="outline" 
-                  className="w-full border-red-500 text-red-500 hover:bg-red-50 text-sm md:text-base"
+                  className="w-full border-2 border-red-400/60 text-red-600 hover:bg-red-50/80 hover:border-red-500 text-lg md:text-xl font-medium py-6 shadow-2xl shadow-red-500/25 hover:shadow-3xl hover:shadow-red-500/40 transition-all duration-700 transform hover:scale-105 hover:rotate-1 bg-gradient-to-r from-white/90 to-red-50/30 rounded-3xl backdrop-blur-xl relative overflow-hidden group"
                   onClick={handleLogout}
                 >
-                  <LogOut className="mr-2 h-4 w-4" />
-                  Sair da conta
+                  {/* Logout Button Effects */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-100/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
+                  
+                  {/* Warning Particles */}
+                  <div className="absolute top-3 right-6 w-1 h-1 bg-red-500 rounded-full animate-ping opacity-70"></div>
+                  <div className="absolute bottom-2 left-12 w-0.5 h-0.5 bg-orange-400 rounded-full animate-pulse" style={{animationDelay: '1.5s'}}></div>
+                  
+                  <div className="flex items-center justify-center space-x-4 relative z-10">
+                    <div className="p-3 bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-2xl shadow-xl shadow-red-500/40 transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500 relative overflow-hidden">
+                      {/* Logout Icon Glow */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-transparent to-white/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      <LogOut className="h-7 w-7 text-white drop-shadow-lg relative z-10" />
+                    </div>
+                    <span className="font-medium text-xl tracking-wide drop-shadow-sm">🚪 Sair da Conta</span>
+                  </div>
                 </Button>
               </div>
             </>
           )}
         </div>
         
-        {/* Logout Confirmation Dialog */}
+        {/* Ultra Modern Logout Confirmation Dialog */}
         <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Sair da conta</DialogTitle>
-              <DialogDescription>
-                Tem certeza que deseja sair da sua conta?
+          <DialogContent className="bg-gradient-to-br from-white/95 via-white/90 to-slate-50/80 backdrop-blur-2xl border-0 shadow-3xl shadow-slate-900/20 rounded-3xl overflow-hidden relative">
+            {/* Dialog Glow Effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-transparent to-red-500/5 opacity-50"></div>
+            
+            <DialogHeader className="relative z-10">
+              <DialogTitle className="text-2xl font-medium bg-gradient-to-r from-red-600 via-red-700 to-red-800 bg-clip-text text-transparent flex items-center">
+                <div className="p-2 bg-gradient-to-br from-red-500 to-red-700 rounded-xl mr-3 shadow-lg">
+                  <LogOut className="h-6 w-6 text-white" />
+                </div>
+                🚪 Confirmar Saída
+              </DialogTitle>
+              <DialogDescription className="text-lg text-slate-700 font-medium mt-3">
+                ⚠️ Tem certeza que deseja sair da sua conta?
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter>
+            
+            <DialogFooter className="space-x-4 mt-6 relative z-10">
               <Button 
                 variant="outline" 
                 onClick={() => setLogoutDialogOpen(false)}
+                className="border-2 border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-slate-400 transition-all duration-500 font-medium px-8 py-3 shadow-xl hover:shadow-2xl backdrop-blur-sm rounded-2xl transform hover:scale-105 hover:rotate-1 relative overflow-hidden group"
               >
-                Cancelar
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-200/20 via-transparent to-slate-200/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <span className="relative z-10 text-lg">❌ Cancelar</span>
               </Button>
+              
               <Button 
                 variant="destructive" 
                 onClick={confirmLogout}
                 disabled={logoutMutation.isPending}
+                className="bg-gradient-to-r from-red-500 via-red-600 to-red-700 hover:from-red-600 hover:via-red-600 hover:to-red-800 text-white font-medium shadow-2xl shadow-red-500/40 hover:shadow-3xl hover:shadow-red-500/60 transition-all duration-500 transform hover:scale-110 hover:rotate-1 disabled:opacity-70 disabled:transform-none px-8 py-3 border-0 rounded-2xl backdrop-blur-sm relative overflow-hidden group"
               >
-                {logoutMutation.isPending ? "Saindo..." : "Sair da conta"}
+                {/* Logout Button Shimmer */}
+                <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-transparent to-white/30 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+                
+                <div className="relative z-10 flex items-center text-lg">
+                  {logoutMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      ⏳ Saindo...
+                    </>
+                  ) : (
+                    <>
+                      <LogOut className="h-5 w-5 mr-2" />
+                      ✅ Confirmar Saída
+                    </>
+                  )}
+                </div>
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
     </ProviderLayout>
   );

@@ -441,29 +441,6 @@ export default function ProviderSchedulePage() {
             <div className="flex items-center gap-3 mb-4">
               <h1 className="text-xl font-bold text-neutral-900">Gerenciamento de Agenda</h1>
             </div>
-            <p className="text-neutral-600 text-sm max-w-full">
-              Configure seus horários de trabalho, bloqueie períodos e gerencie sua disponibilidade para receber agendamentos.
-            </p>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="grid grid-cols-1 gap-2 mb-6">
-            <Button 
-              variant="outline"
-              onClick={() => {}}
-              className="w-full border-neutral-200 hover:bg-neutral-50 shadow-sm hover:shadow-md transition-all duration-300"
-            >
-              <Settings className="h-4 w-4 mr-2" />
-              Configurar Agenda Semanal
-            </Button>
-            <Button 
-              variant="outline"
-              onClick={() => {}}
-              className="w-full border-neutral-200 hover:bg-neutral-50 shadow-sm hover:shadow-md transition-all duration-300"
-            >
-              <Shield className="h-4 w-4 mr-2" />
-              Bloquear Horário
-            </Button>
           </div>
           
           {/* Main Content Grid */}
@@ -497,29 +474,6 @@ export default function ProviderSchedulePage() {
                     className="rounded-lg border-gray-200"
                   />
                 </CardContent>
-                <CardFooter className="pt-3 border-t border-neutral-200 bg-neutral-50/50">
-                  <div className="w-full space-y-3">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-[#58c9d1]/20 border border-[#58c9d1]/30"></div>
-                        <span className="text-xs text-neutral-600 font-medium">Ocupado</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full bg-red-500/20 border border-red-500/30"></div>
-                        <span className="text-xs text-neutral-600 font-medium">Indisponível</span>
-                      </div>
-                    </div>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={() => {}}
-                      className="w-full border-neutral-200 hover:bg-neutral-50 shadow-sm hover:shadow-md"
-                    >
-                      <Clock className="h-4 w-4 mr-2" />
-                      Bloquear Horário
-                    </Button>
-                  </div>
-                </CardFooter>
               </Card>
             </div>
             

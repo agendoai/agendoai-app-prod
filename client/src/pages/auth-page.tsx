@@ -39,6 +39,8 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [registerError, setRegisterError] = useState<string | null>(null);
   const [, setLocation] = useLocation();
   
   // Verificação de autenticação usando o hook useAuth
@@ -105,8 +107,7 @@ export default function AuthPage() {
 
   // Login handler - DIRETO SEM MUTATION
   async function onLoginSubmit(data: any) {
-
-    
+    setLoginError(null); // Limpar erro anterior
     setLoading(true);
     
     try {
@@ -156,10 +157,37 @@ export default function AuthPage() {
       }
       
     } catch (error: any) {
+      console.error('❌ Erro no login:', error);
+      
+      // Tratamento específico de erros
+      let errorTitle = "Erro ao entrar";
+      let errorMessage = "Verifique seus dados e tente novamente.";
+      
+      if (error.message) {
+        if (error.message.includes('401') || error.message.includes('Unauthorized') || error.message.includes('credenciais')) {
+          errorTitle = "Credenciais inválidas";
+          errorMessage = "Email ou senha incorretos. Verifique e tente novamente.";
+        } else if (error.message.includes('404') || error.message.includes('Not Found')) {
+          errorTitle = "Usuário não encontrado";
+          errorMessage = "Não encontramos uma conta com este email.";
+        } else if (error.message.includes('400') || error.message.includes('Bad Request')) {
+          errorTitle = "Dados inválidos";
+          errorMessage = "Verifique se o email e senha estão corretos.";
+        } else if (error.message.includes('500') || error.message.includes('Internal Server Error')) {
+          errorTitle = "Erro no servidor";
+          errorMessage = "Ocorreu um erro interno. Tente novamente em alguns minutos.";
+        } else if (error.message.includes('Network') || error.message.includes('fetch')) {
+          errorTitle = "Erro de conexão";
+          errorMessage = "Verifique sua conexão com a internet e tente novamente.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
 
+      setLoginError(errorMessage);
       toast({ 
-        title: "Erro ao entrar", 
-        description: error.message || "Verifique seus dados.", 
+        title: errorTitle, 
+        description: errorMessage, 
         variant: "destructive" 
       });
     } finally {
@@ -169,8 +197,7 @@ export default function AuthPage() {
 
   // Registro handler - DIRETO SEM MUTATION
   async function onRegisterSubmit(data: any) {
-
-    
+    setRegisterError(null); // Limpar erro anterior
     setLoading(true);
     const { confirmPassword, ...registerData } = data;
     
@@ -221,10 +248,48 @@ export default function AuthPage() {
       }
       
     } catch (error: any) {
+      console.error('❌ Erro no registro:', error);
+      
+      // Tratamento específico de erros
+      let errorTitle = "Erro ao cadastrar";
+      let errorMessage = "Verifique seus dados e tente novamente.";
+      
+      if (error.message) {
+        if (error.message.includes('400') || error.message.includes('Bad Request')) {
+          if (error.message.includes('email') && error.message.includes('já está cadastrado')) {
+            errorTitle = "Email já cadastrado";
+            errorMessage = "Este email já possui uma conta. Tente fazer login ou use outro email.";
+          } else if (error.message.includes('CPF') || error.message.includes('cpf')) {
+            errorTitle = "CPF inválido";
+            errorMessage = "Verifique se o CPF está correto e tente novamente.";
+          } else if (error.message.includes('telefone') || error.message.includes('phone')) {
+            errorTitle = "Telefone inválido";
+            errorMessage = "Verifique se o telefone está correto e tente novamente.";
+          } else {
+            errorTitle = "Dados inválidos";
+            errorMessage = "Verifique se todos os campos estão preenchidos corretamente.";
+          }
+        } else if (error.message.includes('409') || error.message.includes('Conflict')) {
+          errorTitle = "Email já cadastrado";
+          errorMessage = "Este email já possui uma conta. Tente fazer login ou use outro email.";
+        } else if (error.message.includes('500') || error.message.includes('Internal Server Error')) {
+          errorTitle = "Erro no servidor";
+          errorMessage = "Ocorreu um erro interno. Tente novamente em alguns minutos.";
+        } else if (error.message.includes('Network') || error.message.includes('fetch')) {
+          errorTitle = "Erro de conexão";
+          errorMessage = "Verifique sua conexão com a internet e tente novamente.";
+        } else if (error.message.includes('Asaas')) {
+          errorTitle = "Erro no sistema de pagamento";
+          errorMessage = "Não foi possível criar sua conta no momento. Tente novamente em alguns minutos.";
+        } else {
+          errorMessage = error.message;
+        }
+      }
 
+      setRegisterError(errorMessage);
       toast({ 
-        title: "Erro ao cadastrar", 
-        description: error.message || "Verifique seus dados.", 
+        title: errorTitle, 
+        description: errorMessage, 
         variant: "destructive" 
       });
     } finally {
@@ -265,7 +330,11 @@ export default function AuthPage() {
                 ? "bg-[#58c9d1] text-white shadow-md" 
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
-            onClick={() => setTab("login")}
+            onClick={() => {
+              setTab("login");
+              setLoginError(null);
+              setRegisterError(null);
+            }}
             type="button"
           >
             Entrar
@@ -276,7 +345,11 @@ export default function AuthPage() {
                 ? "bg-[#58c9d1] text-white shadow-md" 
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
-            onClick={() => setTab("register")}
+            onClick={() => {
+              setTab("register");
+              setLoginError(null);
+              setRegisterError(null);
+            }}
             type="button"
           >
             Cadastrar
@@ -335,9 +408,12 @@ export default function AuthPage() {
                   ) : "Entrar"}
                 </Button>
                 
-
-               
-               
+                {/* Mensagem de erro do login */}
+                {loginError && (
+                  <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-600 text-center">{loginError}</p>
+                  </div>
+                )}
             </form>
           </>
         ) : (
@@ -489,6 +565,13 @@ export default function AuthPage() {
                   </span>
                 )}
               </Button>
+              
+              {/* Mensagem de erro do registro */}
+              {registerError && (
+                <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600 text-center">{registerError}</p>
+                </div>
+              )}
             </form>
           </>
         )}

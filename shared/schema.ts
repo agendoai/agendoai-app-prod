@@ -18,6 +18,7 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow(),
   asaasCustomerId: varchar('asaas_customer_id', { length: 64 }),
   cpf: varchar('cpf', { length: 18 }).notNull(), // CPF/CNPJ obrigatório
+  valortaxa: doublePrecision("valor_taxa").default(1.75), // Taxa personalizada do usuário em reais (padrão R$ 1,75)
 });
 
 // Endereços dos usuários
@@ -157,7 +158,8 @@ export const appointments = pgTable("appointments", {
   notes: text("notes"),
   paymentMethod: text("payment_method"), // "local", "credit_card", "pix"
   paymentStatus: text("payment_status"), // "pending", "paid", "failed", "refunded" 
-  paymentId: text("payment_id"), // ID do pagamento (Stripe payment_intent_id)
+  paymentId: varchar("paymentid", { length: 64 }), // ID do pagamento (Stripe payment_intent_id)
+  payment_id: text("payment_id"), // Campo legado - manter para compatibilidade
   isManuallyCreated: boolean("is_manually_created").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   // Campos adicionais para exibição

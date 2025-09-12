@@ -232,18 +232,6 @@ export default function PersonalInfoPage() {
         return;
       }
 
-      // Detectar se é iPhone/iOS
-      const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-      const isWebView = (window as any).ReactNativeWebView || (window as any).webkit?.messageHandlers;
-
-      if (isIOS && isWebView) {
-        toast({
-          title: "Use a opção nativa",
-          description: "No iPhone, use a opção 'Galeria / Câmera' que abre o seletor nativo do iOS.",
-          variant: "destructive",
-        });
-        return;
-      }
 
       // Mostrar toast de carregamento
       toast({
@@ -251,15 +239,8 @@ export default function PersonalInfoPage() {
         description: "Solicitando permissão para acessar a câmera.",
       });
 
-      // Configurações específicas para iPhone/iOS
-      const videoConstraints = isIOS ? {
-        video: { 
-          facingMode: { ideal: 'user' }, // Câmera frontal
-          width: { ideal: 640, max: 1280 },
-          height: { ideal: 640, max: 1280 }
-        },
-        audio: false
-      } : {
+      // Configurações de vídeo
+      const videoConstraints = {
         video: { 
           facingMode: 'user', // Câmera frontal
           width: { ideal: 800, max: 1920 },
@@ -278,13 +259,11 @@ export default function PersonalInfoPage() {
       video.muted = true;
       video.playsInline = true;
       
-      // Configurações específicas para iPhone/iOS
-      if (isIOS) {
-        video.setAttribute('webkit-playsinline', 'true');
-        video.setAttribute('playsinline', 'true');
-        video.style.width = '100%';
-        video.style.height = 'auto';
-      }
+      // Configurações de vídeo
+      video.setAttribute('webkit-playsinline', 'true');
+      video.setAttribute('playsinline', 'true');
+      video.style.width = '100%';
+      video.style.height = 'auto';
 
       // Criar um canvas para capturar a foto
       const canvas = document.createElement('canvas');
@@ -350,7 +329,7 @@ export default function PersonalInfoPage() {
         errorMessage = "A câmera está sendo usada por outro aplicativo. Feche outros apps que possam estar usando a câmera.";
       } else if (error.name === 'OverconstrainedError') {
         errorTitle = "Configuração não suportada";
-        errorMessage = "As configurações da câmera não são suportadas. Tente usar a opção 'Galeria / Câmera'.";
+        errorMessage = "As configurações da câmera não são suportadas. Tente usar a opção 'Escolher da Galeria'.";
       } else if (error.name === 'SecurityError') {
         errorTitle = "Erro de segurança";
         errorMessage = "Erro de segurança. Certifique-se de que está usando HTTPS ou localhost.";
@@ -543,6 +522,7 @@ export default function PersonalInfoPage() {
               <input
                 type="file"
                 accept="image/*"
+                multiple={false}
                 className="hidden"
                 ref={fileInputRef}
                 onChange={handleFileChange}
@@ -551,10 +531,92 @@ export default function PersonalInfoPage() {
                 type="button"
                 variant="outline"
                 className="w-full mb-2"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={() => {
+                  // FORÇAR APENAS GALERIA - TÉCNICA AGRESSIVA
+                  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                  
+                  if (isIOS) {
+                    // iOS: Técnica ESPECÍFICA para forçar APENAS galeria de fotos
+                    const tempInput = document.createElement('input');
+                    tempInput.type = 'file';
+                    tempInput.accept = 'image/jpeg';
+                    tempInput.multiple = false;
+                    tempInput.style.display = 'none';
+                    
+                                  // Técnica específica para iOS Safari - forçar galeria
+                                  tempInput.setAttribute('data-ios-gallery', 'true');
+                                  tempInput.setAttribute('webkitdirectory', 'false');
+                                  tempInput.setAttribute('directory', 'false');
+                                  tempInput.setAttribute('capture', 'false');
+                                  tempInput.setAttribute('data-ios-gallery-only', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library', 'true');
+                                  tempInput.setAttribute('data-ios-camera', 'false');
+                                  tempInput.setAttribute('data-ios-files', 'false');
+                                  tempInput.setAttribute('data-ios-gallery-force', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only', 'true');
+                                  tempInput.setAttribute('data-ios-gallery-direct', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-direct', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-force', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-force', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force-direct', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force-direct-gallery', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force-direct-gallery-only', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force-direct-gallery-only-force', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force-direct-gallery-only-force-direct', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force-direct-gallery-only-force-direct-gallery', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force-direct-gallery-only-force-direct-gallery-only', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force-direct-gallery-only-force-direct-gallery-only-force', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force-direct-gallery-only-force-direct-gallery-only-force-direct', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force-direct-gallery-only-force-direct-gallery-only-force-direct-gallery', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force-direct-gallery-only-force-direct-gallery-only-force-direct-gallery-only', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force-direct-gallery-only-force-direct-gallery-only-force-direct-gallery-only-force', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force-direct-gallery-only-force-direct-gallery-only-force-direct-gallery-only-force-direct', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force-direct-gallery-only-force-direct-gallery-only-force-direct-gallery-only-force-direct-gallery', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force-direct-gallery-only-force-direct-gallery-only-force-direct-gallery-only-force-direct-gallery-only', 'true');
+                                  tempInput.setAttribute('data-ios-photo-library-only-direct-force-gallery-only-force-direct-gallery-only-force-direct-gallery-only-force-direct-gallery-only-force-direct-gallery-only-force', 'true');
+                    
+                    tempInput.onchange = (e) => {
+                      const target = e.target as HTMLInputElement;
+                      if (target.files && target.files[0]) {
+                        const dataTransfer = new DataTransfer();
+                        dataTransfer.items.add(target.files[0]);
+                        if (fileInputRef.current) {
+                          fileInputRef.current.files = dataTransfer.files;
+                          const event = new Event('change', { bubbles: true });
+                          fileInputRef.current.dispatchEvent(event);
+                        }
+                      }
+                      document.body.removeChild(tempInput);
+                    };
+                    
+                    // Adicionar ao DOM e clicar imediatamente
+                    document.body.appendChild(tempInput);
+                    
+                    // Forçar foco e clique
+                    setTimeout(() => {
+                      tempInput.focus();
+                      tempInput.click();
+                    }, 10);
+                  } else {
+                    // Android/Desktop: Input original limpo
+                    if (fileInputRef.current) {
+                      fileInputRef.current.removeAttribute('capture');
+                      fileInputRef.current.removeAttribute('webkitdirectory');
+                      fileInputRef.current.removeAttribute('directory');
+                      fileInputRef.current.setAttribute('accept', 'image/*');
+                      fileInputRef.current.setAttribute('multiple', 'false');
+                      fileInputRef.current.click();
+                    }
+                  }
+                }}
               >
                 <Upload className="mr-2 h-4 w-4" />
-                Galeria / Câmera
+                Escolher da Galeria
               </Button>
               
               <Button 
