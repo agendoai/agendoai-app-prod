@@ -12,6 +12,16 @@ import { JWT_CONFIG, JWTPayload } from './jwt-config';
 declare global {
   namespace Express {
     interface User extends SelectUser {}
+    interface Request {
+      user?: {
+        id: number;
+        email: string;
+        userType: string;
+        name: string;
+        iat?: number;
+        exp?: number;
+      };
+    }
   }
 }
 
@@ -21,45 +31,68 @@ const scryptAsync = promisify(scrypt);
  * Middleware para autenticação JWT
  */
 export function authenticateJWT(req: Request, res: Response, next: NextFunction) {
-  console.log('🔐 JWT Auth - Verificando:', req.path, req.method);
-  console.log('🔐 JWT Auth - Headers:', {
-    authorization: req.headers.authorization ? 'PRESENT' : 'MISSING',
-    origin: req.headers.origin,
-    'user-agent': req.headers['user-agent']
-  });
+  console.log('\n🔐 ============= JWT AUTH DEBUG =============');
+  console.log('🔍 Rota:', req.method, req.originalUrl);
+  console.log('🔍 Path:', req.path);
+  console.log('🔍 Authorization header:', req.headers.authorization ? 'PRESENT' : 'MISSING');
+  console.log('🔍 Content-Type:', req.headers['content-type']);
+  console.log('🔍 User-Agent:', req.headers['user-agent']);
   
   // Pular autenticação para rotas de login, registro e OPTIONS
   if (req.path === '/api/login' || req.path === '/api/register' || req.method === 'OPTIONS') {
     console.log('🔓 Pular autenticação para:', req.path, req.method);
+    console.log('🔐 ===============================================\n');
     return next();
   }
   
   const authHeader = req.headers.authorization;
   
   if (authHeader) {
-    console.log('🔐 JWT Auth - Header Authorization encontrado');
+    console.log('🟢 Header Authorization encontrado!');
     const token = authHeader.split(' ')[1]; // Bearer TOKEN
     
     if (!token) {
-      console.log('🔐 JWT Auth - Token não encontrado no header');
+      console.log('🔴 Token não encontrado no header');
+      console.log('🔐 ===============================================\n');
       return res.status(401).json({ message: 'Token não fornecido' });
     }
     
-    console.log('🔐 JWT Auth - Verificando token...');
+    console.log('🔍 Token length:', token.length);
+    console.log('🔍 Token preview:', token.substring(0, 50) + '...');
+    console.log('🔍 JWT Secret sendo usado:', JWT_CONFIG.secret.substring(0, 10) + '...');
+    console.log('🔐 Verificando token...');
     
     jwt.verify(token, JWT_CONFIG.secret, (err: any, decoded: any) => {
       if (err) {
-        console.log('❌ JWT inválido:', err.message);
-        console.log('🔐 JWT Auth - Token rejeitado');
+        console.log('🔴 ERRO AO VERIFICAR JWT:', err.name);
+        console.log('🔴 Mensagem do erro:', err.message);
+        if (err.name === 'TokenExpiredError') {
+          console.log('🔴 Token expirado em:', err.expiredAt);
+        }
+        if (err.name === 'JsonWebTokenError') {
+          console.log('🔴 Erro de formato do token');
+        }
+        console.log('🔐 ===============================================\n');
         return res.status(401).json({ message: 'Token inválido' });
       }
       
-      console.log('✅ JWT válido, usuário:', decoded.email);
+      console.log('🟢 TOKEN VERIFICADO COM SUCESSO!');
+      console.log('👤 Usuário decodificado:', {
+        id: decoded.id,
+        email: decoded.email,
+        userType: decoded.userType,
+        iat: decoded.iat,
+        exp: decoded.exp
+      });
       req.user = decoded;
+      console.log('🔐 req.user definido como:', req.user);
+      console.log('🔐 Chamando next() para continuar...');
+      console.log('🔐 ===============================================\n');
       next();
     });
   } else {
-    console.log('❌ JWT Auth - Header Authorization não encontrado');
+    console.log('🔴 Header Authorization não encontrado');
+    console.log('🔐 ===============================================\n');
     return res.status(401).json({ message: 'Token não fornecido' });
   }
 }
@@ -111,6 +144,7 @@ export function setupAuth(app: Express): void {
   // Middleware para autenticação JWT - aplicar apenas nas rotas protegidas
   app.use('/api/user', authenticateJWT);
   app.use('/api/logout', authenticateJWT);
+  // Nota: /api/admin será configurado no routes.ts
 
   passport.use(
     new LocalStrategy(

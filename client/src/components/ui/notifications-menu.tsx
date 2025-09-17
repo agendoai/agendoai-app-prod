@@ -27,17 +27,19 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 export function NotificationsMenu({ onClose }: { onClose?: () => void } = {}) {
-  const { notifications, markAsRead, clearAllNotifications } = useNotifications();
+  const { notifications, markAsRead, clearAllNotifications, refreshNotifications } = useNotifications();
   const [open, setOpen] = useState(false);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
-  const handleMarkAsRead = (id: number) => {
-    markAsRead(id);
+  const handleMarkAsRead = async (id: number) => {
+    await markAsRead(id);
+    await refreshNotifications();
   };
 
-  const handleClearAll = () => {
+  const handleClearAll = async () => {
     clearAllNotifications();
+    await refreshNotifications();
     setOpen(false);
     if (onClose) onClose();
   };

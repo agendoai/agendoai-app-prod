@@ -4,6 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import AdminLayout from '@/components/layout/admin-layout';
 import AppointmentDetailsModal from '@/components/admin/appointment-details-modal';
 import AppointmentRowActions from '@/components/admin/appointment-row-actions';
+import { ValidationCodeModal } from '@/components/validation-code-modal';
 import { 
   Table, 
   TableBody, 
@@ -130,6 +131,8 @@ export default function AppointmentsPage() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [currentAppointment, setCurrentAppointment] = useState<Appointment | null>(null);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [appointmentToComplete, setAppointmentToComplete] = useState<number | null>(null);
   const queryClient = useQueryClient();
   
   // Consulta de agendamentos com refetch automático
@@ -141,7 +144,7 @@ export default function AppointmentsPage() {
         const response = await apiRequest('GET', `/api/admin/appointments${dateParam}`);
         return await response.json() as Promise<Appointment[]>;
       } catch (error) {
-        console.error('Erro ao carregar agendamentos:', error);
+        
         return [];
       }
     },
@@ -229,12 +232,12 @@ export default function AppointmentsPage() {
         const response = await apiRequest('PUT', `/api/admin/appointments/${id}`, data);
         return await response.json();
       } catch (error) {
-        console.error("Erro completo na atualização:", error);
+        
         throw error;
       }
     },
     onSuccess: (data) => {
-      console.log("Agendamento atualizado com sucesso:", data);
+      
       queryClient.invalidateQueries({ queryKey: ['/api/admin/appointments'] });
       toast({
         title: "Agendamento atualizado",
@@ -242,7 +245,7 @@ export default function AppointmentsPage() {
       });
     },
     onError: (error: Error) => {
-      console.error("Erro na mutation:", error);
+      
       toast({
         title: "Erro ao atualizar agendamento",
         description: error.message || "Ocorreu um erro ao tentar atualizar o agendamento",
@@ -273,10 +276,29 @@ export default function AppointmentsPage() {
   };
 
   const updateStatus = (appointmentId: number, newStatus: string) => {
-    updateAppointmentMutation.mutate({
-      id: appointmentId,
-      data: { status: newStatus }
-    });
+    if (newStatus === 'completed') {
+      // Para conclusão, abrir modal de validação
+      setAppointmentToComplete(appointmentId);
+      setShowValidationModal(true);
+    } else {
+      // Para outros status, atualizar diretamente
+      updateAppointmentMutation.mutate({
+        id: appointmentId,
+        data: { status: newStatus }
+      });
+    }
+  };
+
+  const handleValidationSuccess = () => {
+    // O backend já atualiza o status para 'completed' quando a validação é bem-sucedida
+    // Apenas recarregamos os dados para refletir a mudança
+    setAppointmentToComplete(null);
+    window.location.reload();
+  };
+
+  const handleCloseValidationModal = () => {
+    setShowValidationModal(false);
+    setAppointmentToComplete(null);
   };
 
   // Função para renderizar o badge de status
@@ -359,16 +381,7 @@ export default function AppointmentsPage() {
           </div>
         </div>
         
-        {/* Renderizar o modal de detalhes de agendamento */}
-        <AppointmentDetailsModal
-          appointment={currentAppointment}
-          isOpen={isDetailsOpen}
-          isEditMode={isEditMode}
-          onClose={closeAppointmentDetails}
-          onEdit={openAppointmentEdit}
-          onStatusChange={updateStatus}
-          renderStatusBadge={renderStatusBadge}
-        />
+
       </AdminLayout>
     );
   }
@@ -947,6 +960,28 @@ export default function AppointmentsPage() {
           </Tabs>
         </div>
       </div>
+      
+      {/* Renderizar o modal de detalhes de agendamento */}
+      <AppointmentDetailsModal
+        appointment={currentAppointment}
+        isOpen={isDetailsOpen}
+        isEditMode={isEditMode}
+        onClose={closeAppointmentDetails}
+        onEdit={openAppointmentEdit}
+        onStatusChange={updateStatus}
+        renderStatusBadge={renderStatusBadge}
+      />
+      
+      {/* Modal de validação para conclusão de agendamentos */}
+      {appointmentToComplete && (
+        <ValidationCodeModal
+          isOpen={showValidationModal}
+          onClose={handleCloseValidationModal}
+          appointmentId={appointmentToComplete}
+          onSuccess={handleValidationSuccess}
+          isLoading={updateAppointmentMutation.isPending}
+        />
+      )}
     </AdminLayout>
   );
 }

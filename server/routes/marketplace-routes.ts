@@ -62,22 +62,12 @@ const initializeMarketplaceService = async () => {
 // Chamada para inicializar o serviço
 initializeMarketplaceService();
 
-// Middleware para verificar se o usuário é um prestador
-function isProvider(req: express.Request, res: express.Response, next: express.NextFunction) {
-  if (!req.user) {
-    return res.status(401).json({ message: 'Não autenticado' });
-  }
-  
-  if (req.user.userType !== 'provider') {
-    return res.status(403).json({ message: 'Acesso negado. Apenas prestadores podem acessar este recurso.' });
-  }
-  
-  next();
-}
-
 // Rota para obter o saldo do prestador
 router.get('/balance', isProvider, async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Não autenticado' });
+    }
     const providerId = req.user.id;
     const balance = await marketplaceService.getProviderBalance(providerId);
     
@@ -95,6 +85,9 @@ router.get('/balance', isProvider, async (req, res) => {
 // Rota para obter transações do prestador
 router.get('/transactions', isProvider, async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Não autenticado' });
+    }
     const providerId = req.user.id;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
@@ -111,6 +104,9 @@ router.get('/transactions', isProvider, async (req, res) => {
 // Rota para solicitar saque
 router.post('/withdrawals', isProvider, async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Não autenticado' });
+    }
     const providerId = req.user.id;
     const { amount, paymentMethod, paymentDetails } = req.body;
     
@@ -134,7 +130,7 @@ router.post('/withdrawals', isProvider, async (req, res) => {
     }
     
     res.status(201).json(withdrawal);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao solicitar saque:', error);
     
     if (error.message === 'Saldo insuficiente para saque') {
@@ -148,6 +144,9 @@ router.post('/withdrawals', isProvider, async (req, res) => {
 // Rota para listar saques
 router.get('/withdrawals', isProvider, async (req, res) => {
   try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Não autenticado' });
+    }
     const providerId = req.user.id;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 20;
@@ -191,7 +190,7 @@ router.post('/create-checkout', async (req, res) => {
     });
     
     res.json(checkout);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao criar checkout:', error);
     res.status(500).json({ message: 'Erro ao criar checkout', error: error.message });
   }
@@ -208,7 +207,7 @@ router.post('/complete-checkout/:checkoutId', async (req, res) => {
     
     const result = await marketplaceService.completeCheckout(checkoutId, cardDetails);
     res.json(result);
-  } catch (error) {
+  } catch (error: any) {
     console.error('Erro ao processar pagamento:', error);
     res.status(500).json({ message: 'Erro ao processar pagamento', error: error.message });
   }
@@ -284,44 +283,5 @@ router.put('/admin/category-fees/:id', isAdmin, async (req, res) => {
 });
 
 // Rotas administrativas (somente para usuários admin)
-function isAdmin(req: express.Request, res: express.Response, next: express.NextFunction) {
-  if (!req.user) {
-    return res.status(401).json({ message: 'Não autenticado' });
-  }
-  
-  if (req.user.userType !== 'admin') {
-    return res.status(403).json({ message: 'Acesso negado. Apenas administradores podem acessar este recurso.' });
-  }
-  
-  next();
-}
-
-// Rota para administrador atualizar status de um saque
-router.put('/admin/withdrawals/:id', isAdmin, async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { status, transactionId, notes } = req.body;
-    
-    if (!status) {
-      return res.status(400).json({ message: 'Status não informado' });
-    }
-    
-    const success = await marketplaceService.updateWithdrawalStatus(
-      parseInt(id),
-      status,
-      transactionId,
-      notes
-    );
-    
-    if (!success) {
-      return res.status(400).json({ message: 'Falha ao atualizar status do saque' });
-    }
-    
-    res.json({ success: true });
-  } catch (error) {
-    console.error('Erro ao atualizar status do saque:', error);
-    res.status(500).json({ message: 'Erro ao atualizar status do saque' });
-  }
-});
 
 export default router;

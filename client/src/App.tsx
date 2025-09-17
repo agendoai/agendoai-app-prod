@@ -84,6 +84,7 @@ const ViewServicePage = lazy(() => import("@/pages/provider/view-service-page"))
 const AddServicePage = lazy(() => import("@/pages/provider/add-service-page"));
 const ProviderServiceTemplatesPage = lazy(() => import("@/pages/provider/service-templates-page"));
 const ProviderAnalyticsPage = lazy(() => import("@/pages/provider/analytics-page"));
+const ProviderNotificationsPage = lazy(() => import("@/pages/provider/notifications-page"));
 const ProviderChatPage = lazy(() => import("@/pages/provider/chat-page"));
 const ProviderHelpPage = lazy(() => import("@/pages/provider/help-page"));
 const ProviderSupportPage = lazy(() => import("@/pages/provider/support-page"));
@@ -120,7 +121,7 @@ const PromotionsManagementPage = lazy(() => import("@/pages/admin/promotions-man
 const ServicesPage = lazy(() => import("@/pages/admin/services-page"));
 const StripeSettingsPage = lazy(() => import("@/pages/admin/stripe-settings-page"));
 const AsaasSubAccountsPage = lazy(() => import("@/pages/admin/asaas-subaccounts-page"));
-
+const WithdrawalRequestsPage = lazy(() => import("@/pages/admin/withdrawal-requests-page"));
 
 // Páginas de suporte
 const SupportDashboardPage = lazy(() => import("@/pages/support/support-dashboard-page"));
@@ -526,6 +527,11 @@ function RouterWithTransitions() {
           component={() => <LazyWrapper component={AsaasPaymentsPage} />}
           userType="provider"
         />
+        <ProtectedRoute
+          path="/provider/notifications"
+          component={() => <LazyWrapper component={ProviderNotificationsPage} />}
+          userType="provider"
+        />
 
         {/* Shared Routes that require authentication */}
         <ProtectedRoute
@@ -657,6 +663,12 @@ function RouterWithTransitions() {
         />
 
         <ProtectedRoute
+          path="/admin/withdrawal-requests"
+          component={() => <LazyWrapper component={WithdrawalRequestsPage} />}
+          userType="admin"
+        />
+
+        <ProtectedRoute
           path="/admin/profile"
           component={() => <LazyWrapper component={ProfilePage} />}
           userType="admin"
@@ -748,15 +760,15 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <HelmetProvider>
-        <NotificationProvider>
-          <AuthProvider>
+        <AuthProvider>
+          <NotificationProvider>
             <div className={`${needsFullWidth ? 'w-full' : 'max-w-md mx-auto'} min-h-screen bg-white`}>
               <ConnectivityBanner />
               <RouterWithTransitions />
               <Toaster />
             </div>
-          </AuthProvider>
-        </NotificationProvider>
+          </NotificationProvider>
+        </AuthProvider>
       </HelmetProvider>
     </QueryClientProvider>
   );

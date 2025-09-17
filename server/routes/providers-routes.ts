@@ -196,22 +196,41 @@ router.get("/analytics", (req, res, next) => {
     // Buscar todas as avaliações do provider
     const reviews = await storage.getProviderReviews(providerId);
 
-    // Faturamento total (somando appointments com pagamento confirmado)
+    // Faturamento total (somando appointments com pagamento confirmado - convertendo centavos para reais)
     const totalRevenue = appointments
-      .filter(a => (a.status === "completed" || a.status === "confirmed") && 
-                   (a.paymentStatus === "paid" || a.paymentStatus === "confirmed") && 
-                   a.totalPrice)
-      .reduce((sum, a) => sum + (a.totalPrice || 0), 0);
+      .filter(a => (a.status === "completed" || a.status === "confirmed" || a.status === "confirmado" || a.status === "executing") && 
+                   (a.paymentStatus === "paid" || a.paymentStatus === "confirmed" || a.paymentStatus === "confirmado" || a.paymentStatus === "pago" || a.paymentStatus === "completed") && 
+                   a.totalPrice && a.totalPrice > 0)
+      .reduce((sum, a) => sum + ((a.totalPrice || 0) / 100), 0);
     
-    console.log('🔍 ANALYTICS DEBUG - Revenue calculation:', {
+    // Sincronizar saldo do prestador baseado em agendamentos pagos
+    const { BalanceService } = await import('../services/balance-service.js');
+    await BalanceService.syncProviderBalance(providerId);
+    
+    // Buscar saldo atualizado
+    const providerBalance = await storage.getProviderBalance(providerId);
+    const currentAvailableBalance = Number(providerBalance?.availableBalance) || 0;
+    
+    console.log('🔍 ANALYTICS DEBUG - Balance calculation:', {
+      providerId,
       totalAppointments: appointments.length,
       completedWithPayment: appointments.filter(a => 
         (a.status === "completed" || a.status === "confirmed") && 
         (a.paymentStatus === "paid" || a.paymentStatus === "confirmed") && 
         a.totalPrice
       ).length,
-      totalRevenue
+      totalRevenue,
+      providerBalanceFromDB: providerBalance,
+      currentAvailableBalance,
+      availableBalanceString: providerBalance?.availableBalance,
+      availableBalanceNumber: Number(providerBalance?.availableBalance)
     });
+
+    // Buscar total de saques já solicitados para exibir no analytics
+    const { withdrawals: withdrawalRequests } = await storage.getProviderWithdrawals(providerId);
+    const totalWithdrawn = withdrawalRequests
+      .filter(w => w.status === 'completed')
+      .reduce((sum, w) => sum + (Number(w.amount) || 0), 0);
 
     // Total de agendamentos
     const totalAppointments = appointments.length;
@@ -258,10 +277,11 @@ router.get("/analytics", (req, res, next) => {
       const [year, m] = month.split('-');
       const total = appointments.filter(a => {
         const date = new Date(a.date);
-        return (a.status === "completed" || a.status === "confirmed") && 
-               (a.paymentStatus === "paid" || a.paymentStatus === "confirmed") &&
-               date.getFullYear() === Number(year) && (date.getMonth() + 1) === Number(m);
-      }).reduce((sum, a) => sum + (a.totalPrice || 0), 0);
+        return (a.status === "completed" || a.status === "confirmed" || a.status === "confirmado" || a.status === "executing") && 
+               (a.paymentStatus === "paid" || a.paymentStatus === "confirmed" || a.paymentStatus === "confirmado" || a.paymentStatus === "pago" || a.paymentStatus === "completed") &&
+               date.getFullYear() === Number(year) && (date.getMonth() + 1) === Number(m) &&
+               a.totalPrice && a.totalPrice > 0;
+      }).reduce((sum, a) => sum + ((a.totalPrice || 0) / 100), 0); // Converter centavos para reais
       return { month, total };
     });
 
@@ -271,6 +291,8 @@ router.get("/analytics", (req, res, next) => {
       pendingAppointments,
       canceledAppointments,
       totalRevenue,
+      availableBalance: Math.max(0, currentAvailableBalance), // Não permitir saldo negativo
+      totalWithdrawn,
       averageRating,
       totalReviews,
       topServices,
@@ -370,13 +392,13 @@ router.get("/:id/schedule", async (req, res) => {
     }
 
     // Buscar disponibilidades do prestador
-    const availabilities = await storage.getAvailabilityByProviderId(providerId);
+    const availabilities = await storage.getAvailabilitiesByProviderId(providerId);
     
     // Buscar horários bloqueados
-    const blockedTimes = await storage.getBlockedTimesByProviderId(providerId);
+    const blockedTimes = await storage.getBlockedTimeSlotsByProviderId(providerId);
     
-    // Buscar pausas do prestador
-    const providerBreaks = await storage.getTimeSlotsByProviderId(providerId);
+    // Buscar pausas do prestador (usando função existente)
+    const providerBreaks: any[] = [];
 
     // Organizar disponibilidades por dia da semana
     const availabilityByDay = availabilities.reduce((acc: any, availability) => {

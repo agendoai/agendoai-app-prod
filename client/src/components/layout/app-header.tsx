@@ -110,12 +110,12 @@ function AppHeader({
       
       // Forçar recarregamento da página após um pequeno delay
       setTimeout(() => {
-        console.log('🔄 Recarregando página...');
+        
         window.location.reload();
       }, 500);
       
     } catch (error) {
-      console.error("Erro ao processar logout:", error);
+      
       toast({
         title: "Erro no logout",
         description: "Ocorreu um erro ao sair da conta.",

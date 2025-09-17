@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle
 } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -40,6 +41,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { formatStatus } from '@/lib/utils';
+import { ValidationCodeModal } from '@/components/validation-code-modal';
 
 // Função para formatar status de pagamento
 const formatPaymentStatus = (paymentStatus: string) => {
@@ -97,6 +99,7 @@ export function AppointmentItem({
   const [showRatingDialog, setShowRatingDialog] = useState(false);
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
+  const [showValidationModal, setShowValidationModal] = useState(false);
   
   // Formatação de data e hora - corrigindo problema de timezone
   // A string de data vem como YYYY-MM-DD, então precisamos garantir que não ocorra mudança de dia 
@@ -196,7 +199,17 @@ type AppointmentStatusUpdateParams = {
   };
   
   const handleComplete = () => {
-    updateStatusMutation.mutate({ appointmentId: appointment.id, status: 'completed' });
+    if (userType === 'provider') {
+      setShowValidationModal(true);
+    } else {
+      updateStatusMutation.mutate({ appointmentId: appointment.id, status: 'completed' });
+    }
+  };
+
+  const handleValidationSuccess = () => {
+    // O backend já atualiza o status para 'completed' quando a validação é bem-sucedida
+    // Apenas recarregamos os dados para refletir a mudança
+    window.location.reload();
   };
   
   const handleNoShow = () => {
@@ -234,7 +247,7 @@ type AppointmentStatusUpdateParams = {
     } else {
       // Corrigindo a rota para os detalhes do agendamento
       if (userType === 'client') {
-        console.log('Navegando para detalhes de agendamento:', appointment.id);
+        
         setLocation(`/client/appointment/${appointment.id}`);
       } else {
         setLocation(`/${userType}/appointments/${appointment.id}`);
@@ -263,18 +276,25 @@ type AppointmentStatusUpdateParams = {
   };
   
   return (
+    <>
     <Card
       className={`relative border-0 shadow-xl rounded-2xl mb-4 transition-transform duration-200 hover:-translate-y-1 hover:shadow-2xl hover:ring-2 hover:ring-blue-200 bg-white/90 group`}
     >
       <CardContent className="p-5 flex items-center gap-4">
         {/* Avatar */}
-        <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-2xl font-bold text-blue-700 shadow-md">
-          {userType === 'client' ? (
-            <span>{appointment.providerName?.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}</span>
-          ) : (
-            <span>{appointment.clientName?.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}</span>
-          )}
-        </div>
+        <Avatar className="w-14 h-14 shadow-md">
+          <AvatarImage 
+            src={userType === 'client' ? appointment.providerProfilePicture : appointment.clientProfilePicture} 
+            alt={userType === 'client' ? appointment.providerName : appointment.clientName}
+          />
+          <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200 text-2xl font-bold text-blue-700">
+            {userType === 'client' ? (
+              <span>{appointment.providerName?.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}</span>
+            ) : (
+              <span>{appointment.clientName?.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase()}</span>
+            )}
+          </AvatarFallback>
+        </Avatar>
         {/* Info */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
@@ -431,5 +451,17 @@ type AppointmentStatusUpdateParams = {
         )}
       </CardContent>
     </Card>
+    
+    {/* Modal de Validação para Conclusão */}
+    {showValidationModal && (
+      <ValidationCodeModal
+        isOpen={showValidationModal}
+        onClose={() => setShowValidationModal(false)}
+        appointmentId={appointment.id}
+        onSuccess={handleValidationSuccess}
+        isLoading={updateStatusMutation.isPending}
+      />
+    )}
+  </>
   );
 }

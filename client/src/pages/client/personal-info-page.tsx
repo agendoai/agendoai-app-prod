@@ -313,7 +313,7 @@ export default function PersonalInfoPage() {
       });
 
     } catch (error: any) {
-      console.error('Erro ao acessar câmera:', error);
+      
       
       let errorMessage = "Não foi possível acessar a câmera.";
       let errorTitle = "Erro na câmera";

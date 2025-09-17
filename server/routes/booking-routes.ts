@@ -65,7 +65,7 @@ router.get('/', async (req, res) => {
  * Rota para agendar um serviço
  * POST /api/booking
  */
-router.post('/', async (req, res) => {
+router.post('/', isAuthenticated, async (req, res) => {
   try {
     const {
       providerId,
@@ -187,7 +187,7 @@ router.get('/check-availability', async (req, res) => {
       const service = await storage.getService(Number(serviceId));
       
       // Verificar se existe um tempo de execução personalizado
-      const providerService = await storage.getProviderServiceByService(
+      const providerService = await storage.getProviderServiceByProviderAndService(
         Number(providerId), 
         Number(serviceId)
       );

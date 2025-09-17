@@ -9,6 +9,8 @@
 import { pool } from './db';
 import { storage } from './storage';
 import { timeToMinutes, minutesToTime } from './advanced-slot-generator';
+import { generateValidationCode, hashValidationCode } from './utils/validation-code-utils';
+import { sendValidationCodeToClient } from './services/validation-notification-service';
 
 // Configurações padrão
 const DEFAULT_BUFFER_MINUTES = 15; // Intervalo padrão entre serviços
@@ -62,10 +64,13 @@ export class IntelligentBookingSystem {
       const adjustedDayOfWeek = dayOfWeek + 1; // Ajustar para formato do banco (1-7)
       
       // Buscar a disponibilidade para o dia
-      const availability = await storage.getAvailabilityByDay(providerId, adjustedDayOfWeek);
-      if (!availability) {
+      const availabilities = await storage.getAvailabilityByDay(providerId, adjustedDayOfWeek);
+      if (!availabilities || availabilities.length === 0) {
         throw new Error('Não há disponibilidade configurada para este dia');
       }
+      
+      // Usar a primeira disponibilidade encontrada para o bloqueio
+      const availability = availabilities[0];
       
       // Bloquear o slot no banco de dados
       await storage.createBlockedTime({
@@ -192,7 +197,13 @@ export class IntelligentBookingSystem {
         throw new Error('O horário selecionado não está mais disponível');
       }
       
-      // 4. Criar o agendamento
+      // 4. Gerar código de validação único de 6 dígitos
+      console.log('🔐 Gerando código de validação...');
+      const validationCode = generateValidationCode();
+      const validationCodeHash = await hashValidationCode(validationCode);
+      console.log('✅ Código de validação gerado e hasheado com sucesso');
+      
+      // 5. Criar o agendamento com código de validação
       const appointmentId = await storage.createAppointment({
         providerId,
         serviceId,
@@ -207,10 +218,13 @@ export class IntelligentBookingSystem {
         totalPrice: totalPrice || serviceInfo.price || 0,
         paymentId,
         serviceName,
-        clientName
+        clientName,
+        validationCodeHash, // Salvar o hash para validação
+        validationCode, // Salvar o código em texto para o cliente visualizar
+        validationAttempts: 0 // Inicializar contador de tentativas
       });
       
-      // 5. Bloquear o slot de tempo
+      // 6. Bloquear o slot de tempo
       await this.blockTimeSlot({
         providerId,
         date,
@@ -221,7 +235,38 @@ export class IntelligentBookingSystem {
         reason: `Agendamento: ${serviceInfo.name}`
       });
       
-      // 6. Se houver tempo de buffer, bloquear também
+      // 7. Buscar dados do cliente e prestador para envio do código
+      console.log('📱 Preparando envio do código de validação ao cliente...');
+      const clientData = await storage.getUser(clientId);
+      const providerData = await storage.getUser(providerId);
+      
+      // 8. Enviar código de validação APENAS ao cliente
+      // IMPORTANTE: O prestador NUNCA deve ter acesso a este código
+      try {
+        const notificationSent = await sendValidationCodeToClient({
+          clientId,
+          clientName: clientData?.name || clientName || 'Cliente',
+          clientPhone: clientData?.phone,
+          clientEmail: clientData?.email,
+          validationCode, // Código em texto claro APENAS para envio ao cliente
+          appointmentId,
+          serviceName: serviceInfo.name || serviceName || 'Serviço',
+          providerName: providerData?.name || 'Prestador',
+          appointmentDate: date,
+          appointmentTime: startTime
+        });
+        
+        if (notificationSent) {
+          console.log('✅ Código de validação enviado ao cliente com sucesso');
+        } else {
+          console.log('⚠️  Falha ao enviar código de validação, mas agendamento foi criado');
+        }
+      } catch (notificationError) {
+        console.error('❌ Erro ao enviar código de validação:', notificationError);
+        // Não falhar o agendamento por erro de notificação
+      }
+      
+      // 9. Se houver tempo de buffer, bloquear também
       if (bufferTime > 0 && !isMultipleService) {
         const bufferEndTimeMinutes = endTimeMinutes + bufferTime;
         const bufferEndTime = minutesToTime(bufferEndTimeMinutes);
@@ -458,14 +503,14 @@ export class IntelligentBookingSystem {
       console.log(`📅 Verificando horário de trabalho: Provider ${providerId}, Dia ${adjustedDayOfWeek}, Data ${date}`);
       
       // Buscar disponibilidade para o dia
-      const availability = await storage.getAvailabilityByDay(
+      const availabilities = await storage.getAvailabilityByDay(
         providerId, adjustedDayOfWeek
       );
       
-      console.log(`📋 Disponibilidade encontrada:`, availability);
+      console.log(`📋 Disponibilidades encontradas:`, availabilities);
       
       // Se não houver disponibilidade configurada para o dia, não está disponível
-      if (!availability) {
+      if (!availabilities || availabilities.length === 0) {
         console.log(`❌ Nenhuma disponibilidade configurada para o dia`);
         return false;
       }
@@ -475,19 +520,26 @@ export class IntelligentBookingSystem {
       const endTimeMinutes = timeToMinutes(endTime);
       
       console.log(`⏰ Horário solicitado: ${startTimeMinutes}-${endTimeMinutes} minutos`);
-      console.log(`📋 Horário disponível: ${timeToMinutes(availability.startTime)}-${timeToMinutes(availability.endTime)} minutos`);
       
-      // Verificar se o horário está dentro da disponibilidade
-      const availStartMinutes = timeToMinutes(availability.startTime);
-      const availEndMinutes = timeToMinutes(availability.endTime);
-      
-      if (
-        startTimeMinutes >= availStartMinutes && 
-        endTimeMinutes <= availEndMinutes
-      ) {
-        return true;
+      // Verificar se o horário está dentro de alguma das disponibilidades
+      for (const availability of availabilities) {
+        console.log(`📋 Verificando disponibilidade: ${availability.startTime}-${availability.endTime}`);
+        
+        const availStartMinutes = timeToMinutes(availability.startTime);
+        const availEndMinutes = timeToMinutes(availability.endTime);
+        
+        console.log(`📋 Horário disponível: ${availStartMinutes}-${availEndMinutes} minutos`);
+        
+        if (
+          startTimeMinutes >= availStartMinutes && 
+          endTimeMinutes <= availEndMinutes
+        ) {
+          console.log(`✅ Horário está dentro da disponibilidade`);
+          return true;
+        }
       }
       
+      console.log(`❌ Horário não está dentro de nenhuma disponibilidade`);
       return false;
     } catch (error) {
       console.error('Erro ao verificar horário de trabalho:', error);
@@ -501,13 +553,13 @@ export class IntelligentBookingSystem {
   private async getServiceDetails(serviceId: number, providerId: number): Promise<any> {
     try {
       // Buscar informações básicas do serviço
-      const service = await storage.getServiceById(serviceId);
+      const service = await storage.getService(serviceId);
       if (!service) {
         throw new Error('Serviço não encontrado');
       }
       
       // Verificar se há duração personalizada para este prestador
-      const customizedService = await storage.getProviderServiceByService(providerId, serviceId);
+      const customizedService = await storage.getProviderServiceByProviderAndService(providerId, serviceId);
       
       // Se existir tempo personalizado, usar ele
       if (customizedService && customizedService.executionTime) {
@@ -616,7 +668,7 @@ export class IntelligentBookingSystem {
       }
       
       // Obter detalhes do serviço
-      const service = await storage.getServiceById(serviceId);
+      const service = await storage.getService(serviceId);
       if (!service) {
         throw new Error('Serviço não encontrado');
       }

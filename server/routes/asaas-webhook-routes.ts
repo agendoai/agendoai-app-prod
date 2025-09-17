@@ -30,6 +30,19 @@ router.post("/asaas", async (req, res) => {
     (event.event === "PAYMENT_RECEIVED" ||
       (event.payment && event.payment.status === "RECEIVED"))
   ) {
+    // Buscar o agendamento antes de atualizar para pegar o providerId
+    const [appointment] = await db
+      .select()
+      .from(appointments)
+      .where(eq(appointments.paymentId, paymentId))
+      .limit(1);
+
+    if (!appointment) {
+      console.error(`Nenhum agendamento encontrado para paymentId ${paymentId}`);
+      return res.status(404).json({ error: "Agendamento não encontrado" });
+    }
+
+    // Atualizar status de pagamento
     const result = await db
       .update(appointments)
       .set({ paymentStatus: "confirmado" })
@@ -37,13 +50,14 @@ router.post("/asaas", async (req, res) => {
     console.log(`Tentou atualizar agendamento com paymentId ${paymentId}. Result:`, result);
 
     if (result.rowCount === 0) {
-      console.error(`Nenhum agendamento encontrado para paymentId ${paymentId}`);
+      console.error(`Erro ao atualizar agendamento com paymentId ${paymentId}`);
     } else {
       console.log(`Agendamento com paymentId ${paymentId} confirmado!`);
+      // Saldo será atualizado apenas quando o status for alterado para 'completed' manualmente
     }
     return res.status(200).json({ received: true });
   }
   res.json({ ok: true, message: "POST do webhook ativo" });
 });
 
-export default router; 
+export default router;

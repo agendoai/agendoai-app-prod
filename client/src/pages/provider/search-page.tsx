@@ -247,7 +247,7 @@ const ProviderSearchPage: React.FC = () => {
         method: 'GET'
       });
 
-      console.log('Resposta da API:', response);
+      
       
       // A API retorna diretamente um array de serviços
       if (Array.isArray(response) && response.length > 0) {
@@ -258,12 +258,12 @@ const ProviderSearchPage: React.FC = () => {
         setServices(response.data);
         setFilteredServices(response.data);
       } else {
-        console.log('Nenhum serviço encontrado:', response);
+        
         setServices([]);
         setFilteredServices([]);
       }
     } catch (error) {
-      console.error('Erro ao buscar serviços:', error);
+      
       setServices([]);
       setFilteredServices([]);
     } finally {

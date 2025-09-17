@@ -7,7 +7,8 @@ import {
   Calendar, Clock, MapPin, Phone, RefreshCcw, Search,
   Filter, CalendarRange, Loader2, Check, X, Eye, SquarePen,
   Home, User, ChevronRight, Star, MessageCircle, MoreHorizontal,
-  CalendarDays, TrendingUp, CheckCircle2, AlertCircle, PlusCircle
+  CalendarDays, TrendingUp, CheckCircle2, AlertCircle, PlusCircle,
+  Key, Copy
 } from "lucide-react";
 import AppHeader from "@/components/layout/app-header";
 import ClientLayout from "@/components/layout/client-layout";
@@ -520,6 +521,89 @@ export default function ClientAppointmentsPage() {
   );
 }
 
+// Componente para exibir código de validação
+import { apiRequest } from "@/lib/queryClient";
+
+function ValidationCodeDisplay({ appointmentId }: { appointmentId: number }) {
+  const [showCode, setShowCode] = useState(false);
+  const [copied, setCopied] = useState(false);
+  
+  const { data: validationData, isLoading } = useQuery({
+    queryKey: [`/api/appointments/${appointmentId}/validation-code`],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/appointments/${appointmentId}/validation-code`);
+      if (response.status === 404) {
+        return null;
+      }
+      return await response.json();
+    },
+    enabled: showCode,
+    retry: 1
+  });
+  
+  const copyToClipboard = async (code: string) => {
+    try {
+      await navigator.clipboard.writeText(code);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      
+    }
+  };
+  
+  if (!showCode) {
+    return (
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          setShowCode(true);
+        }}
+        className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-full bg-blue-100 text-blue-700 font-semibold shadow-sm hover:bg-blue-200 hover:shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-200"
+      >
+        <Key size={12} />
+        Ver Código
+      </button>
+    );
+  }
+  
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-full bg-gray-100 text-gray-600">
+        <Loader2 size={12} className="animate-spin" />
+        Carregando...
+      </div>
+    );
+  }
+  
+  if (!validationData?.validationCode) {
+    return (
+      <div className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-full bg-red-100 text-red-700">
+        <X size={12} />
+        Código não encontrado
+      </div>
+    );
+  }
+  
+  return (
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 px-3 py-1.5 text-xs rounded-full bg-green-100 text-green-700 font-mono font-bold">
+        <Key size={12} />
+        {validationData.validationCode}
+      </div>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          copyToClipboard(validationData.validationCode);
+        }}
+        className="flex items-center gap-1 px-2 py-1 text-xs rounded-full bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all duration-150"
+        title="Copiar código"
+      >
+        {copied ? <Check size={10} /> : <Copy size={10} />}
+      </button>
+    </div>
+  );
+}
+
 // Componente de card de agendamento seguindo o padrão do dashboard
 function AppointmentCard({ appointment, hidePaymentStatus }: { appointment: Appointment, hidePaymentStatus?: boolean }) {
   const [, navigate] = useLocation();
@@ -643,6 +727,13 @@ function AppointmentCard({ appointment, hidePaymentStatus }: { appointment: Appo
             {formatPrice(appointment.totalPrice)}
           </div>
         )}
+        {/* Código de validação - exibir apenas para agendamentos confirmados ou em execução */}
+        {(appointment.status === 'confirmed' || appointment.status === 'confirmado' || appointment.status === 'executing') && (
+          <div className="mt-2">
+            <ValidationCodeDisplay appointmentId={appointment.id} />
+          </div>
+        )}
+        
         {/* Botões de ação */}
         <div className="flex flex-row gap-2 mt-3 justify-end">
           <button

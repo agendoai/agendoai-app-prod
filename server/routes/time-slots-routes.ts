@@ -102,7 +102,7 @@ router.get("/", async (req, res) => {
     );
 
     // Obter slots de tempo disponíveis
-    let timeSlots = await storage.getTimeSlotsByProviderId(providerId);
+    let timeSlots = await storage.getAvailableTimeSlots(providerId, date, serviceId);
 
     logger.info(
       `Obtidos ${timeSlots.length} slots para prestador ${providerId} na data ${date}`,
@@ -115,7 +115,7 @@ router.get("/", async (req, res) => {
       );
 
       // Verificar se o prestador tem configuração de disponibilidade
-      const providerAvailability = await storage.getAvailabilityByProviderId(providerId);
+      const providerAvailability = await storage.getAvailabilitiesByProviderId(providerId);
       if (!providerAvailability || providerAvailability.length === 0) {
         logger.warn(`Prestador ${providerId} não possui configuração de disponibilidade`);
         return res.json({ 
@@ -127,7 +127,7 @@ router.get("/", async (req, res) => {
       }
 
       // Tentar obter slots novamente
-      timeSlots = await storage.getTimeSlotsByProviderId(providerId);
+      timeSlots = await storage.getAvailableTimeSlots(providerId, date, serviceId);
       logger.info(`Após segunda tentativa: ${timeSlots.length} slots obtidos.`);
     }
 
@@ -189,7 +189,7 @@ router.get("/available", async (req, res) => {
     );
 
     // Verificar se o prestador existe
-    const provider = await storage.getUserById(providerId);
+    const provider = await storage.getUser(providerId);
     if (!provider || provider.userType !== 'provider') {
       return res.status(404).json({
         error: "Prestador não encontrado",
@@ -198,7 +198,7 @@ router.get("/available", async (req, res) => {
     }
 
     // Verificar se o prestador tem configuração de disponibilidade
-    const providerAvailability = await storage.getAvailabilityByProviderId(providerId);
+    const providerAvailability = await storage.getAvailabilitiesByProviderId(providerId);
     if (!providerAvailability || providerAvailability.length === 0) {
       logger.warn(`Prestador ${providerId} não possui configuração de disponibilidade`);
       return res.json({ 
@@ -211,7 +211,7 @@ router.get("/available", async (req, res) => {
     }
 
     // Obter slots de tempo
-    let timeSlots = await storage.getTimeSlotsByProviderId(providerId);
+    let timeSlots = await storage.getAvailableTimeSlots(providerId, date, serviceId);
     
     if (timeSlots.length === 0) {
       logger.info(`Nenhum slot encontrado para prestador ${providerId} na data ${date}`);
@@ -234,10 +234,26 @@ router.get("/available", async (req, res) => {
       `[AVAILABLE] ${availableSlots.length} horários disponíveis de ${timeSlots.length} total para prestador ${providerId}`,
     );
 
+    // Se não há slots disponíveis, retornar mensagem apropriada
+    if (availableSlots.length === 0) {
+      return res.json({ 
+        success: true,
+        timeSlots: [],
+        totalSlots: 0,
+        availableSlots: 0,
+        message: "Não há horários disponíveis para esta data",
+        providerId,
+        providerName: provider.name,
+        date,
+        serviceId,
+        serviceIds
+      });
+    }
+
     return res.json({ 
       success: true,
       timeSlots: availableSlots,
-      totalSlots: timeSlots.length,
+      totalSlots: availableSlots.length,
       availableSlots: availableSlots.length,
       providerId,
       providerName: provider.name,
@@ -304,7 +320,7 @@ router.post("/block", isAuthenticated, async (req, res) => {
 
     try {
       // Buscar uma disponibilidade do prestador para usar como referência
-      const providerAvailability = await storage.getAvailabilityByProviderId(providerId);
+      const providerAvailability = await storage.getAvailabilitiesByProviderId(providerId);
       if (!providerAvailability || providerAvailability.length === 0) {
         return res.status(400).json({
           error: "Prestador não possui configuração de disponibilidade",
@@ -895,61 +911,19 @@ router.get("/intelligent-service-slots", async (req, res) => {
     // Filtrar slots passados
     const filteredSlots = filterPastTimeSlots(availableSlots, date);
 
-    // IMPORTANTE: Se não houver slots após filtragem, gerar slots a cada 15 minutos
+    // Se não houver slots após filtragem, retornar lista vazia
     if (filteredSlots.length === 0) {
-      logger.warn(
-        `Nenhum slot disponível após filtragem! Gerando slots a cada 15 minutos.`,
-      );
-
-      // Gerar slots a cada 15 minutos durante o horário comercial
-      const emergencySlots = [];
-
-      // Horário da manhã (8:00 às 12:00)
-      for (let hour = 8; hour < 12; hour++) {
-        for (let minute = 0; minute < 60; minute += 15) {
-          const startTime = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
-          const startMinutes = hour * 60 + minute;
-          const endMinutes = startMinutes + service.duration;
-          const endTime = minutesToTime(endMinutes);
-
-          emergencySlots.push({
-            startTime,
-            endTime,
-            isAvailable: true,
-            score: 80,
-            reason: "Horário disponível",
-          });
-        }
-      }
-
-      // Horário da tarde (13:00 às 18:00)
-      for (let hour = 13; hour < 18; hour++) {
-        for (let minute = 0; minute < 60; minute += 15) {
-          const startTime = `${hour.toString().padStart(2, "0")}:${minute.toString().padStart(2, "0")}`;
-          const startMinutes = hour * 60 + minute;
-          const endMinutes = startMinutes + service.duration;
-          const endTime = minutesToTime(endMinutes);
-
-          emergencySlots.push({
-            startTime,
-            endTime,
-            isAvailable: true,
-            score: 80,
-            reason: "Horário disponível",
-          });
-        }
-      }
-
-      // Adicionar formatação
-      emergencySlots.forEach((slot) => {
-        slot.formattedSlot = `${slot.startTime} - ${slot.endTime}`;
+      logger.info(`Nenhum slot disponível após filtragem para a data ${date}`);
+      
+      return res.json({
+        timeSlots: [],
+        totalSlots: 0,
+        availableSlots: 0,
+        serviceName: service.name,
+        serviceDuration: service.duration,
+        aiRecommendations: false,
+        message: "Não há horários disponíveis para esta data",
       });
-
-      // Usar os slots de emergência se necessário
-      filteredSlots.push(...emergencySlots);
-      logger.info(
-        `Adicionados ${emergencySlots.length} slots de emergência garantidos`,
-      );
     }
 
     logger.info(`Retornando ${filteredSlots.length} slots para o cliente`);
@@ -1204,51 +1178,17 @@ router.post("/intelligent-service-slots", async (req, res) => {
 
         // SOLUÇÃO DE EMERGÊNCIA: Adicionar slots garantidos se nenhum slot estiver disponível
         if (availableSlots.length === 0) {
-          logger.warn(
-            `Nenhum slot disponível após filtragem! Gerando slots de emergência garantidos.`,
-          );
-
-          // Gerar pelo menos 4 slots garantidos para hoje
-          const emergencySlots = [
-            {
-              startTime: "10:00",
-              endTime: "10:45",
-              isAvailable: true,
-              score: 80,
-              reason: "Horário reservado (garantido)",
-              formattedSlot: "10:00 - 10:45",
-            },
-            {
-              startTime: "11:00",
-              endTime: "11:45",
-              isAvailable: true,
-              score: 80,
-              reason: "Horário reservado (garantido)",
-              formattedSlot: "11:00 - 11:45",
-            },
-            {
-              startTime: "14:00",
-              endTime: "14:45",
-              isAvailable: true,
-              score: 90,
-              reason: "Horário reservado (garantido)",
-              formattedSlot: "14:00 - 14:45",
-            },
-            {
-              startTime: "15:00",
-              endTime: "15:45",
-              isAvailable: true,
-              score: 75,
-              reason: "Horário reservado (garantido)",
-              formattedSlot: "15:00 - 15:45",
-            },
-          ];
-
-          // Usar os slots de emergência
-          availableSlots.push(...emergencySlots);
-          logger.info(
-            `Adicionados ${emergencySlots.length} slots de emergência garantidos`,
-          );
+          logger.info(`Nenhum slot disponível após filtragem para a data ${date}`);
+          
+          return res.json({
+            timeSlots: [],
+            totalSlots: 0,
+            availableSlots: 0,
+            serviceName: service.name,
+            serviceDuration: service.duration,
+            aiRecommendations: hasAiRecommendations,
+            message: "Não há horários disponíveis para esta data",
+          });
         }
 
         return res.json({

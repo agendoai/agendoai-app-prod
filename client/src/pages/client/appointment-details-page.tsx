@@ -40,7 +40,7 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/api";
 import { formatCurrency, getStatusBadgeProps, formatStatus } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, Star, Calendar, Clock, MapPin, CreditCard, FileText, Phone, Mail, User, Building } from "lucide-react";
+import { Loader2, ArrowLeft, Star, Calendar, Clock, MapPin, CreditCard, FileText, Phone, Mail, User, Building, Shield, Copy, Eye, EyeOff } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -65,6 +65,7 @@ interface AppointmentDetails {
   notes?: string;
   price?: number;
   observations?: string;
+  validationCode?: string;
 }
 
 const reviewSchema = z.object({
@@ -85,13 +86,13 @@ export default function AppointmentDetailsPage() {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [rating, setRating] = useState(5);
+  const [showValidationCode, setShowValidationCode] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   // Verificação adicional para garantir que o ID é um número válido
   const appointmentId = id ? parseInt(id) : 0;
   
-  // Logging para debug
-  console.log('Acessando detalhes do agendamento ID:', id, 'parsed:', appointmentId);
-
+  
   const { data: appointment, isLoading, error } = useQuery<AppointmentDetails>({
     queryKey: ['/api/client/appointments', appointmentId],
     queryFn: async () => {
@@ -99,12 +100,12 @@ export default function AppointmentDetailsPage() {
         const response = await apiRequest('GET', `/api/client/appointments/${appointmentId}`);
         
         if (!response.ok) {
-          console.error('Erro na resposta do servidor:', response.status, response.statusText);
+          
           throw new Error(`Erro ao carregar dados do agendamento: ${response.statusText}`);
         }
         
         const data = await response.json();
-        console.log('Dados do agendamento recebidos:', data);
+        
         
         // Adicionando campos personalizados para garantir compatibilidade
         return {
@@ -114,7 +115,7 @@ export default function AppointmentDetailsPage() {
           notes: data.notes || data.observations || ''
         } as AppointmentDetails;
       } catch (err) {
-        console.error('Exceção ao carregar agendamento:', err);
+        
         throw err;
       }
     },
@@ -133,6 +134,20 @@ export default function AppointmentDetailsPage() {
       return await response.json();
     },
     enabled: !!appointmentId && !isNaN(appointmentId),
+  });
+
+  // Query para buscar código de validação
+  const { data: validationData } = useQuery({
+    queryKey: [`/api/appointments/${appointmentId}/validation-code`],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/appointments/${appointmentId}/validation-code`);
+      if (response.status === 404) {
+        return null;
+      }
+      return await response.json();
+    },
+    enabled: !!appointmentId && !isNaN(appointmentId) && (appointment?.status === 'confirmed' || appointment?.status === 'confirmado' || appointment?.status === 'executing'),
+    retry: 1
   });
 
   const form = useForm<ReviewFormValues>({
@@ -194,6 +209,27 @@ export default function AppointmentDetailsPage() {
     reviewMutation.mutate({ ...values, rating });
   };
 
+  // Função para copiar código de validação
+  const copyValidationCode = async () => {
+    if (validationData?.validationCode) {
+      try {
+        await navigator.clipboard.writeText(validationData.validationCode);
+        setCopiedCode(true);
+        toast({
+          title: "Código copiado!",
+          description: "O código de validação foi copiado para a área de transferência.",
+        });
+        setTimeout(() => setCopiedCode(false), 2000);
+      } catch (err) {
+        toast({
+          title: "Erro ao copiar",
+          description: "Não foi possível copiar o código. Tente novamente.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -203,8 +239,7 @@ export default function AppointmentDetailsPage() {
   }
 
   if (error || !appointment) {
-    console.log("Detalhes do erro:", error);
-    console.log("ID do agendamento:", appointmentId);
+    
     
     return (
       <div className="container mx-auto px-4 py-8">
@@ -234,7 +269,7 @@ export default function AppointmentDetailsPage() {
   return (
     <ClientLayout>
       <AppHeader title="Detalhes do Agendamento" />
-      <div className="container mx-auto px-4 py-4">
+      <div className="container mx-auto px-4 py-4 max-w-7xl">
         <div className="mb-6">
           <Button variant="ghost" onClick={() => navigate('/client/dashboard')}>
             <ArrowLeft className="mr-2 h-4 w-4" />
@@ -242,8 +277,8 @@ export default function AppointmentDetailsPage() {
           </Button>
         </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="lg:col-span-2">
           <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white to-green-50 p-1">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -259,6 +294,53 @@ export default function AppointmentDetailsPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-6 pt-2">
+              {/* Código de Validação - Exibir apenas para agendamentos confirmados ou em execução */}
+              {validationData?.validationCode && (appointment.status === 'confirmed' || appointment.status === 'confirmado' || appointment.status === 'executing') && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-200 shadow-sm">
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Shield className="h-5 w-5 text-blue-600" />
+                      <h3 className="font-semibold text-blue-800">Código de Validação</h3>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowValidationCode(!showValidationCode)}
+                      className="text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+                    >
+                      {showValidationCode ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="flex-1">
+                      <div className="bg-white rounded-lg p-3 border border-blue-200">
+                        <div className="text-center">
+                          <div className="text-2xl md:text-3xl font-mono font-bold text-blue-800 tracking-wider">
+                            {showValidationCode ? validationData.validationCode : '••••••'}
+                          </div>
+                          <p className="text-xs text-blue-600 mt-1">Apresente este código ao prestador</p>
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={copyValidationCode}
+                      disabled={!showValidationCode}
+                      className="border-blue-200 text-blue-600 hover:bg-blue-50 hover:border-blue-300"
+                    >
+                      <Copy className="h-4 w-4" />
+                      {copiedCode ? 'Copiado!' : 'Copiar'}
+                    </Button>
+                  </div>
+                  <div className="mt-3 p-2 bg-blue-100 rounded-lg">
+                    <p className="text-xs text-blue-700">
+                      💡 <strong>Importante:</strong> Este código será solicitado pelo prestador para confirmar a conclusão do seu atendimento.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="flex items-center gap-3 bg-green-50 rounded-xl p-3 shadow-sm">
                   <Calendar className="h-5 w-5 text-primary flex-shrink-0" />
@@ -294,18 +376,21 @@ export default function AppointmentDetailsPage() {
                 </div>
               )}
             </CardContent>
-            <CardFooter className="flex flex-wrap gap-2 justify-end border-t pt-6">
+            <CardFooter className="flex flex-wrap gap-3 md:gap-4 justify-end border-t pt-6">
               {canCancel && (
                 <Button 
                   variant="destructive" 
-                  className="bg-red-500 hover:bg-red-600 text-white font-bold px-6 py-2 rounded-full shadow transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-red-300"
+                  className="bg-red-500 hover:bg-red-600 text-white font-bold px-4 md:px-6 py-2.5 md:py-2 rounded-full shadow transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-red-300 text-sm md:text-base"
                   onClick={() => setIsCancelModalOpen(true)}
                 >
                   Cancelar Agendamento
                 </Button>
               )}
               {canReview && (
-                <Button onClick={() => setIsReviewModalOpen(true)}>
+                <Button 
+                  onClick={() => setIsReviewModalOpen(true)}
+                  className="px-4 md:px-6 py-2.5 md:py-2 text-sm md:text-base"
+                >
                   Avaliar Serviço
                 </Button>
               )}
@@ -323,33 +408,33 @@ export default function AppointmentDetailsPage() {
           </Card>
         </div>
 
-        <div>
+        <div className="lg:col-span-1">
           <Card className="rounded-2xl shadow-lg border-0 bg-gradient-to-br from-white to-cyan-50 p-1">
             <CardHeader className="pb-2 border-b-0">
               <CardTitle className="text-lg text-primary flex items-center gap-2">
                 <User className="h-6 w-6 text-primary" /> Prestador de Serviço
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4 pt-2">
+            <CardContent className="space-y-3 md:space-y-4 pt-2">
               <div className="flex items-center gap-3 bg-cyan-50 rounded-xl p-3 shadow-sm">
                 <User className="h-5 w-5 text-primary flex-shrink-0" />
-                <div>
-                  <h3 className="font-medium text-primary">Nome</h3>
-                  <p className="text-base font-semibold text-neutral-800">{appointment.providerName}</p>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-medium text-primary text-sm md:text-base">Nome</h3>
+                  <p className="text-sm md:text-base font-semibold text-neutral-800 truncate">{appointment.providerName}</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 bg-cyan-50 rounded-xl p-3 shadow-sm">
                 <Phone className="h-5 w-5 text-primary flex-shrink-0" />
-                <div>
-                  <h3 className="font-medium text-primary">Telefone</h3>
-                  <p className="text-base text-neutral-700">Informação não disponível</p>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-medium text-primary text-sm md:text-base">Telefone</h3>
+                  <p className="text-sm md:text-base text-neutral-700">Informação não disponível</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 bg-cyan-50 rounded-xl p-3 shadow-sm">
                 <Building className="h-5 w-5 text-primary flex-shrink-0" />
-                <div>
-                  <h3 className="font-medium text-primary">Endereço</h3>
-                  <p className="text-base text-neutral-700">Informação não disponível</p>
+                <div className="min-w-0 flex-1">
+                  <h3 className="font-medium text-primary text-sm md:text-base">Endereço</h3>
+                  <p className="text-sm md:text-base text-neutral-700">Informação não disponível</p>
                 </div>
               </div>
             </CardContent>

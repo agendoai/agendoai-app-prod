@@ -136,7 +136,7 @@ export default function ServicesPageNew() {
     // Adicionar serviços personalizados do prestador que não estão em regularServices
     // Isso não deve ser necessário no nosso caso, mas incluímos por segurança
     
-    console.log("Serviços combinados no frontend:", combinedServices);
+    
     
     return combinedServices;
   }, [regularServices, providerServices, isLoadingRegularServices, isLoadingProviderServices]);
@@ -298,7 +298,7 @@ export default function ServicesPageNew() {
         throw new Error("Você precisa estar logado para adicionar serviços");
       }
       
-      console.log(`Adicionando serviço ${serviceId} com tempo ${executionTime} e pausa ${breakTime}`);
+      
       
       try {
         // Enviar solicitação diretamente via axios ou fetch nativo para evitar problemas de autenticação
@@ -320,11 +320,11 @@ export default function ServicesPageNew() {
           }
         );
         
-        console.log("Status da resposta:", response.status);
+        
         
         if (!response.ok) {
           if (response.status === 401) {
-            console.error("Erro de autenticação. Tentando método alternativo...");
+            
             // Tentar método alternativo
             const altResponse = await apiRequest(
               "POST",
@@ -352,13 +352,13 @@ export default function ServicesPageNew() {
           }
           
           const errorData = await response.json();
-          console.error("Erro ao adicionar serviço:", errorData);
+          
           throw new Error(errorData.error || errorData.message || "Falha ao adicionar serviço");
         }
         
         return response.json();
       } catch (error) {
-        console.error("Erro na requisição:", error);
+        
         throw error;
       }
     },

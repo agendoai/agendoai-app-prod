@@ -1834,47 +1834,17 @@ export function NewBookingWizard({
     }
 
     if (!verifiedTimeSlots?.length) {
-      console.warn(
-        "Nenhum slot verificado disponível, mas isto não deveria acontecer porque adicionamos slots de emergência.",
+      return (
+        <div className="space-y-4 py-6 text-center">
+          <CalendarIcon className="mx-auto h-12 w-12 text-muted-foreground" />
+          <div>
+            <h3 className="font-medium text-lg">Sem horários disponíveis</h3>
+            <p className="text-muted-foreground mt-1">
+              Não há horários disponíveis para esta data. Tente selecionar outra data.
+            </p>
+          </div>
+        </div>
       );
-
-      // Criar slots de emergência se de alguma forma os slots verificados estiverem vazios
-      const emergencySlots = [
-        {
-          startTime: "10:00",
-          endTime: "10:45",
-          isAvailable: true,
-          score: 80,
-          reason: "Horário reservado (garantido)",
-          formattedSlot: "10:00 - 10:45",
-        },
-        {
-          startTime: "11:00",
-          endTime: "11:45",
-          isAvailable: true,
-          score: 80,
-          reason: "Horário reservado (garantido)",
-          formattedSlot: "11:00 - 11:45",
-        },
-        {
-          startTime: "14:00",
-          endTime: "14:45",
-          isAvailable: true,
-          score: 90,
-          reason: "Horário reservado (garantido)",
-          formattedSlot: "14:00 - 14:45",
-        },
-        {
-          startTime: "15:00",
-          endTime: "15:45",
-          isAvailable: true,
-          score: 75,
-          reason: "Horário reservado (garantido)",
-          formattedSlot: "15:00 - 15:45",
-        },
-      ];
-
-      setVerifiedTimeSlots(emergencySlots);
     }
 
     // Agrupar slots em blocos compatíveis com a duração do serviço

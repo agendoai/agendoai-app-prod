@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useAuth } from './use-auth';
 import { toast } from './use-toast';
+import { apiCall } from "@/lib/api";
 
 export type Notification = {
   id: number;
@@ -18,6 +19,7 @@ type NotificationContextType = {
   markAllAsRead: () => void;
   clearAllNotifications: () => void;
   connectionStatus: 'connecting' | 'connected' | 'disconnected';
+  refreshNotifications: () => Promise<void>;
 };
 
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
@@ -44,6 +46,50 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     reconnectAttempts.current = 0;
   };
 
+  // Fetch notifications helper
+  const refreshNotifications = async () => {
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
+    try {
+      const response = await apiCall(`/api/notifications/user/${user.id}`, {
+        method: 'GET'
+      });
+      if (response.ok) {
+        const notifications = await response.json();
+        setNotifications(notifications);
+          
+      } else {
+          
+      }
+      } catch (error) {
+      
+    }
+  };
+
+  // Initial fetch and focus/interval refresh
+  useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      return;
+    }
+
+    refreshNotifications();
+
+    const onFocus = () => refreshNotifications();
+    window.addEventListener('focus', onFocus);
+
+    const interval = setInterval(() => {
+      refreshNotifications();
+    }, 30000);
+
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      clearInterval(interval);
+    };
+  }, [user]);
+
   // Connect to WebSocket
   useEffect(() => {
     if (!user) {
@@ -68,12 +114,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         
         // Validar que temos um host válido antes de tentar conectar
         if (!host) {
-          console.error('Host inválido para conexão WebSocket');
+          
           setConnectionStatus('disconnected');
           
           // Tentar novamente com backoff exponencial
           const reconnectDelay = getReconnectDelay();
-          console.log(`Tentando reconectar em ${reconnectDelay}ms (tentativa ${reconnectAttempts.current})`);
+          
           
           reconnectTimeoutRef.current = setTimeout(() => {
             if (user) setupWebSocket();
@@ -97,12 +143,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         try {
           webSocket = new WebSocket(wsUrl);
         } catch (error) {
-          console.error('Erro ao criar conexão WebSocket:', error);
+          
           setConnectionStatus('disconnected');
           
           // Tentar novamente com backoff exponencial
           const reconnectDelay = getReconnectDelay();
-          console.log(`Erro de conexão, tentando reconectar em ${reconnectDelay}ms (tentativa ${reconnectAttempts.current})`);
+          
           
           reconnectTimeoutRef.current = setTimeout(() => {
             if (user) setupWebSocket();
@@ -114,13 +160,13 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         // Configurar timeout para conexão inicial com tempo mais longo
         const connectionTimeout = setTimeout(() => {
           if (webSocket.readyState !== WebSocket.OPEN) {
-            console.log('Timeout na conexão WebSocket, fechando...');
+            
             webSocket.close();
           }
         }, 15000); // 15 segundos de timeout para conectar (aumentado para melhor confiabilidade)
 
         webSocket.onopen = () => {
-          console.log('WebSocket connected');
+          
           clearTimeout(connectionTimeout);
           setConnectionStatus('connected');
           resetReconnectAttempts();
@@ -161,24 +207,24 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
               webSocket.send(JSON.stringify({ type: 'pong' }));
             }
           } catch (error) {
-            console.error('Erro ao processar mensagem WebSocket:', error);
+            
           }
         };
 
         webSocket.onerror = (error) => {
-          console.error('WebSocket error:', error);
+          
           clearTimeout(connectionTimeout);
           setConnectionStatus('disconnected');
         };
 
         webSocket.onclose = (event) => {
-          console.log('WebSocket disconnected', event.code, event.reason);
+          
           clearTimeout(connectionTimeout);
           setConnectionStatus('disconnected');
           
           // Tentar reconectar com backoff exponencial
           const reconnectDelay = getReconnectDelay();
-          console.log(`Tentando reconectar em ${reconnectDelay}ms (tentativa ${reconnectAttempts.current})`);
+          
           
           reconnectTimeoutRef.current = setTimeout(() => {
             if (user) setupWebSocket();
@@ -191,7 +237,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
             try {
               webSocket.send(JSON.stringify({ type: 'ping' }));
             } catch (e) {
-              console.error('Erro ao enviar ping:', e);
+              
               clearInterval(pingInterval);
               // Verificar estado do WebSocket usando constantes (evita comparação com valores literais)
               // WebSocket.CLOSING = 2, WebSocket.CLOSED = 3
@@ -211,12 +257,12 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
           webSocket.close();
         };
       } catch (error) {
-        console.error('Erro ao configurar WebSocket:', error);
+        
         setConnectionStatus('disconnected');
         
         // Tentar novamente com backoff exponencial
         const reconnectDelay = getReconnectDelay();
-        console.log(`Erro na configuração, tentando reconectar em ${reconnectDelay}ms`);
+        
         
         reconnectTimeoutRef.current = setTimeout(() => {
           if (user) setupWebSocket();
@@ -243,21 +289,43 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const unreadCount = notifications.filter(n => !n.read).length;
 
   // Mark a notification as read
-  const markAsRead = (id: number) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === id 
-          ? { ...notification, read: true } 
-          : notification
-      )
-    );
+  const markAsRead = async (id: number) => {
+    try {
+      const response = await apiCall(`/api/notifications/${id}/read`, {
+        method: 'PUT'
+      });
+      if (response.ok) {
+        setNotifications(prev => 
+          prev.map(notification => 
+            notification.id === id 
+              ? { ...notification, read: true } 
+              : notification
+          )
+        );
+      } else {
+        
+      }
+    } catch (error) {
+      
+    }
   };
 
   // Mark all notifications as read
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, read: true }))
-    );
+  const markAllAsRead = async () => {
+    try {
+      const response = await apiCall('/api/notifications/read-all', {
+        method: 'PUT'
+      });
+      if (response.ok) {
+        setNotifications(prev => 
+          prev.map(notification => ({ ...notification, read: true }))
+        );
+      } else {
+        
+      }
+    } catch (error) {
+      
+    }
   };
   
   // Clear all notifications
@@ -273,7 +341,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         markAsRead, 
         markAllAsRead,
         clearAllNotifications,
-        connectionStatus
+        connectionStatus,
+        refreshNotifications
       }}
     >
       {children}

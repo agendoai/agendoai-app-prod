@@ -17,7 +17,7 @@ allServicesRouter.get('/provider/:providerId', async (req, res) => {
     }
     
     // Buscar serviços diretos do prestador
-    const providerServices = await storage.getProviderServicesByProviderId(providerId);
+    const providerServices = await storage.getProviderServicesByProvider(providerId);
     
     // Buscar todos os serviços do prestador
     const services = await storage.getServicesByProviderId(providerId);

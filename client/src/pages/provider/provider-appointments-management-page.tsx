@@ -36,6 +36,7 @@ import { motion } from "framer-motion";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { ValidationCodeModal } from "@/components/validation-code-modal";
 
 interface Appointment {
   id: number;
@@ -99,6 +100,8 @@ export default function ProviderAppointmentsManagementPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [showStatusModal, setShowStatusModal] = useState(false);
+  const [showValidationModal, setShowValidationModal] = useState(false);
+  const [appointmentToComplete, setAppointmentToComplete] = useState<number | null>(null);
 
   // Buscar agendamentos do prestador
   const { data: appointments = [], isLoading } = useQuery<Appointment[]>({
@@ -179,7 +182,26 @@ export default function ProviderAppointmentsManagementPage() {
 
   const handleStatusUpdate = (appointment: Appointment, newStatus: string) => {
     setSelectedAppointment(appointment);
+    if (newStatus === 'completed') {
+      // Abrir modal de validação em vez de atualizar diretamente
+      setShowStatusModal(false);
+      setAppointmentToComplete(appointment.id);
+      setShowValidationModal(true);
+      return;
+    }
     updateStatusMutation.mutate({ appointmentId: appointment.id, status: newStatus });
+  };
+
+  const handleValidationSuccess = () => {
+    // Backend já concluiu; apenas sincronizar UI
+    setShowValidationModal(false);
+    setAppointmentToComplete(null);
+    queryClient.invalidateQueries({ queryKey: ['/api/appointments'] });
+  };
+
+  const handleCloseValidationModal = () => {
+    setShowValidationModal(false);
+    setAppointmentToComplete(null);
   };
 
   const handlePaymentStatusUpdate = (appointment: Appointment, newPaymentStatus: string) => {
@@ -475,6 +497,15 @@ export default function ProviderAppointmentsManagementPage() {
            </Card>
          </div>
        )}
+      {appointmentToComplete && (
+        <ValidationCodeModal
+          isOpen={showValidationModal}
+          onClose={handleCloseValidationModal}
+          appointmentId={appointmentToComplete}
+          onSuccess={handleValidationSuccess}
+          isLoading={false}
+        />
+      )}
     </ProviderLayout>
   );
 } 

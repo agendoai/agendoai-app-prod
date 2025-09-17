@@ -49,7 +49,7 @@ router.get("/provider/:providerId", isAuthenticated, async (req, res) => {
     
     // Buscar serviços personalizados do prestador
     const providerServices =
-      await storage.getProviderServicesByProviderId(providerId);
+      await storage.getProviderServicesByProvider(providerId);
 
     // Enriquecer com detalhes dos serviços
     const enrichedServices = await Promise.all(
@@ -63,7 +63,15 @@ router.get("/provider/:providerId", isAuthenticated, async (req, res) => {
               ? await storage.getNiche(category.nicheId)
               : null;
             const dataToRetun = {
-              ...ps,
+              id: ps.id,
+              providerId: ps.providerId,
+              serviceId: ps.serviceId,
+              executionTime: ps.executionTime,
+              duration: ps.duration,
+              price: ps.price, // Campo de preço explícito
+              breakTime: ps.breakTime,
+              isActive: ps.isActive,
+              createdAt: ps.createdAt,
               serviceName: service.name,
               serviceDescription: service.description,
               categoryId: service.categoryId,
@@ -76,7 +84,15 @@ router.get("/provider/:providerId", isAuthenticated, async (req, res) => {
 
           // Se não encontrou o serviço
           return {
-            ...ps,
+            id: ps.id,
+            providerId: ps.providerId,
+            serviceId: ps.serviceId,
+            executionTime: ps.executionTime,
+            duration: ps.duration,
+            price: ps.price, // Campo de preço explícito também no fallback
+            breakTime: ps.breakTime,
+            isActive: ps.isActive,
+            createdAt: ps.createdAt,
             serviceName: "Serviço não encontrado",
             serviceDescription: "Este serviço não está mais disponível",
             categoryId: null,
@@ -136,7 +152,7 @@ router.get(
       // Obter serviços já adicionados ao portfólio do prestador
       console.log(`[AVAILABLE-SERVICES] Buscando serviços do prestador ${providerId}...`);
       const providerServices =
-        await storage.getProviderServicesByProviderId(providerId);
+        await storage.getProviderServicesByProvider(providerId);
       const addedServiceIds = providerServices.map((ps) => ps.serviceId);
       console.log(`[AVAILABLE-SERVICES] Serviços já adicionados: ${addedServiceIds.length}`);
 
@@ -369,7 +385,7 @@ router.post("/", isAuthenticated, isProvider, async (req, res) => {
     console.log(`Serviço encontrado: "${service.name}"`);
 
     // Verificar se já existe este serviço no portfólio do prestador
-    const existingProviderService = await storage.getProviderServiceByService(
+    const existingProviderService = await storage.getProviderServiceByProviderAndService(
       data.providerId,
       data.serviceId,
     );

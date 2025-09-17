@@ -323,7 +323,7 @@ export default function ProviderProfilePage() {
       input.click();
       
     } catch (error) {
-      console.error('Erro ao selecionar arquivo no iOS WebView:', error);
+      
       toast({
         title: "Erro ao selecionar arquivo",
         description: "Não foi possível abrir a galeria. Tente novamente.",
@@ -440,7 +440,7 @@ export default function ProviderProfilePage() {
       });
 
     } catch (error: any) {
-      console.error('Erro ao acessar câmera:', error);
+      
       
       let errorMessage = "Não foi possível acessar a câmera.";
       let errorTitle = "Erro na câmera";
@@ -1356,49 +1356,23 @@ export default function ProviderProfilePage() {
               */}
               
               {/* Ultra Modern Support and Logout Buttons */}
-              <div className="w-full space-y-6">
+              <div className="w-full space-y-3">
                 <Button 
                   variant="outline" 
-                  className="w-full text-lg md:text-xl border-2 border-[#58c9d1]/60 text-[#58c9d1] hover:bg-[#58c9d1]/15 hover:border-[#58c9d1] transition-all duration-700 font-medium py-6 shadow-2xl shadow-[#58c9d1]/25 hover:shadow-3xl hover:shadow-[#58c9d1]/40 transform hover:scale-105 hover:rotate-1 bg-gradient-to-r from-white/90 to-[#58c9d1]/5 rounded-3xl backdrop-blur-xl relative overflow-hidden group"
+                  className="w-full h-10 text-sm border-[#58c9d1] text-[#58c9d1] hover:bg-[#58c9d1]/10 rounded-xl"
                   onClick={() => setLocation("/provider/support")}
                 >
-                  {/* Button Shimmer Effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
-                  
-                  {/* Floating Particles */}
-                  <div className="absolute top-2 right-4 w-1 h-1 bg-[#58c9d1] rounded-full animate-ping opacity-60"></div>
-                  <div className="absolute bottom-3 left-8 w-0.5 h-0.5 bg-cyan-400 rounded-full animate-pulse" style={{animationDelay: '1s'}}></div>
-                  
-                  <div className="flex items-center justify-center space-x-4 relative z-10">
-                    <div className="p-3 bg-gradient-to-br from-[#58c9d1] via-cyan-400 to-teal-400 rounded-2xl shadow-xl shadow-[#58c9d1]/40 transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500 relative overflow-hidden">
-                      {/* Icon Glow */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-transparent to-white/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <MessageSquare className="h-7 w-7 text-white drop-shadow-lg relative z-10" />
-                    </div>
-                    <span className="font-medium text-xl tracking-wide drop-shadow-sm">📞 Ajuda e Suporte</span>
-                  </div>
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Ajuda e Suporte
                 </Button>
                 
                 <Button 
-                  variant="outline" 
-                  className="w-full border-2 border-red-400/60 text-red-600 hover:bg-red-50/80 hover:border-red-500 text-lg md:text-xl font-medium py-6 shadow-2xl shadow-red-500/25 hover:shadow-3xl hover:shadow-red-500/40 transition-all duration-700 transform hover:scale-105 hover:rotate-1 bg-gradient-to-r from-white/90 to-red-50/30 rounded-3xl backdrop-blur-xl relative overflow-hidden group"
+                  variant="destructive" 
+                  className="w-full h-10 text-sm rounded-xl"
                   onClick={handleLogout}
                 >
-                  {/* Logout Button Effects */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-red-100/40 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
-                  
-                  {/* Warning Particles */}
-                  <div className="absolute top-3 right-6 w-1 h-1 bg-red-500 rounded-full animate-ping opacity-70"></div>
-                  <div className="absolute bottom-2 left-12 w-0.5 h-0.5 bg-orange-400 rounded-full animate-pulse" style={{animationDelay: '1.5s'}}></div>
-                  
-                  <div className="flex items-center justify-center space-x-4 relative z-10">
-                    <div className="p-3 bg-gradient-to-br from-red-500 via-red-600 to-red-700 rounded-2xl shadow-xl shadow-red-500/40 transform group-hover:rotate-12 group-hover:scale-110 transition-all duration-500 relative overflow-hidden">
-                      {/* Logout Icon Glow */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-transparent to-white/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                      <LogOut className="h-7 w-7 text-white drop-shadow-lg relative z-10" />
-                    </div>
-                    <span className="font-medium text-xl tracking-wide drop-shadow-sm">🚪 Sair da Conta</span>
-                  </div>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sair da Conta
                 </Button>
               </div>
             </>
@@ -1407,7 +1381,7 @@ export default function ProviderProfilePage() {
         
         {/* Ultra Modern Logout Confirmation Dialog */}
         <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-          <DialogContent className="bg-gradient-to-br from-white/95 via-white/90 to-slate-50/80 backdrop-blur-2xl border-0 shadow-3xl shadow-slate-900/20 rounded-3xl overflow-hidden relative">
+          <DialogContent className="sm:max-w-md bg-gradient-to-br from-white/95 via-white/90 to-slate-50/80 backdrop-blur-2xl border-0 shadow-3xl shadow-slate-900/20 rounded-2xl overflow-hidden relative">
             {/* Dialog Glow Effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-transparent to-red-500/5 opacity-50"></div>
             

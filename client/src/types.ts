@@ -89,6 +89,7 @@ export interface Appointment {
   // Informações do cliente
   clientName?: string;
   clientPhone?: string;
+  clientProfilePicture?: string;
 }
 
 export interface ProviderStats {

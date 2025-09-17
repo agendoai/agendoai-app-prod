@@ -5,6 +5,8 @@ import { Router } from 'express';
 import { isAuthenticated, isClient, isProvider, isAdmin, isSupport, isAdminOrSupport } from '../middleware/jwt-auth';
 import { pushNotificationService } from '../push-notification-service';
 import { createLogger } from '../logger';
+import { storage } from '../storage';
+import { eq } from 'drizzle-orm';
 
 // Inicialização do logger
 const logger = createLogger('PushRoutes');
@@ -180,5 +182,47 @@ pushRouter.post('/generate-keys', async (req, res) => {
   } catch (error) {
     logger.error('Erro ao gerar chaves VAPID:', error);
     res.status(500).json({ error: 'Erro ao gerar chaves VAPID' });
+  }
+});
+
+// Endpoint para obter notificações de um usuário específico
+pushRouter.get('/user/:userId', isAuthenticated, async (req, res) => {
+  try {
+    const targetUserId = parseInt(req.params.userId);
+    const currentUserId = req.user!.id;
+    
+    // Verificar se o usuário tem permissão (é o próprio usuário ou admin)
+    if (currentUserId !== targetUserId && req.user!.type !== 'admin') {
+      return res.status(403).json({ error: 'Acesso negado' });
+    }
+    
+    // Obter notificações do usuário
+    const notifications = await storage.getNotifications(targetUserId);
+    
+    res.status(200).json(notifications);
+  } catch (error) {
+    logger.error('Erro ao obter notificações do usuário:', error);
+    res.status(500).json({ error: 'Erro interno ao obter notificações' });
+  }
+});
+
+// Endpoint para marcar todas as notificações como lidas
+pushRouter.put('/user/:userId/mark-all-read', isAuthenticated, async (req, res) => {
+  try {
+    const targetUserId = parseInt(req.params.userId);
+    const currentUserId = req.user!.id;
+    
+    // Verificar se o usuário tem permissão (é o próprio usuário ou admin)
+    if (currentUserId !== targetUserId && req.user!.type !== 'admin') {
+      return res.status(403).json({ error: 'Acesso negado' });
+    }
+    
+    // Marcar todas as notificações como lidas
+    await storage.markAllNotificationsAsRead(targetUserId);
+    
+    res.status(200).json({ success: true });
+  } catch (error) {
+    logger.error('Erro ao marcar todas notificações como lidas:', error);
+    res.status(500).json({ error: 'Erro interno ao marcar notificações como lidas' });
   }
 });

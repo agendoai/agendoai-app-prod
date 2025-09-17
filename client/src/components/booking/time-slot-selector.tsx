@@ -32,7 +32,7 @@ export function TimeSlotSelector({
   onTimeSlotSelect,
   selectedTimeSlot,
 }: TimeSlotSelectorProps) {
-  console.log('TimeSlotSelector RENDERIZADO', { providerId, date, service });
+  
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSelecting, setIsSelecting] = useState(false);
@@ -42,7 +42,7 @@ export function TimeSlotSelector({
   const { toast } = useToast();
 
   // Log para mostrar os timeSlots
-  console.log('TimeSlotSelector - timeSlots:', timeSlots);
+  
 
   // Reset selection when service changes
   useEffect(() => {
@@ -67,7 +67,32 @@ export function TimeSlotSelector({
         throw new Error("Failed to load provider schedule");
       }
       const scheduleData = await scheduleResponse.json();
-      setProviderSchedule(scheduleData.schedule);
+      
+      // Transform blockedTimesByDate to blockedSlots format
+      const blockedSlots = [];
+      if (scheduleData.blockedTimesByDate) {
+        for (const [blockDate, blocks] of Object.entries(scheduleData.blockedTimesByDate)) {
+          for (const block of blocks as any[]) {
+            blockedSlots.push({
+              date: blockDate,
+              startTime: block.startTime,
+              endTime: block.endTime,
+              reason: block.reason
+            });
+          }
+        }
+      }
+      
+      // Create provider schedule object
+      const providerScheduleObj = {
+        startTime: "08:00", // Default values, should be from availabilityByDay
+        endTime: "18:00",
+        workingDays: [1, 2, 3, 4, 5, 6], // Monday to Saturday
+        blockedSlots: blockedSlots,
+        timeSlotInterval: 30
+      };
+      
+      setProviderSchedule(providerScheduleObj);
 
       // Load existing bookings for the day
       const bookingsResponse = await apiRequest(
@@ -127,7 +152,7 @@ export function TimeSlotSelector({
         const url = `/api/providers/${providerId}/time-slots?date=${date}&duration=${service?.durationMinutes || 30}`;
         const response = await apiRequest("GET", url);
         const data = await response.json();
-        console.log('[API] /api/providers/:id/time-slots - RESPOSTA:', data);
+        
         const slots = Array.isArray(data) ? data : data.timeSlots || [];
 
         // Filter today's past time slots

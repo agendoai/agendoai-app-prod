@@ -126,13 +126,13 @@ export default function AuthPage() {
           try {
             localStorage.setItem('authToken', response.token);
           } catch (error) {
-            console.error("❌ Erro ao salvar no localStorage:", error);
+            
           }
           
           try {
             sessionStorage.setItem('authToken', response.token);
           } catch (error) {
-            console.error("❌ Erro ao salvar no sessionStorage:", error);
+            
           }
         
         // Mostrar toast de sucesso
@@ -157,7 +157,7 @@ export default function AuthPage() {
       }
       
     } catch (error: any) {
-      console.error('❌ Erro no login:', error);
+      
       
       // Tratamento específico de erros
       let errorTitle = "Erro ao entrar";
@@ -217,13 +217,13 @@ export default function AuthPage() {
         try {
           localStorage.setItem('authToken', response.token);
         } catch (error) {
-          console.error("❌ Erro ao salvar no localStorage:", error);
+          
         }
         
         try {
           sessionStorage.setItem('authToken', response.token);
         } catch (error) {
-          console.error("❌ Erro ao salvar no sessionStorage:", error);
+          
         }
         
         // Mostrar toast de sucesso
@@ -248,7 +248,7 @@ export default function AuthPage() {
       }
       
     } catch (error: any) {
-      console.error('❌ Erro no registro:', error);
+      
       
       // Tratamento específico de erros
       let errorTitle = "Erro ao cadastrar";

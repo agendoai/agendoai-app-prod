@@ -132,8 +132,9 @@ router.get("/", async (req, res) => {
 			} = parsedQuery
 
 			console.log(
-				`Buscando prestadores para serviços: ${serviceIds.join(",")}`
+				`🔍 Buscando prestadores para serviços: ${serviceIds.join(",")}`
 			)
+			console.log(`🔍 Parâmetros: categoryId=${categoryId}, nicheId=${nicheId}, date=${date}`)
 
 			// 1. Buscar informações dos serviços (duração, etc)
 			const servicesInfo = await getServicesInfo(serviceIds)
@@ -355,9 +356,11 @@ async function filterProvidersByCategoryOrNiche(
 	const results = await Promise.all(
 		providers.map(async (provider) => {
 			try {
+				console.log(`🔍 Verificando prestador ${provider.id} para categoria/nicho`);
 				// Buscar serviços do prestador
 				const providerServices =
-					await storage.getProviderServicesByProviderId(provider.id)
+					await storage.getProviderServicesByProvider(provider.id)
+				console.log(`🔍 Prestador ${provider.id} tem ${providerServices.length} serviços`);
 
 				for (const ps of providerServices) {
 					// Verificar service template
@@ -408,7 +411,7 @@ async function filterProvidersByServices(
 			}
 			
 			// Buscar todos os serviços do prestador
-			const allServices = await storage.getProviderServicesByProviderId(
+			const allServices = await storage.getProviderServicesByProvider(
 				provider.id
 			)
 

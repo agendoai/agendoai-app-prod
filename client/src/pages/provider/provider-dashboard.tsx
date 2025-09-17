@@ -1,8 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
+import { useNotifications } from "@/hooks/use-notifications";
 import { useMutation } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Calendar, 
   Scissors, 
@@ -29,6 +31,9 @@ import {
   CheckCircle,
   ExternalLink,
   CalendarCheck,
+  LogOut,
+  UserCircle,
+  ArrowDownCircle
 } from "lucide-react";
 import { AppointmentItem } from "@/components/appointment-item";
 import { NotificationsMenu } from "@/components/ui/notifications-menu";
@@ -36,6 +41,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { formatCurrency, formatDateToBR } from "@/lib/utils";
 import { Appointment } from "@/types";
@@ -50,16 +56,32 @@ import WeeklyCalendar, { WeeklyCalendarAppointment } from "@/components/dashboar
 import { toast } from "@/hooks/use-toast";
 import ProviderLayout from "@/components/layout/provider-layout";
 import Navbar from "@/components/layout/navbar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function ProviderDashboard() {
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const { unreadCount } = useNotifications();
+  
+  // Função personalizada de logout com reload
+  const handleLogout = async () => {
+    await logout();
+    window.location.reload();
+  };
   
   // Fetch provider settings
   const { 
     data: providerSettings, 
     isLoading: isSettingsLoading 
-  } = useQuery({
+  } = useQuery<{
+    isOnline?: boolean;
+    // Add other properties as needed
+  }>({
     queryKey: ["/api/provider-settings"],
     refetchOnMount: true,
     staleTime: 30 * 1000,
@@ -80,7 +102,7 @@ export default function ProviderDashboard() {
   const { 
     data: services = [], 
     isLoading: areServicesLoading 
-  } = useQuery({
+  } = useQuery<any[]>({
     queryKey: [`/api/provider-services/provider/${user?.id}`],
     staleTime: 300 * 1000,
     retry: 1,
@@ -89,6 +111,9 @@ export default function ProviderDashboard() {
   
   // Online/Offline status
   const [isOnline, setIsOnline] = useState<boolean>(false);
+  
+  // Revenue filter state
+  const [revenueFilter, setRevenueFilter] = useState<string>("today");
   
   // Adicionar busca do status da conta Stripe Connect
   const { data: stripeStatus, isLoading: isStripeStatusLoading, refetch: refetchStripeStatus } = useQuery({
@@ -102,7 +127,7 @@ export default function ProviderDashboard() {
   });
 
   useEffect(() => {
-    if (providerSettings && !isSettingsLoading) {
+    if (providerSettings && !isSettingsLoading && providerSettings.hasOwnProperty('isOnline')) {
       setIsOnline(providerSettings.isOnline ?? false);
     }
   }, [providerSettings, isSettingsLoading]);
@@ -123,22 +148,69 @@ export default function ProviderDashboard() {
     updateOnlineStatusMutation.mutate(checked);
   };
   
-  // Today's appointments
+  // Today's appointments - ordenados do mais recente para o mais antigo
   const today = new Date().toISOString().split('T')[0];
-  const todayAppointments = appointments.filter(a => a.date === today);
+  const todayAppointments = appointments
+    .filter(a => a.date === today)
+    .sort((a, b) => {
+      // Ordenação decrescente por horário: mais recentes primeiro
+      return b.startTime.localeCompare(a.startTime);
+    });
   
+  // Helper function to filter appointments by date range
+  const getFilteredAppointments = (filter: string) => {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    
+    switch (filter) {
+      case "today":
+        return appointments.filter(a => a.date === today);
+      case "week":
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        return appointments.filter(a => {
+          const appointmentDate = new Date(a.date);
+          return appointmentDate >= startOfWeek && appointmentDate <= endOfWeek;
+        });
+      case "month":
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        return appointments.filter(a => {
+          const appointmentDate = new Date(a.date);
+          return appointmentDate >= startOfMonth && appointmentDate <= endOfMonth;
+        });
+      default:
+        return appointments;
+    }
+  };
+
   // Stats
+  const filteredAppointments = getFilteredAppointments(revenueFilter);
+  
+  const paidAppointments = filteredAppointments.filter(a => {
+    const hasCompletedStatus = a.status === 'completed';
+    const hasPrice = a.totalPrice && a.totalPrice > 0;
+    
+    return hasCompletedStatus && hasPrice;
+  });
+  
+  const totalRevenue = paidAppointments.reduce((sum, a) => {
+    // Os valores já estão em reais no banco de dados
+    const priceInReais = a.totalPrice || 0;
+    return sum + priceInReais;
+  }, 0);
+
   const stats = {
     todayAppointments: todayAppointments.length,
-    // Calcula a receita total somando todos os agendamentos com paymentStatus confirmado
-    monthlyRevenue: appointments
-      .filter(a => (a.paymentStatus === 'paid' || a.paymentStatus === 'confirmed') && a.totalPrice)
-      .reduce((sum, a) => sum + (a.totalPrice || 0), 0),
-    manualAppointments: 3,
-    manualRevenue: 85000
+    // Calcula a receita total incluindo apenas appointments com status de pagamento confirmado
+    monthlyRevenue: totalRevenue,
+    manualAppointments: paidAppointments.length,
+    manualRevenue: totalRevenue
   };
   
-  // Upcoming appointments
+  // Upcoming appointments - ordenados do mais recente para o mais antigo
   const upcomingAppointments = appointments
     .filter(a => {
       const now = new Date();
@@ -146,10 +218,11 @@ export default function ProviderDashboard() {
       return a.date >= today;
     })
     .sort((a, b) => {
+      // Ordenação decrescente: mais recentes primeiro
       if (a.date !== b.date) {
-        return a.date.localeCompare(b.date);
+        return b.date.localeCompare(a.date);
       }
-      return a.startTime.localeCompare(b.startTime);
+      return b.startTime.localeCompare(a.startTime);
     })
     .slice(0, 5);
   
@@ -185,16 +258,16 @@ export default function ProviderDashboard() {
         borderColor,
         textColor,
         extendedProps: {
-          client: appointment.clientName || '',
+          client: (appointment as any).clientName || '',
           status: appointment.status,
           serviceName: appointment.serviceName,
           notes: appointment.notes,
-          isManuallyCreated: appointment.isManuallyCreated || false,
-          clientPhone: appointment.clientPhone || '',
-          clientEmail: appointment.clientEmail || '',
-          price: appointment.price || 0,
+          isManuallyCreated: (appointment as any).isManuallyCreated || false,
+          clientPhone: (appointment as any).clientPhone || '',
+          clientEmail: (appointment as any).clientEmail || '',
+          price: (appointment as any).totalPrice || 0,
           duration: 30,
-          payment_status: appointment.payment_status
+          payment_status: appointment.paymentStatus || ''
         }
       };
     });
@@ -237,8 +310,69 @@ export default function ProviderDashboard() {
         <PageTransition>
           <div className="w-full max-w-full py-6 px-2 sm:px-4 overflow-x-hidden bg-white min-h-screen" style={{ maxWidth: '100vw', width: '100%' }}>
             {/* Header */}
-            <header className="flex flex-row items-center justify-around px-6 sm:px-8 pt-4 pb-2 w-full">
-              <img src="/AgendoAilogo.png" alt="AgendoAI Logo" className="h-12 w-auto" />
+            <header className="flex flex-row items-center justify-between px-4 sm:px-6 pt-4 pb-2 w-full bg-[#58c9d1]">
+              <div className="flex items-center">
+                <h1 className="text-white text-sm font-light">Dashboard</h1>
+              </div>
+              
+              <div className="flex items-center space-x-3">
+                {/* Notification Icon - Always visible */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white hover:bg-white/20 rounded-full p-2 relative"
+                  onClick={() => setLocation("/provider/notifications")}
+                >
+                  <BellIcon className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute h-6 min-w-6 flex items-center justify-center p-1 text-xs font-bold bg-red-600 text-white border-2 border-white shadow-2xl rounded-full"
+                      style={{ 
+                        position: 'absolute', 
+                        top: '-8px', 
+                        right: '-8px', 
+                        zIndex: 99999,
+                        backgroundColor: '#dc2626',
+                        color: 'white',
+                        fontSize: '12px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                        {unreadCount}
+                      </Badge>
+                  )}
+                </Button>
+                
+                {/* Three-dot Menu */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="text-white hover:bg-white/20 rounded-full p-2"
+                    >
+                      <div className="w-1 h-1 rounded-full bg-white mb-1"></div>
+                      <div className="w-1 h-1 rounded-full bg-white mb-1"></div>
+                      <div className="w-1 h-1 rounded-full bg-white"></div>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 bg-white shadow-lg border-gray-200">
+                    <DropdownMenuItem onClick={() => setLocation("/provider/profile")}>
+                      <UserCircle className="h-4 w-4 mr-2" />
+                      <span>Perfil</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLocation("/provider/analytics")}>
+                      <ArrowDownCircle className="h-4 w-4 mr-2" />
+                      <span>Saque</span>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleLogout}>
+                      <LogOut className="h-4 w-4 mr-2" />
+                      <span>Sair da conta</span>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
             </header>
 
             {/* Quick Actions */}
@@ -335,9 +469,19 @@ export default function ProviderDashboard() {
                     <div className="w-6 h-6 rounded-lg bg-[#58c9d1]/10 flex items-center justify-center">
                       <DollarSign className="h-4 w-4 text-[#58c9d1]" />
                     </div>
-                    <span className="text-xs font-semibold text-neutral-500">Receita</span>
+                    <Select value={revenueFilter} onValueChange={setRevenueFilter}>
+                      <SelectTrigger className="w-20 h-6 text-xs border-0 bg-transparent p-0">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent className="bg-white border-gray-200 shadow-lg">
+                        <SelectItem value="all" className="hover:bg-gray-50">Total</SelectItem>
+                        <SelectItem value="today" className="hover:bg-gray-50">Hoje</SelectItem>
+                        <SelectItem value="week" className="hover:bg-gray-50">Semana</SelectItem>
+                        <SelectItem value="month" className="hover:bg-gray-50">Mês</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="text-lg font-bold text-neutral-900">{formatCurrency(stats.monthlyRevenue || 0)}</div>
+                  <div className="text-lg font-bold text-neutral-900">{formatCurrency(totalRevenue || 0)}</div>
                 </CardContent>
               </Card>
               <Card className="bg-white border border-neutral-200 rounded-lg shadow-sm w-full max-w-full">
@@ -348,18 +492,7 @@ export default function ProviderDashboard() {
                     </div>
                     <span className="text-xs font-semibold text-neutral-500">Clientes</span>
                   </div>
-                  <div className="text-lg font-bold text-neutral-900">{stats.manualAppointments}</div>
-                </CardContent>
-              </Card>
-              <Card className="bg-white border border-neutral-200 rounded-lg shadow-sm w-full max-w-full">
-                <CardContent className="p-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="w-6 h-6 rounded-lg bg-[#58c9d1]/10 flex items-center justify-center">
-                      <TrendingUp className="h-4 w-4 text-[#58c9d1]" />
-                    </div>
-                    <span className="text-xs font-semibold text-neutral-500">Conversão</span>
-                  </div>
-                  <div className="text-lg font-bold text-neutral-900">85%</div>
+                  <div className="text-lg font-bold text-neutral-900">{paidAppointments.length}</div>
                 </CardContent>
               </Card>
             </div>
@@ -456,7 +589,7 @@ export default function ProviderDashboard() {
                     </div>
                   ) : services.length > 0 ? (
                     <div className="grid grid-cols-1 gap-0.5 w-full max-w-full overflow-hidden">
-                      {services.slice(0, 4).map((service) => (
+                      {services.slice(0, 4).map((service: any) => (
                         <Card 
                           key={service.id} 
                           className="border border-neutral-200 shadow-sm bg-white hover:shadow-md cursor-pointer transition-all duration-300 group"
@@ -582,7 +715,7 @@ export default function ProviderDashboard() {
                       <Calendar className="h-5 w-5 text-gray-700 flex-shrink-0" />
                       <span className="truncate">Próximos agendamentos</span>
                     </h2>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-33">
                       <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
                         {upcomingAppointments.length} agendamento{upcomingAppointments.length !== 1 ? 's' : ''}
                       </span>

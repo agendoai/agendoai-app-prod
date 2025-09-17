@@ -14,19 +14,19 @@ export default function ViewServicePage() {
   const [, navigate] = useLocation();
   const serviceId = parseInt(id || '0');
 
-  console.log("ViewServicePage renderizando, ID:", serviceId);
+  
 
   // Carregar dados do serviço
   const { data: service, isLoading, error } = useQuery({
     queryKey: ['/api/provider-services', serviceId],
     queryFn: async () => {
-      console.log("Fazendo requisição para:", `/api/provider-services/${serviceId}`);
+      
       const response = await apiCall(`/provider-services/${serviceId}`);
       if (!response.ok) {
         throw new Error('Erro ao carregar serviço');
       }
       const data = await response.json();
-      console.log("Dados do serviço recebidos:", data);
+      
       return data;
     },
     enabled: !!serviceId

@@ -238,7 +238,7 @@ export default function AdminDashboard() {
         const res = await apiRequest("GET", "/api/admin/reports/summary");
         return await res.json() as AdminSummaryReport;
       } catch (error) {
-        console.error("Erro ao carregar dados de resumo:", error);
+        
         return fallbackData;
       }
     }
@@ -364,6 +364,13 @@ export default function AdminDashboard() {
                 icon={<Percent className="h-6 w-6" />}
                 color="orange"
                 onClick={() => navigate("/admin/promotions")}
+              />
+              <QuickActionCard
+                title="Solicitações de Saque"
+                description="Gerenciar solicitações de saque dos prestadores"
+                icon={<DollarSign className="h-6 w-6" />}
+                color="green"
+                onClick={() => navigate("/admin/withdrawal-requests")}
               />
             </div>
           </div>

@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import path from "path";
+import { emailService } from './email-service';
 
 // Função de log simples para o servidor
 function log(message: string, source = "express") {
@@ -17,6 +18,27 @@ import cors from "cors";
 import { DatabaseStorage, storage } from './storage';
 import * as storageEnhancements from './services/storage-enhancements';
 import { initializeAsaas } from './asaas-service';
+
+// Inicializar o serviço de email ao iniciar o servidor
+(async () => {
+  try {
+    // Verificar se há configurações de integrações
+    const integrationsSettings = await storage.getIntegrationsSettings();
+    
+    // Se houver configurações e a chave SendGrid estiver configurada, inicializar o serviço de email
+    if (integrationsSettings && integrationsSettings.sendGridApiKey) {
+      emailService.initialize(integrationsSettings.sendGridApiKey);
+      console.log('Serviço de email inicializado com sucesso');
+    } else if (process.env.SENDGRID_API_KEY) {
+      emailService.initialize(process.env.SENDGRID_API_KEY);
+      console.log('Serviço de email inicializado com variável de ambiente');
+    } else {
+      console.log('Serviço de email não inicializado - chave SendGrid não encontrada');
+    }
+  } catch (error) {
+    console.error('Erro ao inicializar o serviço de email:', error);
+  }
+})();
 
 // Estender a classe DatabaseStorage com os novos métodos em batch
 if (storage instanceof DatabaseStorage) {

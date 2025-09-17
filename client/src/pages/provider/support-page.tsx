@@ -20,7 +20,7 @@ export default function ProviderSupportPage() {
         </div>
         
         <div className="relative z-10">
-          <AppHeader title="Ajuda e Suporte" showBackButton showUserInfo={false} />
+          <AppHeader title="Ajuda e Suporte" showBackButton showUserInfo={false} showMenuIcon={false} />
           
           <div className="p-4 md:p-6 lg:p-8 xl:p-12 space-y-6 md:space-y-8 lg:space-y-10 xl:space-y-12 w-full">
             {/* Header Section */}

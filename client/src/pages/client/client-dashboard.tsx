@@ -55,6 +55,8 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import Navbar from '@/components/layout/navbar';
 import { apiCall } from '@/lib/api';
+import { useQuery as useRQ } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
 
 interface Appointment {
   id: number;
@@ -815,6 +817,10 @@ export default function ClientDashboard() {
                            <StatusBadge status={appointment.status} />
                            {appointment.status !== 'canceled' && <PaymentStatusBadge status={appointment.paymentStatus} />}
                          </div>
+                        {/* Código de validação (ver ao clicar) */}
+                        {(appointment.status === 'confirmed' || appointment.status === 'confirmado' || appointment.status === 'executing') && (
+                          <ClientDashboardValidationCodeButton appointmentId={appointment.id} />
+                        )}
                          {typeof appointment.totalPrice === 'number' && appointment.totalPrice > 0 && (
                            <div className="text-[10px] sm:text-xs text-neutral-600 font-medium leading-tight mt-1">
                              R$ {(appointment.totalPrice / 100).toFixed(2).replace('.', ',')}
@@ -1088,6 +1094,54 @@ export default function ClientDashboard() {
         </div>
       </div>
       <Navbar />
+    </div>
+  );
+}
+
+function ClientDashboardValidationCodeButton({ appointmentId }: { appointmentId: number }) {
+  const [show, setShow] = useState(false);
+  const { data, isLoading } = useRQ({
+    queryKey: ["/api/appointments", appointmentId, "validation-code"],
+    queryFn: async () => {
+      const response = await apiRequest('GET', `/api/appointments/${appointmentId}/validation-code`);
+      if (response.status === 404) return null;
+      return await response.json();
+    },
+    enabled: show,
+    retry: 1
+  });
+
+  if (!show) {
+    return (
+      <button
+        className="mt-1 self-start text-[10px] sm:text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 font-semibold"
+        onClick={(e) => { e.stopPropagation(); setShow(true); }}
+      >
+        Ver código
+      </button>
+    );
+  }
+
+  if (isLoading) {
+    return <span className="mt-1 text-[10px] sm:text-xs text-gray-500">Carregando código...</span>;
+  }
+
+  if (!data?.validationCode) {
+    return <span className="mt-1 text-[10px] sm:text-xs text-red-600">Código não encontrado</span>;
+  }
+
+  return (
+    <div className="mt-1 inline-flex items-center gap-2">
+      <span className="text-[10px] sm:text-xs font-mono font-bold bg-green-100 text-green-700 px-2 py-1 rounded-full">
+        {data.validationCode}
+      </span>
+      <button
+        className="text-[10px] sm:text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-600"
+        onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(data.validationCode); }}
+        title="Copiar"
+      >
+        Copiar
+      </button>
     </div>
   );
 }

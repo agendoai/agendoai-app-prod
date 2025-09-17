@@ -168,6 +168,10 @@ export const appointments = pgTable("appointments", {
   clientName: text("client_name"),
   clientPhone: text("client_phone"),
   totalPrice: integer("total_price"),
+  // NOVOS CAMPOS PARA VALIDAÇÃO
+  validationCodeHash: text("validation_code_hash"),
+  validationCode: text("validation_code"), // Código em texto para o cliente visualizar
+  validationAttempts: integer("validation_attempts").default(0),
 });
 
 // Provider settings
