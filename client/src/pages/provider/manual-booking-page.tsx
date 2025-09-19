@@ -338,16 +338,23 @@ export default function ManualBookingPage() {
   }, [clientSearchTerm, searchClients]);
   
   // Função para buscar time slots do prestador
-  const fetchProviderTimeSlots = useCallback(async (date: string, serviceId: string) => {
+  const fetchProviderTimeSlots = useCallback(async (date: string, serviceId: string, forceRefresh: boolean = false) => {
     if (!user?.id || !date || !serviceId) return;
     
     try {
       setIsLoadingTimeSlots(true);
       
+      // Se forceRefresh for true, invalidar o cache primeiro
+      if (forceRefresh) {
+        await queryClient.invalidateQueries({
+          queryKey: ['timeSlots', user.id, date, serviceId]
+        });
+      }
+      
       // Buscar time slots do prestador usando a API de horários disponíveis
       const res = await apiRequest(
         "GET", 
-        `/api/time-slots/available?providerId=${user.id}&date=${date}&serviceId=${serviceId}`
+        `/api/time-slots/available?providerId=${user.id}&date=${date}&serviceId=${serviceId}&_t=${Date.now()}`
       );
       
       if (!res.ok) {
@@ -358,8 +365,9 @@ export default function ManualBookingPage() {
       const data = await res.json();
       
       // Converter apenas os slots disponíveis para o formato correto
+      // Filtrar rigorosamente apenas slots que estão explicitamente disponíveis
       const availableSlots = data.timeSlots?.filter((slot: any) => 
-        slot.isAvailable !== false && slot.startTime
+        slot.isAvailable === true && slot.startTime
       ) || [];
       
       const formattedSlots: DisplayTimeSlot[] = availableSlots.map((slot: any) => ({
@@ -372,8 +380,10 @@ export default function ManualBookingPage() {
       setProviderTimeSlots(formattedSlots);
       
       // Log para debug
+      console.log(`Slots disponíveis carregados: ${formattedSlots.length} de ${data.timeSlots?.length || 0} total`);
       
     } catch (error) {
+      console.error('Erro ao buscar time slots:', error);
       
       toast({
         title: "Aviso",
@@ -386,7 +396,7 @@ export default function ManualBookingPage() {
     } finally {
       setIsLoadingTimeSlots(false);
     }
-  }, [user, toast]);
+  }, [user, toast, queryClient]);
   
   // Função para buscar slots de tempo otimizados pela IA
   const fetchOptimizedTimeSlots = useCallback(async (date: string, serviceId: string) => {
@@ -585,10 +595,8 @@ export default function ManualBookingPage() {
       
       // Also refresh the provider time slots to ensure booked slots are updated
       if (bookingData.date && selectedService) {
-        // Pequeno delay para permitir que o backend processe o agendamento
-        setTimeout(() => {
-          fetchProviderTimeSlots(bookingData.date, selectedService.serviceId.toString());
-        }, 1000);
+        // Forçar refresh imediato dos horários com invalidação de cache
+        fetchProviderTimeSlots(bookingData.date, selectedService.serviceId.toString(), true);
       }
       
       // Armazenar o agendamento criado e marcar como sucesso
@@ -611,7 +619,7 @@ export default function ManualBookingPage() {
         
         // Refresh dos horários para mostrar a situação atual
         if (bookingData.date && selectedService) {
-          fetchProviderTimeSlots(bookingData.date, selectedService.serviceId.toString());
+          fetchProviderTimeSlots(bookingData.date, selectedService.serviceId.toString(), true);
         }
       } else {
         toast({

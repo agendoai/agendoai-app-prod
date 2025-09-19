@@ -161,6 +161,12 @@ export function TimeSlotSelector({
 
         const processedSlots = slots
           .filter((slot: TimeSlot) => {
+            // Primeiro filtrar apenas horários disponíveis
+            if (slot.isAvailable !== true) {
+              return false;
+            }
+            
+            // Depois filtrar horários passados para hoje
             if (date === today) {
               const [hours, minutes] = slot.startTime.split(":").map(Number);
               const slotTime = new Date();

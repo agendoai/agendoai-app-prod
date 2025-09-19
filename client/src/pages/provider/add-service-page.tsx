@@ -257,7 +257,15 @@ export default function AddServicePage() {
           duration,
         })
       });
-      if (!response.ok) throw new Error('Erro ao adicionar serviço');
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        // Verificar se é erro de duplicata
+        if (response.status === 400 && errorData.error && errorData.error.includes('já existe')) {
+          throw new Error(`❌ Serviço duplicado: ${errorData.error}\n\n📋 Detalhes do serviço existente:\n• Nome: ${errorData.existingService?.serviceName || 'N/A'}\n• Preço: R$ ${((errorData.existingService?.price || 0) / 100).toFixed(2)}\n• Duração: ${errorData.existingService?.executionTime || 'N/A'} min\n• Status: ${errorData.existingService?.isActive ? 'Ativo' : 'Inativo'}`);
+        }
+        throw new Error(errorData.error || errorData.message || 'Erro ao adicionar serviço');
+      }
       return response.json();
     },
     onSuccess: () => {

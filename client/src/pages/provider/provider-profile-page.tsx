@@ -498,14 +498,19 @@ export default function ProviderProfilePage() {
       const formData = new FormData();
       formData.append('image', file);
       
+      console.log('📤 Frontend - Starting profile image upload...');
+      
       // Fazer upload para Cloudinary
       const response = await apiCall(`/api/users/${user?.id}/profile-image-cloudinary`, {
         method: 'POST',
         body: formData,
       });
       
+      console.log('📥 Frontend - Upload response status:', response.status);
+      
       if (response.ok) {
-        await response.json();
+        const result = await response.json();
+        console.log('✅ Frontend - Upload successful:', result);
         
         // Invalidar todas as queries relacionadas ao usuário e provider
         queryClient.invalidateQueries({ queryKey: ["/api/user"] });
@@ -520,12 +525,15 @@ export default function ProviderProfilePage() {
           description: "Imagem de perfil atualizada com sucesso!",
         });
       } else {
-        throw new Error('Erro no upload');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('❌ Frontend - Upload failed:', response.status, errorData);
+        throw new Error(errorData.error || errorData.details || 'Erro no upload');
       }
     } catch (error) {
+      console.error('❌ Frontend - Upload error:', error);
       toast({
         title: "Erro no upload",
-        description: "Não foi possível atualizar a imagem de perfil.",
+        description: error instanceof Error ? error.message : "Não foi possível atualizar a imagem de perfil.",
         variant: "destructive",
       });
     } finally {
@@ -1381,7 +1389,7 @@ export default function ProviderProfilePage() {
         
         {/* Ultra Modern Logout Confirmation Dialog */}
         <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
-          <DialogContent className="sm:max-w-md bg-gradient-to-br from-white/95 via-white/90 to-slate-50/80 backdrop-blur-2xl border-0 shadow-3xl shadow-slate-900/20 rounded-2xl overflow-hidden relative">
+          <DialogContent className="w-[calc(100vw-2rem)] max-w-md bg-gradient-to-br from-white/95 via-white/90 to-slate-50/80 backdrop-blur-2xl border-0 shadow-3xl shadow-slate-900/20 rounded-2xl overflow-hidden relative" style={{ zIndex: 50000, position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
             {/* Dialog Glow Effect */}
             <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-transparent to-red-500/5 opacity-50"></div>
             
@@ -1397,26 +1405,26 @@ export default function ProviderProfilePage() {
               </DialogDescription>
             </DialogHeader>
             
-            <DialogFooter className="space-x-4 mt-6 relative z-10">
+            <DialogFooter className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-4 mt-6 relative z-10">
               <Button 
                 variant="outline" 
                 onClick={() => setLogoutDialogOpen(false)}
-                className="border-2 border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-slate-400 transition-all duration-500 font-medium px-8 py-3 shadow-xl hover:shadow-2xl backdrop-blur-sm rounded-2xl transform hover:scale-105 hover:rotate-1 relative overflow-hidden group"
+                className="w-full sm:w-auto border-2 border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-slate-400 transition-all duration-500 font-medium px-6 py-3 sm:px-8 shadow-xl hover:shadow-2xl backdrop-blur-sm rounded-2xl transform hover:scale-105 hover:rotate-1 relative overflow-hidden group"
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-slate-200/20 via-transparent to-slate-200/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <span className="relative z-10 text-lg">❌ Cancelar</span>
+                <span className="relative z-10 text-base sm:text-lg">❌ Cancelar</span>
               </Button>
               
               <Button 
                 variant="destructive" 
                 onClick={confirmLogout}
                 disabled={logoutMutation.isPending}
-                className="bg-gradient-to-r from-red-500 via-red-600 to-red-700 hover:from-red-600 hover:via-red-600 hover:to-red-800 text-white font-medium shadow-2xl shadow-red-500/40 hover:shadow-3xl hover:shadow-red-500/60 transition-all duration-500 transform hover:scale-110 hover:rotate-1 disabled:opacity-70 disabled:transform-none px-8 py-3 border-0 rounded-2xl backdrop-blur-sm relative overflow-hidden group"
+                className="w-full sm:w-auto bg-gradient-to-r from-red-500 via-red-600 to-red-700 hover:from-red-600 hover:via-red-600 hover:to-red-800 text-white font-medium shadow-2xl shadow-red-500/40 hover:shadow-3xl hover:shadow-red-500/60 transition-all duration-500 transform hover:scale-110 hover:rotate-1 disabled:opacity-70 disabled:transform-none px-6 py-3 sm:px-8 border-0 rounded-2xl backdrop-blur-sm relative overflow-hidden group"
               >
                 {/* Logout Button Shimmer */}
                 <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-transparent to-white/30 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
                 
-                <div className="relative z-10 flex items-center text-lg">
+                <div className="relative z-10 flex items-center text-base sm:text-lg">
                   {logoutMutation.isPending ? (
                     <>
                       <Loader2 className="h-5 w-5 mr-2 animate-spin" />

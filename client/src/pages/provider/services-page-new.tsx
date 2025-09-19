@@ -323,6 +323,15 @@ export default function ServicesPageNew() {
         
         
         if (!response.ok) {
+          if (response.status === 400) {
+            const errorData = await response.json();
+            // Verificar se é erro de duplicata
+            if (errorData.error && errorData.error.includes('já existe')) {
+              throw new Error(`❌ Serviço duplicado: ${errorData.error}\n\n📋 Detalhes do serviço existente:\n• Nome: ${errorData.existingService?.serviceName || 'N/A'}\n• Preço: R$ ${((errorData.existingService?.price || 0) / 100).toFixed(2)}\n• Duração: ${errorData.existingService?.executionTime || 'N/A'} min\n• Status: ${errorData.existingService?.isActive ? 'Ativo' : 'Inativo'}`);
+            }
+            throw new Error(errorData.error || errorData.message || "Erro na validação dos dados");
+          }
+          
           if (response.status === 401) {
             
             // Tentar método alternativo
@@ -345,6 +354,10 @@ export default function ServicesPageNew() {
             
             if (!altResponse.ok) {
               const altErrorData = await altResponse.json();
+              // Verificar se é erro de duplicata no método alternativo também
+              if (altResponse.status === 400 && altErrorData.error && altErrorData.error.includes('já existe')) {
+                throw new Error(`❌ Serviço duplicado: ${altErrorData.error}\n\n📋 Detalhes do serviço existente:\n• Nome: ${altErrorData.existingService?.serviceName || 'N/A'}\n• Preço: R$ ${((altErrorData.existingService?.price || 0) / 100).toFixed(2)}\n• Duração: ${altErrorData.existingService?.executionTime || 'N/A'} min\n• Status: ${altErrorData.existingService?.isActive ? 'Ativo' : 'Inativo'}`);
+              }
               throw new Error(altErrorData.error || altErrorData.message || "Falha ao adicionar serviço (método alternativo)");
             }
             

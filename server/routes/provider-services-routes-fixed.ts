@@ -238,30 +238,59 @@ router.post('/', async (req, res) => {
     let providerService;
     
     if (existingProviderService) {
-      // Atualizar serviço existente
-      console.log(`Atualizando serviço existente ID: ${existingProviderService.id}`);
-      providerService = await storage.updateProviderService(
-        existingProviderService.id, 
-        {
+      // Serviço já existe - não permitir duplicata
+      console.log(`❌ Tentativa de criar serviço duplicado. Prestador ${data.providerId} já possui o serviço ${serviceTemplate.name}`);
+      return res.status(400).json({ 
+        error: 'Serviço duplicado', 
+        message: `Você já possui o serviço "${serviceTemplate.name}" em seu portfólio. Não é possível adicionar o mesmo serviço duas vezes.`,
+        existingService: {
+          id: existingProviderService.id,
+          name: serviceTemplate.name,
+          price: existingProviderService.price,
+          duration: existingProviderService.executionTime
+        }
+      });
+    } else {
+      // Criar novo serviço no portfólio
+      console.log(`Criando novo serviço para o template: ${serviceTemplate.name}`);
+      try {
+        providerService = await storage.createProviderService({
+          providerId: data.providerId,
+          serviceId: data.serviceId,
           executionTime: data.executionTime,
           price: data.price,
           duration: data.duration,
           breakTime: data.breakTime,
           isActive: true
+        });
+        console.log(`✅ Serviço criado com sucesso: ID ${providerService.id}`);
+      } catch (createError) {
+        console.error('❌ Erro ao criar provider service:', createError);
+        
+        // Se falhar na criação, pode ser devido a constraint ou problema de sincronização
+        // Tentar buscar novamente para ver se já existe
+        const recheckService = await storage.getProviderServiceByProviderAndService(
+          data.providerId, 
+          data.serviceId
+        );
+        
+        if (recheckService) {
+          console.log(`🔄 Serviço encontrado após erro de criação, atualizando: ID ${recheckService.id}`);
+          providerService = await storage.updateProviderService(
+            recheckService.id, 
+            {
+              executionTime: data.executionTime,
+              price: data.price,
+              duration: data.duration,
+              breakTime: data.breakTime,
+              isActive: true
+            }
+          );
+        } else {
+          // Se ainda não existe, re-throw o erro original
+          throw createError;
         }
-      );
-    } else {
-      // Criar novo serviço no portfólio
-      console.log(`Criando novo serviço para o template: ${serviceTemplate.name}`);
-      providerService = await storage.createProviderService({
-        providerId: data.providerId,
-        serviceId: data.serviceId,
-        executionTime: data.executionTime,
-        price: data.price,
-        duration: data.duration,
-        breakTime: data.breakTime,
-        isActive: true
-      });
+      }
     }
     
     // Buscar categoria e nicho

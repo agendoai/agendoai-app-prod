@@ -13,13 +13,14 @@ const router = Router();
 
 // Esquema de validação com Zod
 const searchSchema = z.object({
-  serviceIds: z.string().transform(val => 
-    val.split(',').map(id => {
+  serviceIds: z.string().optional().transform(val => {
+    if (!val) return [];
+    return val.split(',').map(id => {
       const num = parseInt(id.trim());
       if (isNaN(num)) throw new Error('IDs de serviço inválidos');
       return num;
-    })
-  ),
+    });
+  }),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   especialidadeId: z.string().transform(val => {
     const num = parseInt(val);
@@ -56,13 +57,18 @@ function minutesToTime(minutes: number): string {
  */
 router.get('/specialized-search', async (req, res) => {
   try {
+    console.log('=== SPECIALIZED SEARCH DEBUG ===');
+    console.log('Query params recebidos:', req.query);
+    
     // Validar parâmetros de entrada
     const parsedQuery = await searchSchema.parseAsync(req.query).catch(error => {
+      console.error('Erro de validação dos parâmetros:', error.message);
       throw new Error(`Erro de validação: ${error.message}`);
     });
     
     const { serviceIds, date, especialidadeId, categoryId, minRating } = parsedQuery;
 
+    console.log('Parâmetros validados:', { serviceIds, date, especialidadeId, categoryId, minRating });
     console.log(`Buscando prestadores para serviços: ${serviceIds.join(',')}`);
 
     // 1. Buscar todos os prestadores ativos
@@ -87,8 +93,13 @@ router.get('/specialized-search', async (req, res) => {
     }
 
     // 4. Filtrar prestadores que oferecem todos os serviços solicitados
-    const qualifiedProviders = await filterProvidersByServices(filteredProviders, serviceIds, minRating);
-    console.log(`Prestadores qualificados (oferecem todos os serviços): ${qualifiedProviders.length}`);
+    let qualifiedProviders = [...filteredProviders];
+    if (serviceIds && serviceIds.length > 0) {
+      qualifiedProviders = await filterProvidersByServices(filteredProviders, serviceIds, minRating);
+      console.log(`Prestadores qualificados (oferecem todos os serviços): ${qualifiedProviders.length}`);
+    } else {
+      console.log('Nenhum serviço específico solicitado, retornando todos os prestadores filtrados');
+    }
 
     // 5. Verificar disponibilidade se data for fornecida
     let providersWithAvailability = [...qualifiedProviders];
@@ -100,6 +111,9 @@ router.get('/specialized-search', async (req, res) => {
     // Ordenar por avaliação
     const sortedProviders = providersWithAvailability
       .sort((a, b) => (b.settings?.rating || 0) - (a.settings?.rating || 0));
+
+    console.log(`Retornando ${sortedProviders.length} prestadores ordenados por avaliação`);
+    console.log('=== FIM SPECIALIZED SEARCH DEBUG ===');
 
     res.json({
       providers: sortedProviders,
@@ -164,8 +178,26 @@ async function filterProvidersByServices(providers: any[], serviceIds: number[],
   const results = await Promise.all(
     providers.map(async (provider) => {
       try {
-        // Buscar todos os serviços do prestador
-        const allServices = await storage.getServicesByProvider(provider.id);
+        // Buscar todos os provider services do prestador
+        const providerServices = await storage.getProviderServicesByProvider(provider.id);
+        console.log(`Prestador ${provider.id} tem ${providerServices.length} provider services:`, providerServices.map(ps => ps.serviceId));
+        
+        // Buscar os service templates correspondentes
+        const allServices = [];
+        for (const ps of providerServices) {
+          const serviceTemplate = await storage.getServiceTemplate(ps.serviceId);
+          if (serviceTemplate) {
+            allServices.push({
+              id: serviceTemplate.id,
+              name: serviceTemplate.name,
+              duration: serviceTemplate.duration,
+              providerId: provider.id,
+              price: ps.price
+            });
+          }
+        }
+        
+        console.log(`Prestador ${provider.id} oferece serviços:`, allServices.map(s => `${s.name} (ID: ${s.id})`));
         
         // Extrair IDs de serviços oferecidos
         const offeredServiceIds = new Set(allServices.map(s => s.id));
@@ -220,21 +252,33 @@ async function filterProvidersByServices(providers: any[], serviceIds: number[],
  * Verificar disponibilidade dos prestadores para a data especificada
  */
 async function checkProvidersAvailability(providers: any[], date: string): Promise<any[]> {
+  console.log(`=== CHECKING AVAILABILITY FOR ${providers.length} PROVIDERS ON ${date} ===`);
+  
   const requestDate = new Date(date);
   const dayOfWeek = requestDate.getDay();
+  
+  console.log(`Day of week: ${dayOfWeek}`);
   
   const results = await Promise.all(
     providers.map(async (provider) => {
       try {
+        console.log(`\n--- Checking provider ${provider.id} (${provider.name}) ---`);
+        console.log(`Required service duration: ${provider.totalServiceDuration} minutes`);
+        
         // Buscar disponibilidade do prestador
         let dayAvailability = await storage.getAvailabilityByDay(provider.id, dayOfWeek);
         if (!Array.isArray(dayAvailability)) {
           dayAvailability = dayAvailability ? [dayAvailability] : [];
         }
         
+        console.log(`Found ${dayAvailability.length} availability periods for day ${dayOfWeek}`);
+        dayAvailability.forEach((avail, index) => {
+          console.log(`  Period ${index + 1}: ${avail?.startTime} - ${avail?.endTime}`);
+        });
+        
         // Verificar existência de pelo menos um período disponível
         if (dayAvailability.length === 0) {
-          console.log(`Prestador ${provider.id} não tem disponibilidade para o dia ${dayOfWeek}`);
+          console.log(`❌ Provider ${provider.id} has no availability for day ${dayOfWeek}`);
           return null;
         }
         

@@ -275,16 +275,25 @@ export function NewBookingWizard({
 
       try {
         // Rota especializada que já inclui verificação de disponibilidade de horários
-        const specializedEndpoint = `/api/providers/specialized-search?serviceIds=${selectedServiceTemplate.id}&date=${formattedDate}`;
+        const specializedEndpoint = `/api/providers/specialized-search?serviceIds=${selectedServiceTemplate.id}&date=${formattedDate}&categoryId=${selectedCategoryId}&especialidadeId=${selectedNicheId}`;
 
+        console.log('=== CLIENT DEBUG - SPECIALIZED SEARCH ===');
+        console.log('Endpoint:', specializedEndpoint);
+        console.log('selectedServiceTemplate:', selectedServiceTemplate);
+        console.log('selectedCategoryId:', selectedCategoryId);
+        console.log('selectedDate:', selectedDate);
 
         const response = await fetch(specializedEndpoint);
+
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
 
         if (!response.ok) {
           throw new Error("Falha na rota de pesquisa especializada");
         }
 
         const result = await response.json();
+        console.log('Result from specialized search:', result);
 
         return result.providers || [];
       } catch (error) {
@@ -2258,9 +2267,9 @@ export function NewBookingWizard({
                   </div>
                 )}
               </CardHeader>
-              <CardContent>
+              <CardContent className="max-h-[300px] overflow-y-auto">
                 <Tabs defaultValue="morning" className="w-full">
-                  <TabsList className="grid grid-cols-1 sm:grid-cols-3 mb-4">
+                  <TabsList className="grid grid-cols-1 sm:grid-cols-3 mb-4 sticky top-0 bg-white dark:bg-gray-900 z-10">
                     <TabsTrigger value="morning" className="text-xs sm:text-sm">
                       <Sun className="h-3 w-3 sm:h-4 sm:w-4 mr-1 sm:mr-2" />
                       <span>Manhã</span>

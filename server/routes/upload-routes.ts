@@ -69,15 +69,21 @@ export function registerUploadRoutes(app: Express) {
       console.log('🔍 Upload route - File:', req.file ? 'Present' : 'Missing');
       
       const userId = parseInt(req.params.userId);
+      console.log('🔍 Upload route - User ID:', userId);
+      console.log('🔍 Upload route - Authenticated user:', req.user?.id);
       
       // Verificar permissão
       if (req.user && (req.user.id !== userId && req.user.userType !== 'admin')) {
+        console.log('❌ Upload route - Permission denied');
         return res.status(403).json({ error: "Sem permissão para esta operação" });
       }
       
       if (!req.file) {
+        console.log('❌ Upload route - No file provided');
         return res.status(400).json({ error: "Nenhum arquivo enviado" });
       }
+      
+      console.log('📤 Upload route - Starting Cloudinary upload...');
       
       // Upload para Cloudinary
       const result = await new Promise((resolve, reject) => {
@@ -91,29 +97,44 @@ export function registerUploadRoutes(app: Express) {
             ]
           },
           (error, result) => {
-            if (error) reject(error);
-            else resolve(result);
+            if (error) {
+              console.error('❌ Cloudinary upload error:', error);
+              reject(error);
+            } else {
+              console.log('✅ Cloudinary upload success:', result?.secure_url);
+              resolve(result);
+            }
           }
         ).end(req.file.buffer);
       });
       
       const cloudinaryResult = result as any;
+      console.log('💾 Upload route - Updating user in storage...');
       
       // Atualizar o perfil do usuário com a nova URL da imagem
-      await storage.updateUser(userId, { profileImage: cloudinaryResult.secure_url });
+      const updateResult = await storage.updateUser(userId, { profileImage: cloudinaryResult.secure_url });
+      console.log('✅ Upload route - User updated:', updateResult ? 'Success' : 'Failed');
       
       // Buscar usuário atualizado
-      const updatedUser = await storage.getUserById(userId);
+      const updatedUser = await storage.getUser(userId);
+      console.log('📋 Upload route - Retrieved updated user:', updatedUser ? 'Success' : 'Failed');
       
-      return res.status(200).json({ 
+      const responseData = { 
         success: true, 
         profileImage: cloudinaryResult.secure_url,
         user: updatedUser
-      });
+      };
+      
+      console.log('📤 Upload route - Sending success response');
+      return res.status(200).json(responseData);
       
     } catch (error) {
-      console.error('Erro no upload da imagem para Cloudinary:', error);
-      return res.status(500).json({ error: "Erro ao processar imagem" });
+      console.error('❌ Erro no upload da imagem para Cloudinary:', error);
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      return res.status(500).json({ 
+        error: "Erro ao processar imagem",
+        details: error instanceof Error ? error.message : 'Erro desconhecido'
+      });
     }
   });
 
@@ -190,7 +211,7 @@ export function registerUploadRoutes(app: Express) {
       
       try {
         // Obter caminho da imagem antiga
-        const user = await storage.getUserById(userId);
+        const user = await storage.getUser(userId);
         const oldImagePath = user?.profileImage;
         
         // Atualizar o perfil do usuário com o novo caminho da imagem
@@ -199,7 +220,7 @@ export function registerUploadRoutes(app: Express) {
         
         await storage.updateUser(userId, { profileImage: publicUrl });
         // Buscar usuário atualizado
-        const updatedUser = await storage.getUserById(userId);
+        const updatedUser = await storage.getUser(userId);
         
         // Excluir imagem antiga se existir
         if (oldImagePath) {

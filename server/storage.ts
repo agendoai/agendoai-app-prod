@@ -58,7 +58,7 @@ import {
   paymentWithdrawals
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, sql, like, count, or, inArray, gte, isNull, lte } from "drizzle-orm";
+import { eq, and, sql, like, count, or, inArray, gte, isNull, lte, desc } from "drizzle-orm";
 import connectPg from "connect-pg-simple";
 import session from "express-session";
 import createMemoryStore from "memorystore";
@@ -269,6 +269,7 @@ export interface IStorage {
   getBlockedTimeSlotsByAvailabilityId(availabilityId: number): Promise<BlockedTimeSlot[]>;
   getBlockedTimeSlotsByDate(providerId: number, date: string): Promise<BlockedTimeSlot[]>;
   createBlockedTimeSlot(blockedSlot: InsertBlockedTimeSlot): Promise<BlockedTimeSlot>;
+  createBlockedTime(blockedSlot: InsertBlockedTimeSlot): Promise<BlockedTimeSlot>; // Alias for createBlockedTimeSlot
   deleteBlockedTimeSlot(id: number): Promise<boolean>;
   
   // Time Slot History operations (registro detalhado de bloqueios)
@@ -1149,6 +1150,11 @@ export class MemStorage implements IStorage {
     return newBlockedSlot;
   }
 
+  // Alias method for createBlockedTimeSlot to maintain compatibility
+  async createBlockedTime(blockedSlot: InsertBlockedTimeSlot): Promise<BlockedTimeSlot> {
+    return this.createBlockedTimeSlot(blockedSlot);
+  }
+
   async deleteBlockedTimeSlot(id: number): Promise<boolean> {
     return this.blockedTimeSlots.delete(id);
   }
@@ -1166,19 +1172,15 @@ export class MemStorage implements IStorage {
   }
 
   async getClientAppointments(clientId: number): Promise<Appointment[]> {
-    // Obter a data atual no formato ISO (YYYY-MM-DD)
-    const today = new Date().toISOString().split('T')[0];
-    
     return Array.from(this.appointments.values())
       .filter(appointment => 
-        appointment.clientId === clientId && 
-        appointment.date >= today
+        appointment.clientId === clientId
       )
       .sort((a, b) => {
-        // Sort by date and time
-        const dateComparison = a.date.localeCompare(b.date);
+        // Sort by date and time (mais recentes primeiro)
+        const dateComparison = b.date.localeCompare(a.date);
         if (dateComparison !== 0) return dateComparison;
-        return a.startTime.localeCompare(b.startTime);
+        return b.startTime.localeCompare(a.startTime);
     });
   }
 
@@ -3383,6 +3385,11 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
+  // Alias method for createBlockedTimeSlot to maintain compatibility
+  async createBlockedTime(blockedSlot: InsertBlockedTimeSlot): Promise<BlockedTimeSlot> {
+    return this.createBlockedTimeSlot(blockedSlot);
+  }
+
   async deleteBlockedTimeSlot(id: number): Promise<boolean> {
     try {
       const result = await db
@@ -5113,20 +5120,11 @@ async getNichesWithCategoriesAndServices(): Promise<Niche[]> {
   }
 
   async getClientAppointments(clientId: number): Promise<Appointment[]> {
-    // Obter a data atual no formato ISO (YYYY-MM-DD)
-    const today = new Date().toISOString().split('T')[0];
-    
     return db
       .select()
       .from(appointments)
-      .where(
-        and(
-          eq(appointments.clientId, clientId),
-          // Filtrar apenas datas iguais ou maiores que hoje
-          gte(appointments.date, today)
-        )
-      )
-      .orderBy(appointments.date, appointments.startTime);
+      .where(eq(appointments.clientId, clientId))
+      .orderBy(desc(appointments.date), desc(appointments.startTime));
   }
 
   async getProviderAppointments(providerId: number): Promise<Appointment[]> {

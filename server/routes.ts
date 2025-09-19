@@ -230,6 +230,7 @@ export function registerRoutes(app: Express): Server {
 	// IMPORTANTE: Registrar rotas específicas de prestadores ANTES das rotas genéricas para evitar conflitos
 	// A rota /service-search deve ser processada antes de /api/providers/:id
 	app.use("/api/providers/service-search", providerServiceSearchRouter) // Rota específica PRIMEIRO
+	app.use("/api/providers", specializedProviderSearchRouter) // Rota specialized-search ANTES da genérica
 	app.use("/api/providers", providersRoutes) // Rota genérica DEPOIS
 
 	// Registrar rotas de notificações push
@@ -693,7 +694,7 @@ app.use('/api/webhook', asaasWebhookRoutes)
 	
 	// Registrar rotas genéricas de prestadores (depois das específicas) - REMOVIDAS PARA EVITAR CONFLITO
 	// app.use("/api/providers", providersRoutes) // JÁ REGISTRADA ACIMA
-	app.use("/api/providers", specializedProviderSearchRouter)
+	// app.use("/api/providers", specializedProviderSearchRouter) // JÁ REGISTRADA ACIMA
 	app.use("/api/providers", providerSearchWithServicesRouter)
 
 	// Registrar rotas de relatórios administrativos

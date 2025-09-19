@@ -119,7 +119,11 @@ export function NewBookingWizard({
         const url = `/api/providers/${selectedProvider}/time-slots?date=${selectedDate.toISOString().split("T")[0]}&duration=${duration}`;
         const response = await fetch(url);
         const data = await response.json();
-        setTimeSlots(Array.isArray(data) ? data : data.timeSlots || []);
+        const allSlots = Array.isArray(data) ? data : data.timeSlots || [];
+        
+        // Filtrar apenas horários disponíveis
+        const availableSlots = allSlots.filter((slot: any) => slot.isAvailable === true);
+        setTimeSlots(availableSlots);
       } catch (error) {
         console.error('Erro ao buscar horários:', error);
       } finally {
@@ -194,7 +198,7 @@ export function NewBookingWizard({
 
       
       // Buscar prestadores que oferecem o serviço selecionado
-      const url = `/api/providers/service-search?serviceIds=${selectedServiceIds.join(',')}&date=${selectedDate.toISOString().split("T")[0]}`;
+      const url = `/api/providers/specialized-search?serviceIds=${selectedServiceIds.join(',')}&date=${selectedDate.toISOString().split("T")[0]}`;
       
 
       
@@ -300,9 +304,13 @@ export function NewBookingWizard({
           );
           
           const slots = await slotsResponse.json();
+          const allSlots = Array.isArray(slots) ? slots : slots.timeSlots || [];
+          
+          // Filtrar apenas horários disponíveis
+          const availableSlots = allSlots.filter((slot: any) => slot.isAvailable === true);
           
           // Só adicionar o prestador se tiver slots disponíveis
-          const hasSlots = Array.isArray(slots) && slots.length > 0;
+          const hasSlots = availableSlots.length > 0;
           if (hasSlots) {
             validProviders[provider.id] = services;
 
@@ -1066,38 +1074,40 @@ export function NewBookingWizard({
         )}
 
         {!loadingSlots && timeSlots.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {timeSlots.map((slot, index) => (
-              <button
-                key={index}
-                className={`group relative overflow-hidden rounded-2xl p-4 transition-all duration-300 transform hover:scale-[1.02] ${
-                  selectedTimeSlot?.startTime === slot.startTime
-                    ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
-                    : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
-                }`}
-                onClick={() => handleTimeSlotSelect(slot)}
-              >
-                <div className="text-center">
-                  <div className={`font-bold text-lg ${
-                    selectedTimeSlot?.startTime === slot.startTime ? 'text-white' : 'text-gray-800'
-                  }`}>
-                    {slot.startTime}
-                  </div>
-                  <div className={`text-sm ${
-                    selectedTimeSlot?.startTime === slot.startTime ? 'text-white/80' : 'text-gray-500'
-                  }`}>
-                    até {slot.endTime}
-                  </div>
-                </div>
-                {selectedTimeSlot?.startTime === slot.startTime && (
-                  <div className="absolute top-2 right-2">
-                    <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
-                      <Check className="w-3 h-3 text-white" />
+          <div className="max-h-[40vh] overflow-y-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+              {timeSlots.map((slot, index) => (
+                <button
+                  key={index}
+                  className={`group relative overflow-hidden rounded-2xl p-4 transition-all duration-300 transform hover:scale-[1.02] ${
+                    selectedTimeSlot?.startTime === slot.startTime
+                      ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
+                      : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
+                  }`}
+                  onClick={() => handleTimeSlotSelect(slot)}
+                >
+                  <div className="text-center">
+                    <div className={`font-bold text-lg ${
+                      selectedTimeSlot?.startTime === slot.startTime ? 'text-white' : 'text-gray-800'
+                    }`}>
+                      {slot.startTime}
+                    </div>
+                    <div className={`text-sm ${
+                      selectedTimeSlot?.startTime === slot.startTime ? 'text-white/80' : 'text-gray-500'
+                    }`}>
+                      até {slot.endTime}
                     </div>
                   </div>
-                )}
-              </button>
-            ))}
+                  {selectedTimeSlot?.startTime === slot.startTime && (
+                    <div className="absolute top-2 right-2">
+                      <div className="w-5 h-5 bg-white/20 rounded-full flex items-center justify-center">
+                        <Check className="w-3 h-3 text-white" />
+                      </div>
+                    </div>
+                  )}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 
@@ -1469,16 +1479,11 @@ export function NewBookingWizard({
           <p className="text-gray-600 mb-6 text-lg">
             Seu agendamento foi realizado com sucesso.
           </p>
-          <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-2xl border border-green-200 mb-6">
-            <p className="text-green-800 font-semibold">
-              Você receberá uma confirmação por email em breve.
-            </p>
-          </div>
           <Button
             className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-600 hover:to-cyan-600 text-white px-8 py-3 rounded-xl font-semibold shadow-lg transition-all transform hover:scale-105"
-            onClick={() => window.location.href = '/client/booking-confirmation-page'}
+            onClick={() => window.location.href = '/client/dashboard'}
           >
-            Ver meus agendamentos
+            Voltar ao início
           </Button>
         </div>
       </div>
