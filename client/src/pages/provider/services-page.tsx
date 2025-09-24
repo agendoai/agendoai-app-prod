@@ -161,28 +161,36 @@ export default function ProviderServicesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="container mx-auto py-6 px-4 max-w-4xl">
-        {/* Header */}
+    <div className="min-h-screen bg-gray-50">
+      {/* Header com cor padrão */}
+      <div className="bg-[#58c9d1] py-4 px-4 w-full">
+        <div className="container mx-auto max-w-4xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => navigate("/provider/dashboard")}
+                className="text-white hover:bg-white/10 transition-colors"
+              >
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar
+              </Button>
+              <div className="h-6 w-px bg-white/20"></div>
+              <h1 className="text-xl font-semibold text-white">Meus Serviços</h1>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div className="container mx-auto py-6 px-4 max-w-4xl pb-20">
+        {/* Descrição */}
         <motion.div 
           className="mb-6"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <div className="flex items-center gap-4 mb-4">
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => navigate("/provider/dashboard")}
-              className="hover:bg-gray-100 transition-colors"
-            >
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
-            </Button>
-            <div className="h-6 w-px bg-gray-300"></div>
-            <h1 className="text-2xl font-bold text-gray-900">Meus Serviços</h1>
-          </div>
           <p className="text-gray-600 text-sm max-w-2xl">
             Gerencie todos os serviços que você oferece aos seus clientes.
           </p>

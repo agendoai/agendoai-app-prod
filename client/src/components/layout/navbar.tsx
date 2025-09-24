@@ -117,7 +117,7 @@ export default function Navbar({
       initial={{ y: position === 'top' ? -60 : 60, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.3 }}
-      className={`fixed ${positionStyle} left-0 right-0 bg-white border-neutral-200 h-16 z-40 max-w-md mx-auto ${className}`}
+      className={`fixed ${positionStyle} left-0 right-0 bg-white border-neutral-200 h-16 z-40 w-full ${className}`}
     >
       <div className="flex justify-around items-center h-full px-1 relative">
         {navItems.map((item, index) => {

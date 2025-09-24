@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Loader2 } from "lucide-react";
+import { Loader2, Camera } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -43,7 +43,7 @@ import {
   Instagram,
   Facebook,
   MessageSquare,
-  Camera
+  Trash2
 } from "lucide-react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -54,6 +54,7 @@ export default function ProviderProfilePage() {
   const { user, logoutMutation } = useAuth();
   const [, setLocation] = useLocation();
   const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
+  const [deleteAccountDialogOpen, setDeleteAccountDialogOpen] = useState(false);
   const { toast } = useToast();
   
   // State for editing
@@ -235,6 +236,42 @@ export default function ProviderProfilePage() {
     setLogoutDialogOpen(true);
   };
   
+  // Handle delete account
+  const handleDeleteAccount = () => {
+    setDeleteAccountDialogOpen(true);
+  };
+  
+  // Delete account mutation
+  const deleteAccountMutation = useMutation({
+    mutationFn: async () => {
+      if (!user?.id) throw new Error("Usuário não encontrado");
+      return await apiRequest("PUT", `/api/users/${user.id}/deactivate`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Conta desativada",
+        description: "Sua conta foi desativada com sucesso.",
+      });
+      
+      // Fazer logout após desativar
+      setTimeout(() => {
+        confirmLogout();
+      }, 1000);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao desativar conta",
+        description: error.message || "Ocorreu um erro ao desativar sua conta.",
+        variant: "destructive",
+      });
+    },
+  });
+  
+  const confirmDeleteAccount = () => {
+    setDeleteAccountDialogOpen(false);
+    deleteAccountMutation.mutate();
+  };
+  
   const confirmLogout = () => {
     setLogoutDialogOpen(false);
     
@@ -332,8 +369,45 @@ export default function ProviderProfilePage() {
     }
   };
 
-  // Função para capturar foto com a câmera
+  // Estado para controlar o modal de seleção de imagem
+  const [showImageSourceModal, setShowImageSourceModal] = useState(false);
+  const [imageSourceType, setImageSourceType] = useState<'profile' | 'cover'>('profile');
+  
+  // Estado para controlar o modal de permissão de câmera
+  const [showCameraPermissionModal, setShowCameraPermissionModal] = useState(false);
+
+  // Função para mostrar modal de permissão de câmera diretamente
+  const handleImageUploadOptions = (type: 'profile' | 'cover') => {
+    setImageSourceType(type);
+    setShowCameraPermissionModal(true);
+  };
+
+  // Função para escolher da galeria
+  const handleGallerySelect = (type: 'profile' | 'cover') => {
+    if (type === 'profile' && profileImageInputRef.current) {
+      profileImageInputRef.current.click();
+    } else if (type === 'cover' && coverImageInputRef.current) {
+      coverImageInputRef.current.click();
+    }
+    setShowImageSourceModal(false);
+  };
+
+  // Função para lidar com a confirmação da permissão da câmera
+  const handleCameraPermissionConfirmed = () => {
+    setShowCameraPermissionModal(false);
+    setShowImageSourceModal(true);
+  };
+ // Função para capturar foto com a câmera
   const handleCameraCapture = async (type: 'profile' | 'cover') => {
+    setShowImageSourceModal(false);
+    setImageSourceType(type);
+    setShowCameraPermissionModal(true);
+  };
+
+  // Nova função para lidar com a captura da câmera após confirmação
+  const handleCameraCaptureConfirmed = async (type: 'profile' | 'cover') => {
+    setShowCameraPermissionModal(false);
+    
     try {
       // Verificar se está em WebView do iOS - se sim, usar função específica
       if (isIOSWebView()) {
@@ -446,20 +520,49 @@ export default function ProviderProfilePage() {
       let errorTitle = "Erro na câmera";
       
       if (error.name === 'NotAllowedError') {
-        errorTitle = "Permissão negada";
-        errorMessage = "Permissão negada. Por favor, permita o acesso à câmera nas configurações do navegador.";
+        errorTitle = "Permissão da câmera necessária";
+        errorMessage = "Para trocar sua foto de " + (type === 'profile' ? 'perfil' : 'capa') + ", precisamos acessar sua câmera. Por favor, permita o acesso à câmera e tente novamente, ou escolha uma foto da galeria.";
+        
+        // Mostrar opções novamente após erro de permissão
+        setTimeout(() => {
+          setShowImageSourceModal(true);
+        }, 2000);
+        
       } else if (error.name === 'NotFoundError') {
         errorTitle = "Câmera não encontrada";
-        errorMessage = "Nenhuma câmera encontrada. Verifique se há uma câmera conectada.";
+        errorMessage = "Nenhuma câmera encontrada. Verifique se há uma câmera conectada ou escolha uma foto da galeria.";
+        
+        // Mostrar opções novamente após erro de câmera não encontrada
+        setTimeout(() => {
+          setShowImageSourceModal(true);
+        }, 2000);
+        
       } else if (error.name === 'NotReadableError') {
         errorTitle = "Câmera em uso";
-        errorMessage = "A câmera está sendo usada por outro aplicativo. Feche outros apps que possam estar usando a câmera.";
+        errorMessage = "A câmera está sendo usada por outro aplicativo. Feche outros apps que possam estar usando a câmera ou escolha uma foto da galeria.";
+        
+        // Mostrar opções novamente após erro de câmera em uso
+        setTimeout(() => {
+          setShowImageSourceModal(true);
+        }, 2000);
+        
       } else if (error.name === 'OverconstrainedError') {
         errorTitle = "Configuração não suportada";
         errorMessage = "As configurações da câmera não são suportadas. Tente usar a opção 'Escolher da Galeria'.";
+        
+        // Mostrar opções novamente após erro de configuração
+        setTimeout(() => {
+          setShowImageSourceModal(true);
+        }, 1500);
+        
       } else if (error.name === 'SecurityError') {
         errorTitle = "Erro de segurança";
-        errorMessage = "Erro de segurança. Certifique-se de que está usando HTTPS ou localhost.";
+        errorMessage = "Erro de segurança. Certifique-se de que está usando HTTPS ou localhost, ou escolha uma foto da galeria.";
+        
+        // Mostrar opções novamente após erro de segurança
+        setTimeout(() => {
+          setShowImageSourceModal(true);
+        }, 2000);
       }
       
       toast({
@@ -483,63 +586,146 @@ export default function ProviderProfilePage() {
         });
         return;
       }
+
+      // Mostrar toast de carregamento
+      toast({
+        title: "Acessando câmera...",
+        description: "Solicitando permissão para acessar a câmera.",
+      });
+
+      // Configurações de vídeo
+      const videoConstraints = {
+        video: { 
+          facingMode: 'user', // Câmera frontal
+          width: { ideal: type === 'cover' ? 1200 : 800, max: 1920 },
+          height: { ideal: type === 'cover' ? 600 : 800, max: 1920 }
+        },
+        audio: false
+      };
+
+      // Solicitar acesso à câmera
+      const stream = await navigator.mediaDevices.getUserMedia(videoConstraints);
+
+      // Criar um elemento de vídeo temporário
+      const video = document.createElement('video');
+      video.srcObject = stream;
+      video.autoplay = true;
+      video.muted = true;
+      video.playsInline = true;
       
-      // Verificar tamanho do arquivo (máximo 5MB)
-      if (file.size > 5 * 1024 * 1024) {
+      // Configurações de vídeo
+      video.setAttribute('webkit-playsinline', 'true');
+      video.setAttribute('playsinline', 'true');
+      video.style.width = '100%';
+      video.style.height = 'auto';
+
+      // Criar um canvas para capturar a foto
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+
+      // Aguardar o vídeo carregar
+      video.addEventListener('loadedmetadata', () => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        
+        // Desenhar o frame atual no canvas
+        ctx?.drawImage(video, 0, 0);
+        
+        // Converter para blob
+        canvas.toBlob(async (blob) => {
+          if (blob) {
+            // Criar um arquivo a partir do blob
+            const file = new File([blob], `camera-capture-${type}.jpg`, { type: 'image/jpeg' });
+            
+            // Fazer upload diretamente
+            if (type === 'profile') {
+              await uploadProfileImage(file);
+            } else {
+              await uploadCoverImage(file);
+            }
+            
+            toast({
+              title: "Foto capturada!",
+              description: `A foto de ${type === 'profile' ? 'perfil' : 'capa'} foi capturada e enviada com sucesso.`,
+            });
+          }
+          
+          // Parar a câmera
+          stream.getTracks().forEach(track => track.stop());
+        }, 'image/jpeg', 0.8);
+      });
+
+      // Tratar erro de carregamento do vídeo
+      video.addEventListener('error', () => {
+        stream.getTracks().forEach(track => track.stop());
         toast({
-          title: "Erro no upload",
-          description: "O arquivo é muito grande. Tamanho máximo: 5MB",
+          title: "Erro ao carregar câmera",
+          description: "Não foi possível carregar a câmera. Tente novamente.",
           variant: "destructive",
         });
-        return;
-      }
-      
-      // Criar FormData para enviar o arquivo
-      const formData = new FormData();
-      formData.append('image', file);
-      
-      console.log('📤 Frontend - Starting profile image upload...');
-      
-      // Fazer upload para Cloudinary
-      const response = await apiCall(`/api/users/${user?.id}/profile-image-cloudinary`, {
-        method: 'POST',
-        body: formData,
       });
+
+    } catch (error: any) {
       
-      console.log('📥 Frontend - Upload response status:', response.status);
       
-      if (response.ok) {
-        const result = await response.json();
-        console.log('✅ Frontend - Upload successful:', result);
+      let errorMessage = "Não foi possível acessar a câmera.";
+      let errorTitle = "Erro na câmera";
+      
+      if (error.name === 'NotAllowedError') {
+        errorTitle = "Permissão da câmera necessária";
+        errorMessage = "Para trocar sua foto de " + (type === 'profile' ? 'perfil' : 'capa') + ", precisamos acessar sua câmera. Por favor, permita o acesso à câmera e tente novamente, ou escolha uma foto da galeria.";
         
-        // Invalidar todas as queries relacionadas ao usuário e provider
-        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
-        queryClient.invalidateQueries({ queryKey: ["/api/provider-settings"] });
-        queryClient.invalidateQueries({ queryKey: ["user"] });
+        // Mostrar opções novamente após erro de permissão
+        setTimeout(() => {
+          setShowImageSourceModal(true);
+        }, 2000);
         
-        // Refetch imediato dos dados do provider
-        refetch();
+      } else if (error.name === 'NotFoundError') {
+        errorTitle = "Câmera não encontrada";
+        errorMessage = "Nenhuma câmera encontrada. Verifique se há uma câmera conectada ou escolha uma foto da galeria.";
         
-        toast({
-          title: "Sucesso",
-          description: "Imagem de perfil atualizada com sucesso!",
-        });
-      } else {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('❌ Frontend - Upload failed:', response.status, errorData);
-        throw new Error(errorData.error || errorData.details || 'Erro no upload');
+        // Mostrar opções novamente após erro de câmera não encontrada
+        setTimeout(() => {
+          setShowImageSourceModal(true);
+        }, 2000);
+        
+      } else if (error.name === 'NotReadableError') {
+        errorTitle = "Câmera em uso";
+        errorMessage = "A câmera está sendo usada por outro aplicativo. Feche outros apps que possam estar usando a câmera ou escolha uma foto da galeria.";
+        
+        // Mostrar opções novamente após erro de câmera em uso
+        setTimeout(() => {
+          setShowImageSourceModal(true);
+        }, 2000);
+        
+      } else if (error.name === 'OverconstrainedError') {
+        errorTitle = "Configuração não suportada";
+        errorMessage = "As configurações da câmera não são suportadas. Tente usar a opção 'Escolher da Galeria'.";
+        
+        // Mostrar opções novamente após erro de configuração
+        setTimeout(() => {
+          setShowImageSourceModal(true);
+        }, 1500);
+        
+      } else if (error.name === 'SecurityError') {
+        errorTitle = "Erro de segurança";
+        errorMessage = "Erro de segurança. Certifique-se de que está usando HTTPS ou localhost, ou escolha uma foto da galeria.";
+        
+        // Mostrar opções novamente após erro de segurança
+        setTimeout(() => {
+          setShowImageSourceModal(true);
+        }, 2000);
       }
-    } catch (error) {
-      console.error('❌ Frontend - Upload error:', error);
+      
       toast({
-        title: "Erro no upload",
-        description: error instanceof Error ? error.message : "Não foi possível atualizar a imagem de perfil.",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
-    } finally {
-      setUploadingProfileImage(false);
     }
   };
+
+
 
   // Função auxiliar para upload de imagem de capa
   const uploadCoverImage = async (file: File) => {
@@ -639,7 +825,20 @@ export default function ProviderProfilePage() {
         </div>
         
         <div className="relative z-10">
-        <AppHeader title="Perfil" showBackButton showUserInfo={false} showNotificationIcon={false} showMenuIcon={false} />
+        {/* Header com cor padrão azul */}
+        <div className="bg-[#58c9d1] py-4 px-4 flex items-center justify-between shadow-lg">
+          <div className="flex items-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setLocation("/provider/dashboard")}
+              className="text-white hover:bg-white/20 mr-3"
+            >
+              ←
+            </Button>
+            <h1 className="text-white text-xl font-semibold">Perfil</h1>
+          </div>
+        </div>
         
         <div className="p-4 md:p-6 lg:p-8 xl:p-12 space-y-6 md:space-y-8 lg:space-y-10 xl:space-y-12 w-full">
           {isLoading ? (
@@ -1231,11 +1430,7 @@ export default function ProviderProfilePage() {
                                 variant="outline" 
                                 size="sm" 
                                 className="text-xs md:text-sm w-full border-[#58c9d1] text-[#58c9d1] hover:bg-[#58c9d1]/10 hover:border-[#58c9d1] transition-all duration-300 font-medium shadow-md hover:shadow-lg disabled:opacity-70 rounded-lg py-2 px-3"
-                                onClick={() => {
-                                  if (profileImageInputRef.current) {
-                                    profileImageInputRef.current.click();
-                                  }
-                                }}
+                                onClick={() => handleImageUploadOptions('profile')}
                                 disabled={uploadingProfileImage}
                               >
                                 {uploadingProfileImage ? (
@@ -1245,7 +1440,7 @@ export default function ProviderProfilePage() {
                                   </>
                                 ) : (
                                   <>
-                                    <UploadCloud className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                                    <ImageIcon className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                                     <span className="text-xs md:text-sm">Trocar Foto</span>
                                   </>
                                 )}
@@ -1291,11 +1486,7 @@ export default function ProviderProfilePage() {
                                 variant="outline" 
                                 size="sm" 
                                 className="text-xs md:text-sm w-full border-[#58c9d1]/60 text-[#58c9d1] hover:bg-[#58c9d1]/10 hover:border-[#58c9d1] transition-all duration-300 font-medium shadow-lg shadow-[#58c9d1]/10 hover:shadow-xl hover:shadow-[#58c9d1]/20 disabled:opacity-70 transform hover:scale-105 py-2 px-3 md:py-3 md:px-4"
-                                onClick={() => {
-                                  if (coverImageInputRef.current) {
-                                    coverImageInputRef.current.click();
-                                  }
-                                }}
+                                onClick={() => handleImageUploadOptions('cover')}
                                 disabled={uploadingCoverImage}
                               >
                                 {uploadingCoverImage ? (
@@ -1305,7 +1496,7 @@ export default function ProviderProfilePage() {
                                   </>
                                 ) : (
                                   <>
-                                    <UploadCloud className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
+                                    <ImageIcon className="h-3 w-3 md:h-4 md:w-4 mr-1 md:mr-2" />
                                     <span className="text-xs md:text-sm">Trocar Capa</span>
                                   </>
                                 )}
@@ -1383,6 +1574,27 @@ export default function ProviderProfilePage() {
                   Sair da Conta
                 </Button>
               </div>
+              
+              {/* Separação visual para o botão de excluir conta */}
+              <div className="w-full mt-8 pt-6 border-t border-red-200">
+                <div className="bg-red-50 p-4 rounded-xl border border-red-200 mb-4">
+                  <p className="text-sm text-red-700 font-medium text-center">
+                    ⚠️ Zona de Perigo
+                  </p>
+                  <p className="text-xs text-red-600 text-center mt-1">
+                    Esta ação é irreversível
+                  </p>
+                </div>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full h-10 text-sm border-red-500 text-red-500 hover:bg-red-50 rounded-xl"
+                  onClick={() => setDeleteAccountDialogOpen(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Excluir Conta
+                </Button>
+              </div>
             </>
           )}
         </div>
@@ -1439,6 +1651,143 @@ export default function ProviderProfilePage() {
                 </div>
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Delete Account Confirmation Dialog */}
+        <Dialog open={deleteAccountDialogOpen} onOpenChange={setDeleteAccountDialogOpen}>
+          <DialogContent className="w-[calc(100vw-2rem)] max-w-md bg-gradient-to-br from-white/95 via-white/90 to-slate-50/80 backdrop-blur-2xl border-0 shadow-3xl shadow-slate-900/20 rounded-2xl overflow-hidden relative" style={{ zIndex: 50000, position: 'fixed', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
+            {/* Dialog Glow Effect */}
+            <div className="absolute inset-0 bg-gradient-to-r from-red-500/5 via-transparent to-red-500/5 opacity-50"></div>
+            
+            <DialogHeader className="relative z-10">
+              <DialogTitle className="text-2xl font-medium bg-gradient-to-r from-red-600 via-red-700 to-red-800 bg-clip-text text-transparent flex items-center">
+                <div className="p-2 bg-gradient-to-br from-red-500 to-red-700 rounded-xl mr-3 shadow-lg">
+                  <Trash2 className="h-6 w-6 text-white" />
+                </div>
+                🗑️ Excluir Conta
+              </DialogTitle>
+              <DialogDescription className="text-lg text-slate-700 font-medium mt-3">
+                ⚠️ Tem certeza que deseja excluir sua conta? Esta ação irá desativar sua conta permanentemente.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <DialogFooter className="flex flex-col space-y-3 sm:flex-row sm:space-y-0 sm:space-x-4 mt-6 relative z-10">
+              <Button 
+                variant="outline" 
+                onClick={() => setDeleteAccountDialogOpen(false)}
+                className="w-full sm:w-auto border-2 border-slate-300 text-slate-700 hover:bg-slate-100 hover:border-slate-400 transition-all duration-500 font-medium px-6 py-3 sm:px-8 shadow-xl hover:shadow-2xl backdrop-blur-sm rounded-2xl transform hover:scale-105 hover:rotate-1 relative overflow-hidden group"
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-slate-200/20 via-transparent to-slate-200/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                <span className="relative z-10 text-base sm:text-lg">❌ Cancelar</span>
+              </Button>
+              
+              <Button 
+                variant="destructive" 
+                onClick={confirmDeleteAccount}
+                disabled={deleteAccountMutation.isPending}
+                className="w-full sm:w-auto bg-gradient-to-r from-red-500 via-red-600 to-red-700 hover:from-red-600 hover:via-red-600 hover:to-red-800 text-white font-medium shadow-2xl shadow-red-500/40 hover:shadow-3xl hover:shadow-red-500/60 transition-all duration-500 transform hover:scale-110 hover:rotate-1 disabled:opacity-70 disabled:transform-none px-6 py-3 sm:px-8 border-0 rounded-2xl backdrop-blur-sm relative overflow-hidden group"
+              >
+                {/* Delete Button Shimmer */}
+                <div className="absolute inset-0 bg-gradient-to-r from-white/30 via-transparent to-white/30 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+                
+                <div className="relative z-10 flex items-center text-base sm:text-lg">
+                  {deleteAccountMutation.isPending ? (
+                    <>
+                      <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                      ⏳ Excluindo...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="h-5 w-5 mr-2" />
+                      ✅ Confirmar Exclusão
+                    </>
+                  )}
+                </div>
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Modal de seleção de fonte da imagem */}
+        <Dialog open={showImageSourceModal} onOpenChange={setShowImageSourceModal}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-center">
+                Escolher {imageSourceType === 'profile' ? 'Foto de Perfil' : 'Imagem de Capa'}
+              </DialogTitle>
+              <DialogDescription className="text-center text-gray-600">
+                Como você gostaria de adicionar sua {imageSourceType === 'profile' ? 'foto de perfil' : 'imagem de capa'}?
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid grid-cols-1 gap-4 py-4">
+              <Button
+                onClick={() => handleGallerySelect(imageSourceType)}
+                className="flex items-center justify-center gap-3 h-16 bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] hover:from-[#4aadb5] hover:to-[#58c9d1] text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
+              >
+                <ImageIcon className="h-6 w-6" />
+                <div className="text-left">
+                  <div className="font-semibold">Escolher da Galeria</div>
+                  <div className="text-sm opacity-90">Selecione uma foto existente</div>
+                </div>
+              </Button>
+              
+              <Button
+                onClick={() => handleCameraCapture(imageSourceType)}
+                variant="outline"
+                className="flex items-center justify-center gap-3 h-16 border-2 border-[#58c9d1] text-[#58c9d1] hover:bg-[#58c9d1]/10 font-medium shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105"
+              >
+                <Camera className="h-6 w-6" />
+                <div className="text-left">
+                  <div className="font-semibold">Tirar Foto</div>
+                  <div className="text-sm opacity-75">Use a câmera do dispositivo</div>
+                </div>
+              </Button>
+            </div>
+            
+            <DialogFooter className="sm:justify-center">
+              <Button
+                variant="ghost"
+                onClick={() => setShowImageSourceModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                Cancelar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Modal de validação de permissão de câmera */}
+        <Dialog open={showCameraPermissionModal} onOpenChange={setShowCameraPermissionModal}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-center">
+                Permissão de Câmera
+              </DialogTitle>
+              <DialogDescription className="text-center text-gray-600">
+                Você permite acessar a câmera para trocar sua {imageSourceType === 'profile' ? 'foto de perfil' : 'foto de capa'}?
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <Button
+                onClick={() => handleCameraPermissionConfirmed()}
+                className="flex items-center justify-center gap-2 h-12 bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] hover:from-[#4aadb5] hover:to-[#58c9d1] text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300"
+              >
+                <Check className="h-5 w-5" />
+                Sim
+              </Button>
+              
+              <Button
+                onClick={() => setShowCameraPermissionModal(false)}
+                variant="outline"
+                className="flex items-center justify-center gap-2 h-12 border-2 border-gray-300 text-gray-600 hover:bg-gray-50 font-medium shadow-md hover:shadow-lg transition-all duration-300"
+              >
+                <X className="h-5 w-5" />
+                Não
+              </Button>
+            </div>
           </DialogContent>
         </Dialog>
         </div>

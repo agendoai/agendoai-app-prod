@@ -972,7 +972,7 @@ export default function ManualBookingPage() {
   return (
     <ProviderLayout title="Novo Agendamento" showBackButton>
       <PageTransition>
-        <div className="w-full max-w-md mx-auto bg-white min-h-screen px-4 py-6 pb-24">
+        <div className="w-full bg-white min-h-screen px-6 py-6 pb-24">
           {bookingSuccess && createdAppointment ? (
             <div className="text-center py-8 px-4">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
@@ -1038,12 +1038,12 @@ export default function ManualBookingPage() {
           ) : (
             <div className="space-y-4">
               {/* Stepper */}
-              <div className="py-3 border-b border-neutral-200 bg-white">
-                <div className="flex items-center justify-between px-2">
+              <div className="py-6 border-b border-neutral-200 bg-white">
+                <div className="flex items-center justify-between px-6">
                   {steps.map((step) => (
                     <div key={step.id} className="flex flex-col items-center">
                       <div 
-                        className={`w-7 h-7 rounded-full flex items-center justify-center text-sm ${
+                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
                           step.id === currentStep 
                             ? "bg-[#58c9d1] text-white" 
                             : step.id < currentStep 
@@ -1052,12 +1052,12 @@ export default function ManualBookingPage() {
                         }`}
                       >
                         {step.id < currentStep ? (
-                          <CheckCircle className="h-4 w-4" />
+                          <CheckCircle className="h-5 w-5" />
                         ) : (
                           step.id
                         )}
                       </div>
-                      <span className={`text-xs mt-1 px-1 text-center ${
+                      <span className={`text-sm mt-2 px-1 text-center ${
                         step.id === currentStep 
                           ? "text-[#58c9d1]" 
                           : step.id < currentStep 
@@ -1072,23 +1072,23 @@ export default function ManualBookingPage() {
               </div>
           
               {/* Step Content */}
-              <div className="px-3 py-4 bg-white">
+              <div className="px-6 py-8 bg-white">
                 {/* Step 1: Service Selection */}
                 {currentStep === 1 && (
                   <Form {...serviceForm}>
-                    <form onSubmit={serviceForm.handleSubmit(onServiceSubmit)} className="space-y-3">
-                      <h2 className="text-lg font-semibold mb-3 text-neutral-900">Selecione o serviço</h2>
+                    <form onSubmit={serviceForm.handleSubmit(onServiceSubmit)} className="space-y-6">
+                      <h2 className="text-xl font-semibold mb-4 text-neutral-900">Selecione o serviço</h2>
                       
                       <FormField
                         control={serviceForm.control}
                         name="providerServiceId"
                         render={({ field }) => (
                           <FormItem>
-                            <div className="space-y-3">
+                            <div className="space-y-4">
                               <RadioGroup 
                                 onValueChange={field.onChange} 
                                 defaultValue={field.value}
-                                className="flex flex-col space-y-1"
+                                className="flex flex-col space-y-3"
                               >
                                 {isServicesLoading ? (
                                   <div className="text-center py-8">
@@ -1100,21 +1100,21 @@ export default function ManualBookingPage() {
                                     <Label
                                       key={service.id}
                                       htmlFor={`service-${service.id}`}
-                                      className={`w-full flex items-center justify-between p-1.5 rounded-lg border transition-all ${
+                                      className={`w-full flex items-center justify-between p-4 rounded-lg border transition-all ${
                                         field.value === service.id.toString()
                                           ? "bg-[#58c9d1]/5 border-[#58c9d1] shadow-sm"
                                           : "border-neutral-200 hover:border-neutral-300"
                                       }`}
                                     >
                                       <div className="flex items-center">
-                                        <div className="w-5 h-5 bg-[#58c9d1]/10 rounded-lg mr-1.5 flex items-center justify-center">
-                                          <ScissorsIcon className="h-2.5 w-2.5 text-[#58c9d1]" />
-                                        </div>
+                                        <div className="w-8 h-8 bg-[#58c9d1]/10 rounded-lg mr-4 flex items-center justify-center">
+                          <ScissorsIcon className="h-4 w-4 text-[#58c9d1]" />
+                        </div>
                                         <div>
-                                          <p className="text-xs font-medium text-neutral-900">{service.name}</p>
-                                          <p className="text-xs text-neutral-600">
-                                            {service.duration} min • {formatCurrency(service.price || 0)}
-                                          </p>
+                                          <p className="text-sm font-medium text-neutral-900">{service.name}</p>
+                          <p className="text-sm text-neutral-600">
+                            {service.duration} min • {formatCurrency(service.price || 0)}
+                          </p>
                                         </div>
                                       </div>
                                       <RadioGroupItem 
@@ -1140,7 +1140,7 @@ export default function ManualBookingPage() {
                       
                       <Button 
                         type="submit" 
-                        className="w-full mt-4 bg-[#58c9d1] text-white hover:bg-[#58c9d1]/90 shadow-sm hover:shadow"
+                        className="w-full mt-6 bg-[#58c9d1] text-white hover:bg-[#58c9d1]/90 shadow-sm hover:shadow h-12"
                         disabled={isServicesLoading || services.length === 0}
                       >
                         Continuar
@@ -1152,10 +1152,10 @@ export default function ManualBookingPage() {
                 {/* Step 2: Date Selection */}
                 {currentStep === 2 && selectedService && (
                   <Form {...dateForm}>
-                    <form onSubmit={dateForm.handleSubmit(onDateSubmit)} className="space-y-3">
+                    <form onSubmit={dateForm.handleSubmit(onDateSubmit)} className="space-y-6">
                       <div className="flex items-center mb-3">
                         <Calendar className="h-5 w-5 mr-2 text-primary" />
-                        <h2 className="font-medium">Escolha o dia</h2>
+                        <h2 className="text-lg font-medium">Escolha o dia</h2>
                       </div>
                       
                       <FormField
@@ -1171,13 +1171,13 @@ export default function ManualBookingPage() {
                                 setBookingData(prev => ({ ...prev, date: value }));
                               }}
                               value={field.value || bookingData.date || format(new Date(), "yyyy-MM-dd")}
-                              className="grid grid-cols-2 sm:grid-cols-3 gap-2"
+                              className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"
                             >
                               {availableDates.map((date) => (
                                 <Label
                                   key={date.value}
                                   htmlFor={`date-${date.value}`}
-                                  className={`flex flex-col items-center p-3 rounded-lg cursor-pointer transition-all shadow-sm hover:shadow-md ${
+                                  className={`flex flex-col items-center p-4 rounded-lg cursor-pointer transition-all shadow-sm hover:shadow-md ${
                                     (field.value || bookingData.date || format(new Date(), "yyyy-MM-dd")) === date.value
                                       ? "bg-[#58c9d1]/10 shadow-[#58c9d1]/20"
                                       : "bg-white hover:bg-gray-50 shadow-gray-200"
@@ -1198,19 +1198,19 @@ export default function ManualBookingPage() {
                         )}
                       />
                       
-                      <div className="flex space-x-2 pt-4">
+                      <div className="flex space-x-3 pt-6">
                         <Button 
                           type="button" 
                           variant="outline"
                           onClick={handleBack}
-                          className="flex-1 shadow-sm hover:shadow"
+                          className="flex-1 shadow-sm hover:shadow h-12"
                         >
                           Voltar
                         </Button>
                         <Button 
                           type="submit" 
                           disabled={displayTimeSlots.length === 0}
-                          className="flex-1 bg-[#58c9d1] text-white hover:bg-[#58c9d1]/90 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex-1 bg-[#58c9d1] text-white hover:bg-[#58c9d1]/90 shadow-sm hover:shadow disabled:opacity-50 disabled:cursor-not-allowed h-12"
                         >
                           Continuar
                         </Button>
@@ -1222,10 +1222,10 @@ export default function ManualBookingPage() {
                 {/* Step 3: Time Selection */}
                 {currentStep === 3 && selectedService && (bookingData.date || dateForm.getValues().date) && (
                   <Form {...timeForm}>
-                    <form onSubmit={timeForm.handleSubmit(onTimeSubmit)} className="space-y-3">
+                    <form onSubmit={timeForm.handleSubmit(onTimeSubmit)} className="space-y-6">
                       <div className="flex items-center mb-3">
                         <Clock className="h-5 w-5 mr-2 text-primary" />
-                        <h2 className="font-medium">Escolha o horário</h2>
+                        <h2 className="text-lg font-medium">Escolha o horário</h2>
                       </div>
                       
                       <div className="mb-4">
@@ -1263,18 +1263,18 @@ export default function ManualBookingPage() {
                                   setBookingData(prev => ({ ...prev, time: value }));
                                 }}
                                 value={field.value || bookingData.time}
-                                className="grid grid-cols-3 sm:grid-cols-4 gap-2"
+                                className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3"
                               >
                                 {displayTimeSlots.map((slot, index) => (
                                   <Label
-                                    key={`${slot.value}-${index}`}
-                                    htmlFor={`time-${slot.value}-${index}`}
-                                    className={`flex flex-col items-center p-1.5 rounded-lg border cursor-pointer transition-all ${
-                                      (field.value || bookingData.time) === slot.value
-                                        ? "bg-[#58c9d1]/5 border-[#58c9d1]"
-                                        : "border-neutral-200 hover:border-neutral-300"
-                                    }`}
-                                  >
+                                      key={`${slot.value}-${index}`}
+                                      htmlFor={`time-${slot.value}-${index}`}
+                                      className={`flex flex-col items-center p-3 rounded-lg border cursor-pointer transition-all ${
+                                        (field.value || bookingData.time) === slot.value
+                                          ? "bg-[#58c9d1]/5 border-[#58c9d1]"
+                                          : "border-neutral-200 hover:border-neutral-300"
+                                      }`}
+                                    >
                                     <span className="text-xs font-medium text-neutral-900">{slot.label}</span>
                                     {slot.adaptationScore && (
                                       <span className="text-xs text-neutral-600">
@@ -1294,18 +1294,18 @@ export default function ManualBookingPage() {
                         )}
                       />
                       
-                      <div className="flex space-x-2 pt-4">
+                      <div className="flex space-x-3 pt-6">
                         <Button 
                           type="button" 
                           variant="outline"
                           onClick={handleBack}
-                          className="flex-1 shadow-sm hover:shadow"
+                          className="flex-1 shadow-sm hover:shadow h-12"
                         >
                           Voltar
                         </Button>
                         <Button 
                           type="submit" 
-                          className="flex-1 bg-[#58c9d1] text-white hover:bg-[#58c9d1]/90 shadow-sm hover:shadow"
+                          className="flex-1 bg-[#58c9d1] text-white hover:bg-[#58c9d1]/90 shadow-sm hover:shadow h-12"
                         >
                           Continuar
                         </Button>
@@ -1320,7 +1320,7 @@ export default function ManualBookingPage() {
                     <form onSubmit={clientForm.handleSubmit(onClientSubmit)} className="space-y-3">
                       <div className="flex items-center mb-3">
                         <UserRound className="h-5 w-5 mr-2 text-primary" />
-                        <h2 className="font-medium">Informações do cliente</h2>
+                        <h2 className="text-lg font-medium">Informações do cliente</h2>
                       </div>
                       
                       <div className="space-y-4">
@@ -1362,7 +1362,7 @@ export default function ManualBookingPage() {
                                 <RadioGroup 
                                   onValueChange={field.onChange} 
                                   value={field.value}
-                                  className="space-y-1"
+                                  className="space-y-3"
                                 >
                                   {/* Clientes encontrados na busca */}
                                   {searchedClients.length > 0 && (

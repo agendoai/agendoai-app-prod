@@ -101,42 +101,7 @@ router.post("/login", async (req, res) => {
       });
     }
     
-    if (email === "prestador@agendoai.com" && password === "prestador123") {
-      console.log("✅ Login prestador de emergência");
-      const providerUser = {
-        id: 2,
-        email: "prestador@agendoai.com",
-        name: "Prestador Demo",
-        userType: "provider",
-        phone: "+5511999999998",
-        address: null,
-        isActive: true,
-        isVerified: true,
-        createdAt: new Date(),
-        profileImage: "/uploads/profiles/default.png",
-        cpf: "12345678901",
-        asaasCustomerId: null,
-        password: "hashed_password_placeholder"
-      };
-      
-      const payload: JWTPayload = {
-        id: providerUser.id,
-        email: providerUser.email,
-        userType: providerUser.userType,
-        name: providerUser.name
-      };
-      
-      const token = jwt.sign(payload, JWT_CONFIG.secret, { 
-        expiresIn: JWT_CONFIG.expiresIn as string
-      });
-      
-      console.log('🔑 JWT gerado para usuário:', providerUser.email);
-      
-      return res.status(200).json({
-        user: sanitizeUser(providerUser),
-        token: token
-      });
-    }
+
     
     // Verificar usuário no banco de dados
     const user = await storage.getUserByEmail(email);
@@ -150,6 +115,14 @@ router.post("/login", async (req, res) => {
     
     if (!passwordMatches) {
       return res.status(401).json({ message: "Email ou senha incorretos" });
+    }
+    
+    // Verificar se a conta está ativa
+    if (!user.isActive) {
+      console.log(`Tentativa de login com conta desativada para ${email}`);
+      return res.status(403).json({ 
+        message: "Esta conta foi desativada. Entre em contato com o suporte se precisar reativar sua conta." 
+      });
     }
     
     console.log(`Login bem-sucedido para ${email}`);

@@ -200,6 +200,50 @@ export function registerUserManagementRoutes(app: Express) {
     }
   });
   
+  // Desativar conta do usuário (soft delete)
+  app.put("/api/users/:id/deactivate", isAuthenticated, async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.id);
+      
+      // Verificar permissões - usuário só pode desativar sua própria conta ou admin pode desativar qualquer conta
+      if (!req.user) {
+        return res.status(401).json({ error: "Não autenticado" });
+      }
+      
+      const user = req.user;
+      if (user.id !== userId && user.userType !== 'admin') {
+        return res.status(403).json({ error: "Sem permissão para esta operação" });
+      }
+      
+      // Buscar usuário
+      const targetUser = await storage.getUser(userId);
+      if (!targetUser) {
+        return res.status(404).json({ error: "Usuário não encontrado" });
+      }
+      
+      // Verificar se já está desativado
+      if (!targetUser.isActive) {
+        return res.status(400).json({ error: "Conta já está desativada" });
+      }
+      
+      // Desativar usuário (soft delete)
+      const updatedUser = await storage.updateUser(userId, { isActive: false });
+      
+      return res.json({ 
+        message: "Conta desativada com sucesso",
+        user: {
+          id: updatedUser.id,
+          email: updatedUser.email,
+          name: updatedUser.name,
+          isActive: updatedUser.isActive
+        }
+      });
+    } catch (error) {
+      console.error("Erro ao desativar conta:", error);
+      return res.status(500).json({ error: "Erro ao desativar conta" });
+    }
+  });
+  
   // Atualizar perfil do usuário
   app.put("/api/users/:id", isAuthenticated, async (req: Request, res: Response) => {
     try {

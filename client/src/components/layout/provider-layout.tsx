@@ -110,7 +110,7 @@ export default function ProviderLayout({
         )}
 
         {/* Conteúdo principal */}
-        <main className={cn("w-full px-2 py-2 sm:px-4 sm:py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 xl:px-12 xl:py-12", showBackButton && "pt-2")}> 
+        <main className={cn("w-full", showBackButton && "pt-2")}> 
           <div className="w-full overflow-x-hidden">
             {children}
           </div>

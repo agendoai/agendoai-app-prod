@@ -229,27 +229,35 @@ export default function ProviderAppointmentsManagementPage() {
 
   return (
     <ProviderLayout>
-      <div className="min-h-screen bg-gradient-to-br from-[#58c9d1]/5 to-[#58c9d1]/10">
+      <div className="min-h-screen bg-gray-50">
+        {/* Header com cor padrão */}
+        <div className="bg-[#58c9d1] py-4 px-4 w-full">
+          <div className="container mx-auto max-w-6xl">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => navigate("/provider/dashboard")}
+                  className="text-white hover:bg-white/10 transition-colors"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Voltar
+                </Button>
+                <div className="h-6 w-px bg-white/20"></div>
+                <h1 className="text-xl font-semibold text-white">Gerenciar Agendamentos</h1>
+              </div>
+            </div>
+          </div>
+        </div>
+        
         <div className="container mx-auto py-6 px-4 max-w-6xl">
-                     {/* Header */}
-           <div className="mb-4">
-             <div className="flex items-center gap-2 mb-3">
-               <Button 
-                 variant="ghost" 
-                 size="sm" 
-                 onClick={() => navigate("/provider/dashboard")}
-                 className="hover:bg-[#58c9d1]/10 transition-colors h-7 text-[#58c9d1] hover:text-[#58c9d1]/80"
-               >
-                 <ArrowLeft className="h-3 w-3 mr-1" />
-                 Voltar
-               </Button>
-               <div className="h-4 w-px bg-[#58c9d1]/30"></div>
-               <h1 className="text-lg font-bold text-gray-900">Gerenciar Agendamentos</h1>
-             </div>
-             <p className="text-gray-600 text-xs max-w-2xl">
-               Gerencie todos os seus agendamentos, atualize status e controle pagamentos.
-             </p>
-           </div>
+          {/* Descrição */}
+          <div className="mb-4">
+            <p className="text-gray-600 text-sm max-w-2xl">
+              Gerencie todos os seus agendamentos, atualize status e controle pagamentos.
+            </p>
+          </div>
 
                      {/* Filtros e Busca */}
            <Card className="mb-3 shadow-lg border-0 bg-white/95 backdrop-blur-sm border-[#58c9d1]/20">
@@ -508,4 +516,4 @@ export default function ProviderAppointmentsManagementPage() {
       )}
     </ProviderLayout>
   );
-} 
+}

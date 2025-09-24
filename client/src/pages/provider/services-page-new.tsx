@@ -830,9 +830,15 @@ export default function ServicesPageNew() {
 
   return (
     <PageTransition>
-      <div className="flex flex-col min-h-screen">
-        <div className="container py-6 flex-1">
-          <h1 className="text-2xl font-bold mb-4">Meus Serviços</h1>
+      <div className="flex flex-col min-h-screen bg-white">
+        {/* Header com cor padrão do projeto */}
+        <header className="flex flex-row items-center justify-between px-4 py-4 w-full bg-[#58c9d1]">
+          <div className="flex items-center">
+            <h1 className="text-white text-lg font-semibold">Meus Serviços</h1>
+          </div>
+        </header>
+        
+        <div className="container py-6 flex-1 px-4">
           <div className="mb-6 p-4 bg-blue-50 rounded-md border border-blue-200">
             <h3 className="text-lg font-semibold text-blue-700 mb-2">Como gerenciar seus serviços</h3>
             <p className="text-blue-700 mb-3">

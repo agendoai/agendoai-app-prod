@@ -105,3 +105,22 @@
 .scrollbar-thin::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
+
+/* Scrollbar customizada com cor teal para as seções */
+.scrollbar-teal::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-teal::-webkit-scrollbar-track {
+  background: #f0fdfa;
+  border-radius: 3px;
+}
+
+.scrollbar-teal::-webkit-scrollbar-thumb {
+  background: linear-gradient(to bottom, #14b8a6, #0d9488);
+  border-radius: 3px;
+}
+
+.scrollbar-teal::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(to bottom, #0f766e, #0d9488);
+}

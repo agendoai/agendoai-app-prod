@@ -14,6 +14,7 @@ import {
   Car,
   Home,
   Sparkles,
+  Clock,
 } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -28,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/use-auth";
 import { LoadingSpinner } from "@/components/ui/loading-spinner";
 import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { TimeSlotSelector } from "@/components/booking/time-slot-selector";
 import { Service, TimeSlot } from "@/lib/utils";
 import { apiCall } from "@/lib/api";
@@ -117,7 +119,7 @@ export function NewBookingWizard({
       try {
         const duration = serviceExecutionTime || totalDuration || 30;
         const url = `/api/providers/${selectedProvider}/time-slots?date=${selectedDate.toISOString().split("T")[0]}&duration=${duration}`;
-        const response = await fetch(url);
+        const response = await apiCall(url);
         const data = await response.json();
         const allSlots = Array.isArray(data) ? data : data.timeSlots || [];
         
@@ -696,11 +698,12 @@ export function NewBookingWizard({
       {isLoadingNiches ? (
         <div className="flex justify-center py-8"><LoadingSpinner /></div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
-          {niches?.map((niche) => (
+        <div className="max-h-[400px] overflow-y-auto space-y-4 pr-2 scrollbar-teal">
+          <div className="grid grid-cols-1 gap-4">
+            {niches?.map((niche) => (
             <button
               key={niche.id}
-              className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
+              className={`w-full group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
                 selectedNicheId === niche.id
                   ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
                   : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
@@ -735,7 +738,8 @@ export function NewBookingWizard({
                 </div>
               )}
             </button>
-          ))}
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -752,11 +756,11 @@ export function NewBookingWizard({
       {isLoadingCategories ? (
         <div className="flex justify-center py-8"><LoadingSpinner /></div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="max-h-[200px] overflow-y-auto space-y-4 pr-2 scrollbar-teal">
           {categories?.map((cat) => (
             <button
               key={cat.id}
-              className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
+              className={`w-full group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
                 selectedCategoryId === cat.id
                   ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
                   : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
@@ -808,7 +812,7 @@ export function NewBookingWizard({
       {isLoadingServices ? (
         <div className="flex justify-center py-8"><LoadingSpinner /></div>
       ) : (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="max-h-[200px] overflow-y-auto space-y-4 pr-2 scrollbar-teal">
           {services?.map((service) => (
             <div
               key={service.id}
@@ -930,7 +934,7 @@ export function NewBookingWizard({
           <p className="text-gray-600">Carregando profissionais disponíveis para sua data</p>
         </div>
       ) : providers && providers.length > 0 ? (
-        <div className="grid grid-cols-1 gap-4">
+        <div className="max-h-[320px] overflow-y-auto space-y-4 pr-2 scrollbar-teal">
           {providers.map((provider, index) => {
             const totals = calculateTotals(provider.id);
             const isProviderLoading = loadingProviderServices[provider.id];
@@ -938,7 +942,7 @@ export function NewBookingWizard({
             return (
               <button
                 key={provider.id}
-                className={`group relative overflow-hidden rounded-2xl p-6 transition-all duration-300 transform hover:scale-[1.02] ${
+                className={`w-full group relative overflow-hidden rounded-xl p-5 transition-all duration-300 transform hover:scale-[1.01] ${
                   selectedProvider === provider.id
                     ? 'bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-xl'
                     : 'bg-white border border-gray-200 hover:border-teal-300 hover:shadow-lg'
@@ -950,50 +954,78 @@ export function NewBookingWizard({
                 }}
                 disabled={isProviderLoading || isLoadingProviders}
               >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 ${
+                <div className="space-y-3">
+                  {/* Linha superior: Avatar, Nome e Status */}
+                  <div className="flex items-center space-x-3">
+                    <Avatar className={`w-10 h-10 rounded-full transition-transform group-hover:scale-110 flex-shrink-0 ${
                       selectedProvider === provider.id 
-                        ? 'bg-white/20' 
-                        : 'bg-teal-100'
+                        ? 'ring-2 ring-white/30' 
+                        : 'ring-2 ring-teal-100'
                     }`}>
-                      <span className="text-lg">👤</span>
-                    </div>
-                    <div className="text-left">
-                      <h3 className={`font-semibold text-lg ${
+                      <AvatarImage src={provider.profileImage || undefined} alt={provider.name} />
+                      <AvatarFallback className={`${
+                        selectedProvider === provider.id 
+                          ? 'bg-white/20 text-white' 
+                          : 'bg-teal-100 text-teal-600'
+                      } text-sm font-semibold`}>
+                        {provider.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="text-left flex-1">
+                      <h3 className={`font-semibold text-base ${
                         selectedProvider === provider.id ? 'text-white' : 'text-gray-800'
                       }`}>
                         {provider.name}
                       </h3>
-                      <p className={`text-sm mt-1 ${
+                      <p className={`text-sm mt-0.5 ${
                         selectedProvider === provider.id ? 'text-white/80' : 'text-gray-600'
                       }`}>
-                        {isProviderLoading ? 'Carregando serviços...' : 'Prestador disponível'}
+                        {isProviderLoading ? 'Carregando...' : 'Disponível'}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    {/* Mostrar apenas os serviços selecionados pelo cliente */}
-                    {providerServices[provider.id] && providerServices[provider.id].length > 0 && (
-                      <div className="space-y-1">
-                        {providerServices[provider.id].map((service, idx) => (
-                          <div key={service.id} className="text-sm font-semibold text-neutral-800">
-                            {`${service.name} - R$ ${(Number(service.price) / 100).toFixed(2).replace('.', ',')}`}
-
-                          </div>
+                  
+                  {/* Linha inferior: Serviços, Preço e Duração */}
+                  {providerServices[provider.id] && providerServices[provider.id].length > 0 && (
+                    <div className="space-y-2">
+                      {/* Serviços */}
+                      <div className="flex flex-wrap gap-1">
+                        {providerServices[provider.id].slice(0, 2).map((service, idx) => (
+                          <span key={service.id} className={`inline-block px-2 py-1 rounded-md text-xs ${
+                            selectedProvider === provider.id 
+                              ? 'bg-white/20 text-white' 
+                              : 'bg-gray-100 text-gray-700'
+                          }`}>
+                            {service.name}
+                          </span>
                         ))}
-                        {/* Mostrar preço total */}
-                        <div className="text-xs text-neutral-600 border-t pt-1">
-                          Total: R$ {(totals.price / 100).toFixed(2).replace('.', ',')}
+                        {providerServices[provider.id].length > 2 && (
+                          <span className={`inline-block px-2 py-1 rounded-md text-xs ${
+                            selectedProvider === provider.id 
+                              ? 'bg-white/10 text-white/70' 
+                              : 'bg-gray-50 text-gray-500'
+                          }`}>
+                            +{providerServices[provider.id].length - 2}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Preço e Duração */}
+                      <div className="flex items-center justify-between">
+                        <div className={`text-lg font-bold ${
+                          selectedProvider === provider.id ? 'text-white' : 'text-gray-800'
+                        }`}>
+                          R$ {(totals.price / 100).toFixed(2).replace('.', ',')}
+                        </div>
+                        <div className={`text-sm flex items-center gap-1 ${
+                          selectedProvider === provider.id ? 'text-white/80' : 'text-gray-600'
+                        }`}>
+                          <Clock className="w-4 h-4" />
+                          {totals.duration} min
                         </div>
                       </div>
-                    )}
-                    <div className={`text-sm ${
-                      selectedProvider === provider.id ? 'text-white/70' : 'text-gray-500'
-                    }`}>
-                      {totals.duration} min
                     </div>
-                  </div>
+                  )}
                 </div>
                 {selectedProvider === provider.id && (
                   <div className="absolute top-3 right-3">

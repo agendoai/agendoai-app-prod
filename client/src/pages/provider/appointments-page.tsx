@@ -259,7 +259,7 @@ export default function ProviderAppointmentsPage() {
 
   return (
     <ProviderLayout>
-      <div className="max-w-md mx-auto bg-white min-h-screen">
+      <div className="w-full bg-white min-h-screen">
         {/* Header com mês e ano */}
         <div className="px-4 pt-4 pb-2 bg-gray-50 border-b">
           <div className="flex items-center justify-between mb-1">

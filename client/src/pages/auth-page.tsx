@@ -164,7 +164,10 @@ export default function AuthPage() {
       let errorMessage = "Verifique seus dados e tente novamente.";
       
       if (error.message) {
-        if (error.message.includes('401') || error.message.includes('Unauthorized') || error.message.includes('credenciais')) {
+        if (error.message.includes('403') || error.message.includes('desativada') || error.message.includes('conta foi desativada')) {
+          errorTitle = "Conta desativada";
+          errorMessage = "Esta conta foi desativada. Entre em contato com o suporte se precisar reativar sua conta.";
+        } else if (error.message.includes('401') || error.message.includes('Unauthorized') || error.message.includes('credenciais')) {
           errorTitle = "Credenciais inválidas";
           errorMessage = "Email ou senha incorretos. Verifique e tente novamente.";
         } else if (error.message.includes('404') || error.message.includes('Not Found')) {
@@ -298,23 +301,23 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#58c9d1]/5 to-[#58c9d1]/10 p-3">
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-[#58c9d1]/5 to-[#58c9d1]/10 px-4 py-8">
       {/* Header */}
-      <div className="mb-4 w-full max-w-sm text-center">
-        <h1 className="text-2xl font-bold mb-2 text-gray-900">AgendoAI</h1>
-        <p className="text-sm mb-3 text-gray-600">Revolucione seus agendamentos com IA</p>
-        <div className="flex justify-center gap-2 mb-3 text-xs">
-          <span className="flex items-center gap-1 bg-[#58c9d1]/20 text-[#58c9d1] px-2 py-1 rounded-full font-medium">
-            <CheckCircle className="h-3 w-3" /> Agendamento inteligente
+      <div className="mb-6 w-full max-w-md text-center">
+        <h1 className="text-3xl md:text-4xl font-bold mb-3 text-gray-900">AgendoAI</h1>
+        <p className="text-base md:text-lg mb-4 text-gray-600">Revolucione seus agendamentos com IA</p>
+        <div className="flex flex-wrap justify-center gap-2 mb-4 text-sm">
+          <span className="flex items-center gap-1 bg-[#58c9d1]/20 text-[#58c9d1] px-3 py-2 rounded-full font-medium">
+            <CheckCircle className="h-4 w-4" /> Agendamento inteligente
           </span>
-          <span className="flex items-center gap-1 bg-[#58c9d1]/20 text-[#58c9d1] px-2 py-1 rounded-full font-medium">
-            <Calendar className="h-3 w-3" /> Gestão de agenda
+          <span className="flex items-center gap-1 bg-[#58c9d1]/20 text-[#58c9d1] px-3 py-2 rounded-full font-medium">
+            <Calendar className="h-4 w-4" /> Gestão de agenda
           </span>
         </div>
       </div>
 
       {/* Cartão de autenticação */}
-      <div className="w-full max-w-sm bg-white/95 backdrop-blur-sm rounded-xl border border-[#58c9d1]/20 shadow-lg p-4">
+      <div className="w-full max-w-md bg-white/95 backdrop-blur-sm rounded-xl border border-[#58c9d1]/20 shadow-lg p-6">
         <img
           src="/AgendoAilogo.png"
           alt="AgendoAI Logo"
@@ -576,7 +579,7 @@ export default function AuthPage() {
           </>
         )}
         
-        <div className="w-full text-center mt-4 text-xs text-gray-400 font-medium">
+        <div className="w-full text-center mt-6 text-sm text-gray-400 font-medium">
           &copy; {new Date().getFullYear()} AgendoAI. Todos os direitos reservados.
         </div>
       </div>

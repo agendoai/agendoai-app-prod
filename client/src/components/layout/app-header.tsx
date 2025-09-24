@@ -174,14 +174,14 @@ function AppHeader({
       initial={{ opacity: 0.8, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className={`sticky top-0 z-50 ${transparent ? '' : 'border-b bg-[#3EB9AA]'} h-14 flex items-center px-4 ${className}`}
+      className={`sticky top-0 z-50 ${transparent ? '' : 'border-b bg-[#3EB9AA]'} h-14 flex items-center px-0 ${className}`}
     >
       {showBackButton && (
         <Button
           variant="ghost"
           size="icon"
           onClick={handleBack}
-          className="mr-3 rounded-full p-1 text-white hover:bg-white/20"
+          className="mr-3 ml-4 rounded-full p-1 text-white hover:bg-white/20"
           aria-label="Voltar"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -189,11 +189,11 @@ function AppHeader({
       )}
       
       {title && (
-        <h1 className="text-lg font-semibold flex-1 text-white">{title}</h1>
+        <h1 className="text-lg font-semibold flex-1 text-white px-4">{title}</h1>
       )}
       
       {showUserInfo && user && (
-        <div className="flex items-center mr-auto">
+        <div className="flex items-center mr-auto px-4">
           <Avatar className="h-8 w-8 mr-2">
             <AvatarImage src={user.profileImage || ''} alt={user.name || 'User'} />
             <AvatarFallback>
@@ -211,7 +211,7 @@ function AppHeader({
         </div>
       )}
       
-      <div className="flex items-center gap-2 ml-auto">
+      <div className="flex items-center gap-2 ml-auto pr-4">
         {showNotificationIcon && (
           <Button
             variant="ghost"

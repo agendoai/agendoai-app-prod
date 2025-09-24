@@ -128,8 +128,8 @@ export default function ProviderNotificationsPage() {
         
         <div className="relative z-10">
           {/* Header */}
-          <header className="bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] text-white py-6 shadow-lg rounded-xl mb-6">
-            <div className="container mx-auto px-4">
+          <header className="bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] text-white py-0 shadow-lg rounded-xl mb-6">
+            <div className="container mx-auto px-4 py-6">
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
                   <Button 

@@ -278,9 +278,9 @@ type AppointmentStatusUpdateParams = {
   return (
     <>
     <Card
-      className={`relative border-0 shadow-xl rounded-2xl mb-4 transition-transform duration-200 hover:-translate-y-1 hover:shadow-2xl hover:ring-2 hover:ring-blue-200 bg-white/90 group`}
+      className={`relative border-0 shadow-xl rounded-2xl mb-4 transition-transform duration-200 hover:-translate-y-1 hover:shadow-2xl hover:ring-2 hover:ring-blue-200 bg-white/90 group w-full`}
     >
-      <CardContent className="p-5 flex items-center gap-4">
+      <CardContent className="p-5 flex items-center gap-4 w-full">
         {/* Avatar */}
         <Avatar className="w-14 h-14 shadow-md">
           <AvatarImage 
