@@ -376,10 +376,10 @@ export default function ProviderProfilePage() {
   // Estado para controlar o modal de permissão de câmera
   const [showCameraPermissionModal, setShowCameraPermissionModal] = useState(false);
 
-  // Função para mostrar modal de permissão de câmera diretamente
+  // Abrir seletor de arquivo diretamente ao clicar em Trocar Foto
   const handleImageUploadOptions = (type: 'profile' | 'cover') => {
     setImageSourceType(type);
-    setShowCameraPermissionModal(true);
+    handleGallerySelect(type);
   };
 
   // Função para escolher da galeria
@@ -392,10 +392,10 @@ export default function ProviderProfilePage() {
     setShowImageSourceModal(false);
   };
 
-  // Função para lidar com a confirmação da permissão da câmera
+  // Função para confirmar troca e abrir seletor de arquivo diretamente
   const handleCameraPermissionConfirmed = () => {
     setShowCameraPermissionModal(false);
-    setShowImageSourceModal(true);
+    handleGallerySelect(imageSourceType);
   };
  // Função para capturar foto com a câmera
   const handleCameraCapture = async (type: 'profile' | 'cover') => {
@@ -1709,87 +1709,9 @@ export default function ProviderProfilePage() {
           </DialogContent>
         </Dialog>
         
-        {/* Modal de seleção de fonte da imagem */}
-        <Dialog open={showImageSourceModal} onOpenChange={setShowImageSourceModal}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-semibold text-center">
-                Escolher {imageSourceType === 'profile' ? 'Foto de Perfil' : 'Imagem de Capa'}
-              </DialogTitle>
-              <DialogDescription className="text-center text-gray-600">
-                Como você gostaria de adicionar sua {imageSourceType === 'profile' ? 'foto de perfil' : 'imagem de capa'}?
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="grid grid-cols-1 gap-4 py-4">
-              <Button
-                onClick={() => handleGallerySelect(imageSourceType)}
-                className="flex items-center justify-center gap-3 h-16 bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] hover:from-[#4aadb5] hover:to-[#58c9d1] text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
-              >
-                <ImageIcon className="h-6 w-6" />
-                <div className="text-left">
-                  <div className="font-semibold">Escolher da Galeria</div>
-                  <div className="text-sm opacity-90">Selecione uma foto existente</div>
-                </div>
-              </Button>
-              
-              <Button
-                onClick={() => handleCameraCapture(imageSourceType)}
-                variant="outline"
-                className="flex items-center justify-center gap-3 h-16 border-2 border-[#58c9d1] text-[#58c9d1] hover:bg-[#58c9d1]/10 font-medium shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105"
-              >
-                <Camera className="h-6 w-6" />
-                <div className="text-left">
-                  <div className="font-semibold">Tirar Foto</div>
-                  <div className="text-sm opacity-75">Use a câmera do dispositivo</div>
-                </div>
-              </Button>
-            </div>
-            
-            <DialogFooter className="sm:justify-center">
-              <Button
-                variant="ghost"
-                onClick={() => setShowImageSourceModal(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                Cancelar
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* Modal de seleção de fonte da imagem removido */}
         
-        {/* Modal de validação de permissão de câmera */}
-        <Dialog open={showCameraPermissionModal} onOpenChange={setShowCameraPermissionModal}>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle className="text-xl font-semibold text-center">
-                Permissão de Câmera
-              </DialogTitle>
-              <DialogDescription className="text-center text-gray-600">
-                Você permite acessar a câmera para trocar sua {imageSourceType === 'profile' ? 'foto de perfil' : 'foto de capa'}?
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="grid grid-cols-2 gap-4 py-4">
-              <Button
-                onClick={() => handleCameraPermissionConfirmed()}
-                className="flex items-center justify-center gap-2 h-12 bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] hover:from-[#4aadb5] hover:to-[#58c9d1] text-white font-medium shadow-lg hover:shadow-xl transition-all duration-300"
-              >
-                <Check className="h-5 w-5" />
-                Sim
-              </Button>
-              
-              <Button
-                onClick={() => setShowCameraPermissionModal(false)}
-                variant="outline"
-                className="flex items-center justify-center gap-2 h-12 border-2 border-gray-300 text-gray-600 hover:bg-gray-50 font-medium shadow-md hover:shadow-lg transition-all duration-300"
-              >
-                <X className="h-5 w-5" />
-                Não
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+        {/* Modal de confirmação removido */}
         </div>
       </div>
     </ProviderLayout>
