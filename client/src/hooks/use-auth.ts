@@ -52,7 +52,14 @@ export interface AuthContextType {
 
 function useAuthProvider(): AuthContextType {
   const queryClient = useQueryClient();
-  const [isInitialized, setIsInitialized] = useState(false);
+
+  // Função para obter token de múltiplas fontes
+  const getToken = () => {
+    let token = localStorage.getItem('authToken');
+    if (!token) token = sessionStorage.getItem('authToken');
+    if (!token && window.authToken) token = window.authToken as string;
+    return token;
+  };
 
   // Busca o usuário logado
   const { 
@@ -70,18 +77,24 @@ function useAuthProvider(): AuthContextType {
         }
         return await response.json();
       } catch (error) {
-        console.error('Erro ao buscar usuário:', error);
+        // Evitar ruído quando não há token (401/403)
+        // Apenas propagar o erro para o estado da query
         throw error;
       }
     },
     retry: false,
-    enabled: isInitialized
+    // Só buscar usuário se houver token
+    enabled: !!getToken()
   });
 
-  // Inicializa o hook quando montado
+  // Sincronizar estado quando o token mudar (ex.: após login/logout)
   useEffect(() => {
-    setIsInitialized(true);
-  }, []);
+    // Invalida e refetch quando existir token
+    const token = getToken();
+    if (token) {
+      queryClient.invalidateQueries({ queryKey: ['user'] });
+    }
+  }, [queryClient]);
 
   // Função para realizar login
   const login = useCallback(async (email: string, password: string) => {
