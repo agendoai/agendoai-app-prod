@@ -532,60 +532,127 @@ export default function ProviderDashboard() {
                   </h2>
                 </div>
                 
-                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6">
-                  <Button 
-                    onClick={() => setLocation("/provider/manual-booking")}
-                    className="h-12 md:h-14 lg:h-16 flex flex-col md:flex-row items-center justify-center space-y-1 md:space-y-0 md:space-x-2 bg-white hover:bg-gray-50 border-2 border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 rounded-lg"
-                    style={{color: '#58c9d1', borderColor: '#58c9d1'}}
+                <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
+                  {/* Novo Agendamento */}
+                  <motion.div
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
                   >
-                    <CalendarPlus className="h-4 w-4 md:h-5 md:w-5" />
-                    <span className="font-medium text-xs md:text-sm lg:text-base">Novo Agendamento</span>
-                  </Button>
+                    <Button 
+                      onClick={() => setLocation("/provider/manual-booking")}
+                      className="group h-16 md:h-18 lg:h-20 w-full flex flex-col items-center justify-center space-y-2 bg-gradient-to-br from-[#58c9d1] via-[#4aadb5] to-[#3d9ba3] hover:from-[#4aadb5] hover:via-[#3d9ba3] hover:to-[#58c9d1] text-white border-0 shadow-lg hover:shadow-xl hover:shadow-[#58c9d1]/30 transition-all duration-300 rounded-2xl relative overflow-hidden"
+                    >
+                      {/* Efeito de brilho */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out"></div>
+                      
+                      <div className="relative z-10 flex flex-col items-center space-y-2">
+                        <div className="p-2 bg-white/20 rounded-xl group-hover:bg-white/30 transition-all duration-300">
+                          <CalendarPlus className="h-5 w-5 md:h-6 md:w-6" />
+                        </div>
+                        <span className="font-semibold text-xs md:text-sm lg:text-base text-center leading-tight">
+                          Novo Agendamento
+                        </span>
+                      </div>
+                    </Button>
+                  </motion.div>
                   
-                  <Button 
-                    onClick={() => setLocation("/provider/schedule")}
-                    className="h-12 md:h-14 lg:h-16 flex flex-col md:flex-row items-center justify-center space-y-1 md:space-y-0 md:space-x-2 bg-white hover:bg-gray-50 border-2 border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 rounded-lg"
-                    style={{color: '#58c9d1', borderColor: '#58c9d1'}}
+                  {/* Horários */}
+                  <motion.div
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
                   >
-                    <Settings className="h-4 w-4 md:h-5 md:w-5" />
-                    <span className="font-medium text-xs md:text-sm lg:text-base">Horários</span>
-                  </Button>
+                    <Button 
+                      onClick={() => setLocation("/provider/schedule")}
+                      className="group h-16 md:h-18 lg:h-20 w-full flex flex-col items-center justify-center space-y-2 bg-gradient-to-br from-[#58c9d1] via-[#4aadb5] to-[#3d9ba3] hover:from-[#4aadb5] hover:via-[#3d9ba3] hover:to-[#58c9d1] text-white border-0 shadow-lg hover:shadow-xl hover:shadow-[#58c9d1]/30 transition-all duration-300 rounded-2xl relative overflow-hidden"
+                    >
+                      {/* Efeito de brilho */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out"></div>
+                      
+                      <div className="relative z-10 flex flex-col items-center space-y-2">
+                        <div className="p-2 bg-white/20 rounded-xl group-hover:bg-white/30 transition-all duration-300">
+                          <Settings className="h-5 w-5 md:h-6 md:w-6" />
+                        </div>
+                        <span className="font-semibold text-xs md:text-sm lg:text-base text-center leading-tight">
+                          Horários
+                        </span>
+                      </div>
+                    </Button>
+                  </motion.div>
                   
-                  <Button 
-                    onClick={() => setLocation("/provider/services")}
-                    className="h-12 md:h-14 lg:h-16 flex flex-col md:flex-row items-center justify-center space-y-1 md:space-y-0 md:space-x-2 bg-white hover:bg-gray-50 border-2 border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 rounded-lg"
-                    style={{color: '#58c9d1', borderColor: '#58c9d1'}}
+                  {/* Serviços */}
+                  <motion.div
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
                   >
-                    <Scissors className="h-4 w-4 md:h-5 md:w-5" />
-                    <span className="font-medium text-xs md:text-sm lg:text-base">Serviços</span>
-                  </Button>
+                    <Button 
+                      onClick={() => setLocation("/provider/services")}
+                      className="group h-16 md:h-18 lg:h-20 w-full flex flex-col items-center justify-center space-y-2 bg-gradient-to-br from-[#58c9d1] via-[#4aadb5] to-[#3d9ba3] hover:from-[#4aadb5] hover:via-[#3d9ba3] hover:to-[#58c9d1] text-white border-0 shadow-lg hover:shadow-xl hover:shadow-[#58c9d1]/30 transition-all duration-300 rounded-2xl relative overflow-hidden"
+                    >
+                      {/* Efeito de brilho */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out"></div>
+                      
+                      <div className="relative z-10 flex flex-col items-center space-y-2">
+                        <div className="p-2 bg-white/20 rounded-xl group-hover:bg-white/30 transition-all duration-300">
+                          <Scissors className="h-5 w-5 md:h-6 md:w-6" />
+                        </div>
+                        <span className="font-semibold text-xs md:text-sm lg:text-base text-center leading-tight">
+                          Serviços
+                        </span>
+                      </div>
+                    </Button>
+                  </motion.div>
                   
-                  <Button 
-                    onClick={() => setLocation("/provider/analytics")}
-                    className="h-12 md:h-14 lg:h-16 flex flex-col md:flex-row items-center justify-center space-y-1 md:space-y-0 md:space-x-2 bg-white hover:bg-gray-50 border-2 border-gray-200 shadow-sm hover:shadow-md transition-all duration-300 rounded-lg"
-                    style={{color: '#58c9d1', borderColor: '#58c9d1'}}
+                  {/* Analytics */}
+                  <motion.div
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    transition={{ type: "spring", stiffness: 300, damping: 20 }}
                   >
-                    <BarChart className="h-4 w-4 md:h-5 md:w-5" />
-                    <span className="font-medium text-xs md:text-sm lg:text-base">Analytics</span>
-                  </Button>
+                    <Button 
+                      onClick={() => setLocation("/provider/analytics")}
+                      className="group h-16 md:h-18 lg:h-20 w-full flex flex-col items-center justify-center space-y-2 bg-gradient-to-br from-[#58c9d1] via-[#4aadb5] to-[#3d9ba3] hover:from-[#4aadb5] hover:via-[#3d9ba3] hover:to-[#58c9d1] text-white border-0 shadow-lg hover:shadow-xl hover:shadow-[#58c9d1]/30 transition-all duration-300 rounded-2xl relative overflow-hidden"
+                    >
+                      {/* Efeito de brilho */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out"></div>
+                      
+                      <div className="relative z-10 flex flex-col items-center space-y-2">
+                        <div className="p-2 bg-white/20 rounded-xl group-hover:bg-white/30 transition-all duration-300">
+                          <BarChart className="h-5 w-5 md:h-6 md:w-6" />
+                        </div>
+                        <span className="font-semibold text-xs md:text-sm lg:text-base text-center leading-tight">
+                          Analytics
+                        </span>
+                      </div>
+                    </Button>
+                  </motion.div>
                 </div>
               </div>
 
                 {/* Services */}
-                <div className="w-full bg-white border border-gray-200 p-4 md:p-6 lg:p-8 rounded-lg shadow-sm mx-0 max-w-full">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
-                      <Scissors className="h-5 w-5 md:h-6 md:w-6" style={{color: '#58c9d1'}} />
-                      Meus Serviços
-                    </h2>
+                <div className="w-full bg-white border border-[#58c9d1]/20 p-4 md:p-6 lg:p-8 rounded-2xl shadow-lg shadow-[#58c9d1]/10 mx-0 max-w-full relative overflow-hidden">
+                  {/* Subtle background gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#58c9d1]/5 via-transparent to-[#58c9d1]/5 pointer-events-none"></div>
+                  
+                  <div className="relative z-10 flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-gradient-to-br from-[#58c9d1] to-[#4aadb5] rounded-2xl shadow-lg shadow-[#58c9d1]/30">
+                        <Scissors className="h-6 w-6 md:h-7 md:w-7 text-white" />
+                      </div>
+                      <h2 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] bg-clip-text text-transparent">
+                        Meus Serviços
+                      </h2>
+                    </div>
                     <Button 
                       variant="ghost" 
                       size="sm"
                       onClick={() => setLocation("/provider/services")}
-                      className="text-sm font-medium hover:text-gray-900 px-3 py-2 rounded-lg"
+                      className="group text-sm font-semibold hover:bg-[#58c9d1]/10 px-4 py-2 rounded-xl transition-all duration-300 border border-[#58c9d1]/20 hover:border-[#58c9d1]/40"
                       style={{color: '#58c9d1'}}
                     >
-                      Ver todos →
+                      <span className="group-hover:translate-x-1 transition-transform duration-300">Ver todos →</span>
                     </Button>
                   </div>
                   
@@ -604,70 +671,101 @@ export default function ProviderDashboard() {
                   ) : services.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                       {services.slice(0, 4).map((service: any) => (
-                        <Card 
-                          key={service.id} 
-                          className="border border-neutral-200 shadow-sm bg-white hover:shadow-md cursor-pointer transition-all duration-300 group"
-                          onClick={() => setLocation("/provider/services")}
+                        <motion.div
+                          key={service.id}
+                          whileHover={{ scale: 1.02, y: -2 }}
+                          whileTap={{ scale: 0.98 }}
+                          transition={{ type: "spring", stiffness: 300, damping: 20 }}
                         >
-                          <CardContent className="p-4">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="w-6 h-6 rounded-lg bg-[#58c9d1]/10 flex items-center justify-center">
-                                <Scissors className="h-4 w-4 text-[#58c9d1]" />
+                          <Card 
+                            className="border border-[#58c9d1]/20 shadow-lg shadow-[#58c9d1]/10 bg-white hover:shadow-xl hover:shadow-[#58c9d1]/20 cursor-pointer transition-all duration-300 group relative overflow-hidden"
+                            onClick={() => setLocation("/provider/services")}
+                          >
+                            {/* Subtle background gradient */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-[#58c9d1]/5 via-transparent to-[#58c9d1]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            
+                            <CardContent className="p-5 relative z-10">
+                              <div className="flex items-center justify-between mb-3">
+                                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-[#58c9d1] to-[#4aadb5] flex items-center justify-center shadow-lg shadow-[#58c9d1]/30">
+                                  <Scissors className="h-4 w-4 text-white" />
+                                </div>
+                                <div className="text-xs text-[#58c9d1] bg-[#58c9d1]/10 px-3 py-1 rounded-full font-medium border border-[#58c9d1]/20">
+                                  {service.categoryName || "Categoria"}
+                                </div>
                               </div>
-                              <div className="text-xs text-neutral-500 bg-neutral-100 px-2 py-1 rounded-full">
-                                {service.categoryName || "Categoria"}
-                              </div>
-                            </div>
-                            <h3 className="font-semibold text-neutral-900 mb-2 truncate group-hover:text-[#58c9d1] transition-colors">
-                              {service.serviceName}
-                            </h3>
-                            <p className="text-lg font-bold text-green-600">
-                              {service.price != null ? formatCurrency(service.price || 0) : service.defaultPrice ? formatCurrency(service.defaultPrice || 0) : "R$ 0,00"}
-                            </p>
-                          </CardContent>
-                        </Card>
+                              <h3 className="font-bold text-gray-900 mb-3 truncate group-hover:text-[#58c9d1] transition-colors duration-300">
+                                {service.serviceName}
+                              </h3>
+                              <p className="text-xl font-bold bg-gradient-to-r from-green-600 to-green-500 bg-clip-text text-transparent">
+                                {service.price != null ? formatCurrency(service.price || 0) : service.defaultPrice ? formatCurrency(service.defaultPrice || 0) : "R$ 0,00"}
+                              </p>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
                       ))}
                     </div>
                   ) : (
-                    <Card className="border-2 border-dashed border-gray-300 bg-gray-50/50 p-6 text-center">
-                      <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-4">
-                        <Scissors className="h-6 w-6 text-gray-400" />
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum serviço</h3>
-                      <p className="text-gray-600 mb-4 max-w-sm mx-auto">
-                        Crie seu primeiro serviço para começar a receber agendamentos
-                      </p>
-                      <Button 
-                        onClick={() => setLocation("/provider/services")} 
-                        size="sm"
-                        className="text-white shadow-lg hover:shadow-xl transition-all duration-300"
-                        style={{background: 'linear-gradient(to right, #58c9d1, #4fb3c4)'}}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Cadastrar Serviço
-                      </Button>
-                    </Card>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <Card className="border-2 border-dashed border-[#58c9d1]/30 bg-gradient-to-br from-[#58c9d1]/5 to-[#58c9d1]/10 p-8 text-center relative overflow-hidden">
+                        {/* Decorative elements */}
+                        <div className="absolute top-4 right-4 w-16 h-16 bg-[#58c9d1]/10 rounded-full blur-xl"></div>
+                        <div className="absolute bottom-4 left-4 w-12 h-12 bg-[#58c9d1]/10 rounded-full blur-lg"></div>
+                        
+                        <div className="relative z-10">
+                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#58c9d1] to-[#4aadb5] flex items-center justify-center mx-auto mb-6 shadow-lg shadow-[#58c9d1]/30">
+                            <Scissors className="h-8 w-8 text-white" />
+                          </div>
+                          <h3 className="text-xl font-bold text-gray-900 mb-3">Nenhum serviço cadastrado</h3>
+                          <p className="text-gray-600 mb-6 max-w-sm mx-auto leading-relaxed">
+                            Crie seu primeiro serviço para começar a receber agendamentos dos seus clientes
+                          </p>
+                          <Button 
+                            onClick={() => setLocation("/provider/services")} 
+                            size="lg"
+                            className="group text-white shadow-lg hover:shadow-xl transition-all duration-300 rounded-xl px-6 py-3 bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] hover:from-[#4aadb5] hover:to-[#58c9d1] transform hover:scale-105"
+                          >
+                            <Plus className="h-5 w-5 mr-2 group-hover:rotate-90 transition-transform duration-300" />
+                            Cadastrar Primeiro Serviço
+                          </Button>
+                        </div>
+                      </Card>
+                    </motion.div>
                   )}
                 </div>
                 
                 {/* Today's Appointments */}
-                <div className="w-full bg-white border border-gray-200 p-4 md:p-6 lg:p-8 rounded-lg shadow-sm mx-0 max-w-full">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
-                      <Calendar className="h-5 w-5 md:h-6 md:w-6 text-gray-700" />
-                      Agendamentos de hoje
-                    </h2>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium">
-                        {todayAppointments.length}
-                      </span>
+                <div className="w-full bg-white border border-[#58c9d1]/20 p-4 md:p-6 lg:p-8 rounded-2xl shadow-lg shadow-[#58c9d1]/10 mx-0 max-w-full relative overflow-hidden">
+                  {/* Subtle background gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#58c9d1]/5 via-transparent to-[#58c9d1]/5 pointer-events-none"></div>
+                  
+                  <div className="relative z-10 flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-gradient-to-br from-[#58c9d1] to-[#4aadb5] rounded-2xl shadow-lg shadow-[#58c9d1]/30">
+                        <Calendar className="h-6 w-6 md:h-7 md:w-7 text-white" />
+                      </div>
+                      <h2 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] bg-clip-text text-transparent">
+                        Agendamentos de hoje
+                      </h2>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 bg-[#58c9d1]/10 px-4 py-2 rounded-xl border border-[#58c9d1]/20">
+                        <div className="w-2 h-2 bg-[#58c9d1] rounded-full animate-pulse"></div>
+                        <span className="text-sm font-semibold text-[#58c9d1]">
+                          {todayAppointments.length}
+                        </span>
+                      </div>
                       <Button 
                         variant="ghost" 
                         size="sm"
                         onClick={() => setLocation("/provider/appointments-management")}
-                        className="text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 px-3 py-2 rounded-lg"
+                        className="group text-sm font-semibold hover:bg-[#58c9d1]/10 px-4 py-2 rounded-xl transition-all duration-300 border border-[#58c9d1]/20 hover:border-[#58c9d1]/40"
+                        style={{color: '#58c9d1'}}
                       >
-                        Ver todos →
+                        <span className="group-hover:translate-x-1 transition-transform duration-300">Ver todos →</span>
                       </Button>
                     </div>
                   </div>
@@ -694,60 +792,101 @@ export default function ProviderDashboard() {
                     </div>
                   ) : todayAppointments.length > 0 ? (
                     <div>
-                      <div className="space-y-3 max-h-80 overflow-y-auto pr-2" style={{
+                      <div className="space-y-4 max-h-80 overflow-y-auto pr-2" style={{
                         scrollbarWidth: 'thin',
-                        scrollbarColor: '#d1d5db #f3f4f6'
+                        scrollbarColor: '#58c9d1 #f3f4f6'
                       }}>
-                        {todayAppointments.map((appointment) => (
-                          <Card key={appointment.id} className="border-0 shadow-sm bg-gray-100/80 backdrop-blur-sm hover:bg-gray-200/90 transition-colors">
-                            <CardContent className="p-4">
-                              <div className="flex justify-between items-center mb-3">
-                                <span className="font-medium text-gray-900">{appointment.clientName}</span>
-                                <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{appointment.time}</span>
-                              </div>
-                              <div className="flex items-center">
-                                <div className="w-10 h-10 rounded-xl flex items-center justify-center mr-3" style={{background: 'linear-gradient(to bottom right, #58c9d1, #4fb3c4)'}}>
-                                  <Calendar className="h-5 w-5 text-white" />
+                        {todayAppointments.map((appointment, index) => (
+                          <motion.div
+                            key={appointment.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.1 }}
+                          >
+                            <Card className="border border-[#58c9d1]/20 shadow-lg shadow-[#58c9d1]/10 bg-white hover:shadow-xl hover:shadow-[#58c9d1]/20 transition-all duration-300 group relative overflow-hidden">
+                              {/* Subtle background gradient */}
+                              <div className="absolute inset-0 bg-gradient-to-br from-[#58c9d1]/5 via-transparent to-[#58c9d1]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                              
+                              <CardContent className="p-5 relative z-10">
+                                <div className="flex justify-between items-center mb-4">
+                                  <span className="font-bold text-gray-900 group-hover:text-[#58c9d1] transition-colors">{appointment.clientName}</span>
+                                  <div className="flex items-center gap-2 bg-[#58c9d1]/10 px-3 py-1 rounded-xl border border-[#58c9d1]/20">
+                                    <div className="w-2 h-2 bg-[#58c9d1] rounded-full animate-pulse"></div>
+                                    <span className="text-sm font-semibold text-[#58c9d1]">{appointment.time}</span>
+                                  </div>
                                 </div>
-                                <div className="flex-1">
-                                  <p className="font-medium text-gray-900 truncate">{appointment.serviceName}</p>
-                                  <p className="text-sm text-gray-600">Agendamento confirmado</p>
+                                <div className="flex items-center">
+                                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#58c9d1] to-[#4aadb5] flex items-center justify-center mr-4 shadow-lg shadow-[#58c9d1]/30">
+                                    <Calendar className="h-6 w-6 text-white" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="font-bold text-gray-900 truncate group-hover:text-[#58c9d1] transition-colors">{appointment.serviceName}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                      <p className="text-sm text-green-600 font-medium">Agendamento confirmado</p>
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
-                            </CardContent>
-                          </Card>
+                              </CardContent>
+                            </Card>
+                          </motion.div>
                         ))}
                       </div>
                     </div>
                   ) : (
-                    <Card className="border-0 shadow-sm bg-gray-100/80 backdrop-blur-sm p-6 text-center">
-                      <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-4">
-                        <Calendar className="h-8 w-8 text-gray-400" />
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">Nenhum agendamento</h3>
-                      <p className="text-gray-600">Não há agendamentos para hoje</p>
-                    </Card>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <Card className="border-2 border-dashed border-[#58c9d1]/30 bg-gradient-to-br from-[#58c9d1]/5 to-[#58c9d1]/10 p-8 text-center relative overflow-hidden">
+                        {/* Decorative elements */}
+                        <div className="absolute top-4 right-4 w-16 h-16 bg-[#58c9d1]/10 rounded-full blur-xl"></div>
+                        <div className="absolute bottom-4 left-4 w-12 h-12 bg-[#58c9d1]/10 rounded-full blur-lg"></div>
+                        
+                        <div className="relative z-10">
+                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#58c9d1] to-[#4aadb5] flex items-center justify-center mx-auto mb-6 shadow-lg shadow-[#58c9d1]/30">
+                            <Calendar className="h-8 w-8 text-white" />
+                          </div>
+                          <h3 className="text-xl font-bold text-gray-900 mb-3">Nenhum agendamento hoje</h3>
+                          <p className="text-gray-600 leading-relaxed">
+                            Que tal aproveitar para organizar sua agenda ou atualizar seus serviços?
+                          </p>
+                        </div>
+                      </Card>
+                    </motion.div>
                   )}
                 </div>
                 
                 {/* Upcoming Appointments */}
-                <div className="w-full bg-white border border-gray-200 p-4 md:p-6 lg:p-8 rounded-lg shadow-sm mx-0 max-w-full">
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-xl md:text-2xl font-bold text-gray-900 flex items-center gap-2">
-                      <Calendar className="h-5 w-5 md:h-6 md:w-6 text-gray-700" />
-                      Próximos agendamentos
-                    </h2>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-500 bg-gray-100 px-3 py-1 rounded-full font-medium">
-                        {upcomingAppointments.length}
-                      </span>
+                <div className="w-full bg-white border border-[#58c9d1]/20 p-4 md:p-6 lg:p-8 rounded-2xl shadow-lg shadow-[#58c9d1]/10 mx-0 max-w-full relative overflow-hidden">
+                  {/* Subtle background gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#58c9d1]/5 via-transparent to-[#58c9d1]/5 pointer-events-none"></div>
+                  
+                  <div className="relative z-10 flex items-center justify-between mb-6">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-gradient-to-br from-[#58c9d1] to-[#4aadb5] rounded-2xl shadow-lg shadow-[#58c9d1]/30">
+                        <Calendar className="h-6 w-6 md:h-7 md:w-7 text-white" />
+                      </div>
+                      <h2 className="text-xl md:text-2xl font-bold bg-gradient-to-r from-[#58c9d1] to-[#4aadb5] bg-clip-text text-transparent">
+                        Próximos agendamentos
+                      </h2>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2 bg-[#58c9d1]/10 px-4 py-2 rounded-xl border border-[#58c9d1]/20">
+                        <div className="w-2 h-2 bg-[#58c9d1] rounded-full animate-pulse"></div>
+                        <span className="text-sm font-semibold text-[#58c9d1]">
+                          {upcomingAppointments.length}
+                        </span>
+                      </div>
                       <Button 
                         variant="ghost" 
                         size="sm"
                         onClick={() => setLocation("/provider/appointments-management")}
-                        className="text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                        className="group text-sm font-semibold hover:bg-[#58c9d1]/10 px-4 py-2 rounded-xl transition-all duration-300 border border-[#58c9d1]/20 hover:border-[#58c9d1]/40"
+                        style={{color: '#58c9d1'}}
                       >
-                        Ver todos →
+                        <span className="group-hover:translate-x-1 transition-transform duration-300">Ver todos →</span>
                       </Button>
                     </div>
                   </div>
@@ -776,37 +915,67 @@ export default function ProviderDashboard() {
                     <div>
                       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 max-h-80 overflow-y-auto pr-2" style={{
                         scrollbarWidth: 'thin',
-                        scrollbarColor: '#d1d5db #f3f4f6'
+                        scrollbarColor: '#58c9d1 #f3f4f6'
                       }}>
-                        {upcomingAppointments.map((appointment) => (
-                          <Card key={appointment.id} className="border-0 shadow-sm bg-gray-100/80 backdrop-blur-sm hover:bg-gray-200/90 transition-colors">
-                            <CardContent className="p-4">
-                              <div className="flex justify-between items-center mb-3">
-                                <span className="font-medium text-gray-900">{appointment.clientName}</span>
-                                <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded-full">{appointment.time}</span>
-                              </div>
-                              <div className="flex items-center">
-                                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mr-3">
-                                  <Calendar className="h-5 w-5 text-white" />
+                        {upcomingAppointments.map((appointment, index) => (
+                          <motion.div
+                            key={appointment.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3, delay: index * 0.1 }}
+                          >
+                            <Card className="border border-[#58c9d1]/20 shadow-lg shadow-[#58c9d1]/10 bg-white hover:shadow-xl hover:shadow-[#58c9d1]/20 transition-all duration-300 group relative overflow-hidden">
+                              {/* Subtle background gradient */}
+                              <div className="absolute inset-0 bg-gradient-to-br from-[#58c9d1]/5 via-transparent to-[#58c9d1]/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                              
+                              <CardContent className="p-5 relative z-10">
+                                <div className="flex justify-between items-center mb-4">
+                                  <span className="font-bold text-gray-900 group-hover:text-[#58c9d1] transition-colors">{appointment.clientName}</span>
+                                  <div className="flex items-center gap-2 bg-[#58c9d1]/10 px-3 py-1 rounded-xl border border-[#58c9d1]/20">
+                                    <div className="w-2 h-2 bg-[#58c9d1] rounded-full animate-pulse"></div>
+                                    <span className="text-sm font-semibold text-[#58c9d1]">{appointment.time}</span>
+                                  </div>
                                 </div>
-                                <div className="flex-1">
-                                  <p className="font-medium text-gray-900 truncate">{appointment.serviceName}</p>
-                                  <p className="text-sm text-gray-600">Agendamento confirmado</p>
+                                <div className="flex items-center">
+                                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#58c9d1] to-[#4aadb5] flex items-center justify-center mr-4 shadow-lg shadow-[#58c9d1]/30">
+                                    <Calendar className="h-6 w-6 text-white" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <p className="font-bold text-gray-900 truncate group-hover:text-[#58c9d1] transition-colors">{appointment.serviceName}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                      <p className="text-sm text-green-600 font-medium">Agendamento confirmado</p>
+                                    </div>
+                                  </div>
                                 </div>
-                              </div>
-                            </CardContent>
-                          </Card>
+                              </CardContent>
+                            </Card>
+                          </motion.div>
                         ))}
                       </div>
                     </div>
                   ) : (
-                    <Card className="border-0 shadow-sm bg-gray-100/80 backdrop-blur-sm p-8 text-center">
-                      <div className="w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center mx-auto mb-6">
-                        <Calendar className="h-10 w-10 text-gray-400" />
-                      </div>
-                      <h3 className="text-xl font-semibold text-gray-900 mb-3">Nenhum agendamento</h3>
-                      <p className="text-gray-600">Não há agendamentos futuros</p>
-                    </Card>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <Card className="border-2 border-dashed border-[#58c9d1]/30 bg-gradient-to-br from-[#58c9d1]/5 to-[#58c9d1]/10 p-8 text-center relative overflow-hidden">
+                        {/* Decorative elements */}
+                        <div className="absolute top-4 right-4 w-16 h-16 bg-[#58c9d1]/10 rounded-full blur-xl"></div>
+                        <div className="absolute bottom-4 left-4 w-12 h-12 bg-[#58c9d1]/10 rounded-full blur-lg"></div>
+                        
+                        <div className="relative z-10">
+                          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-[#58c9d1] to-[#4aadb5] flex items-center justify-center mx-auto mb-6 shadow-lg shadow-[#58c9d1]/30">
+                            <Calendar className="h-8 w-8 text-white" />
+                          </div>
+                          <h3 className="text-xl font-bold text-gray-900 mb-3">Nenhum agendamento futuro</h3>
+                          <p className="text-gray-600 leading-relaxed">
+                            Os próximos agendamentos aparecerão aqui quando seus clientes fizerem reservas
+                          </p>
+                        </div>
+                      </Card>
+                    </motion.div>
                   )}
                 </div>
               </TabsContent>

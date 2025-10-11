@@ -112,14 +112,38 @@ export const apiCall = async (endpoint: string, options: RequestInit = {}) => {
   }
   
   if (!response.ok) {
-    // Tentar extrair mensagem de erro do JSON
+    // Tentar extrair mensagem de erro do JSON ou texto
+    let serverMessage = '';
+    let details: any = null;
+    const contentType = response.headers.get('content-type') || '';
+
     try {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `API call failed: ${response.status} ${response.statusText}`);
+      if (contentType.includes('application/json')) {
+        const errorData = await response.json();
+        serverMessage = errorData?.message || '';
+        details = errorData;
+      } else {
+        const text = await response.text();
+        try {
+          const parsed = JSON.parse(text);
+          serverMessage = parsed?.message || text;
+          details = parsed;
+        } catch {
+          serverMessage = text;
+        }
+      }
     } catch (jsonError) {
-      // Se não conseguir parsear JSON, usar status text
-      throw new Error(`API call failed: ${response.status} ${response.statusText}`);
+      try {
+        const text = await response.text();
+        serverMessage = text;
+      } catch {}
     }
+
+    const message = serverMessage?.trim() ? serverMessage : `API call failed: ${response.status} ${response.statusText}`;
+    const error: any = new Error(message);
+    error.status = response.status;
+    error.details = details;
+    throw error;
   }
   
   return response;
@@ -492,4 +516,4 @@ export const releaseAsaasProviderEscrowValue = async (providerId: number, amount
     body: JSON.stringify({ amount }),
   });
   return response.json();
-}; 
+};

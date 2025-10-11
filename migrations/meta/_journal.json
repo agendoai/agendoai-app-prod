@@ -15,6 +15,13 @@
       "when": 1758045406074,
       "tag": "0001_flaky_shockwave",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1760143112009,
+      "tag": "0002_fuzzy_praxagora",
+      "breakpoints": true
     }
   ]
 }

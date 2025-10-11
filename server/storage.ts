@@ -160,6 +160,7 @@ export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByCpf(cpf: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   getUsers(): Promise<User[]>;
   getUsersByType(userType: string): Promise<User[]>;
@@ -522,6 +523,14 @@ export class MemStorage implements IStorage {
     }
     
     return user;
+  }
+  
+  async getUserByCpf(cpf: string): Promise<User | undefined> {
+    const cleaned = (cpf || '').replace(/\D/g, '');
+    return Array.from(this.users.values()).find((user) => {
+      const userCpf = (user.cpf || '').replace(/\D/g, '');
+      return userCpf === cleaned || user.cpf === cpf;
+    });
   }
   
   async getUserByUsername(username: string): Promise<User | undefined> {
@@ -3583,6 +3592,16 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db.select().from(users).where(eq(users.email, email));
     console.log(`Usuário encontrado para ${email}: ${!!user}`);
     return user || undefined;
+  }
+
+  async getUserByCpf(cpf: string): Promise<User | undefined> {
+    const cleaned = (cpf || '').replace(/\D/g, '');
+    const results = await db
+      .select()
+      .from(users)
+      .where(or(eq(users.cpf, cpf), eq(users.cpf, cleaned)))
+      .limit(1);
+    return results[0] || undefined;
   }
 
   async createUser(user: InsertUser): Promise<User> {

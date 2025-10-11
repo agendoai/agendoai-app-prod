@@ -22,7 +22,10 @@ const registerSchema = z
     confirmPassword: z.string(),
     name: z.string().min(1, { message: "Nome é obrigatório" }),
     phone: z.string().min(10, { message: "Telefone é obrigatório" }).regex(/^\d{10,15}$/, { message: "Telefone inválido" }),
-    cpf: z.string().min(11, { message: "CPF é obrigatório" }),
+    cpf: z.string().min(1, { message: "CPF/CNPJ é obrigatório" }).refine((val) => {
+      const clean = (val || '').replace(/\D/g, '');
+      return clean.length === 11 || clean.length === 14;
+    }, { message: "CPF/CNPJ inválido" }),
     userType: z.enum(["client", "provider"]),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -41,6 +44,11 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [registerError, setRegisterError] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<{
+    email?: string;
+    cpf?: string;
+  }>({});
+  const [formValues, setFormValues] = useState<any>({});
   const [, setLocation] = useLocation();
   
   // Verificação de autenticação usando o hook useAuth
@@ -198,11 +206,106 @@ export default function AuthPage() {
     }
   }
 
+  // Função para validar CPF/CNPJ em tempo real
+  const validateCpf = async (cpf: string) => {
+    if (!cpf || cpf.length < 11) return;
+    
+    const cleanedCpf = cpf.replace(/\D/g, '');
+    // Aceitar tanto CPF (11 dígitos) quanto CNPJ (14 dígitos)
+    if (cleanedCpf.length < 11 || cleanedCpf.length > 14) return;
+    
+    try {
+      const response = await apiJson("/api/check-cpf", {
+        method: "POST",
+        body: JSON.stringify({ cpf: cleanedCpf }),
+      });
+      
+      if (response.exists) {
+        const documentType = cleanedCpf.length === 11 ? 'CPF' : 'CNPJ';
+        setValidationErrors(prev => ({ ...prev, cpf: `Este ${documentType} já está cadastrado` }));
+      } else {
+        setValidationErrors(prev => ({ ...prev, cpf: undefined }));
+      }
+    } catch (error) {
+      // Ignorar erros de validação em tempo real
+    }
+  };
+
+  // Função para validar email em tempo real
+  const validateEmail = async (email: string) => {
+    if (!email || !email.includes('@')) return;
+    
+    try {
+      const response = await apiJson("/api/check-email", {
+        method: "POST",
+        body: JSON.stringify({ email }),
+      });
+      
+      if (response.exists) {
+        setValidationErrors(prev => ({ ...prev, email: "Este email já está cadastrado" }));
+      } else {
+        setValidationErrors(prev => ({ ...prev, email: undefined }));
+      }
+    } catch (error) {
+      // Ignorar erros de validação em tempo real
+    }
+  };
+
+  // Função para verificar se o formulário está válido
+  const isFormValid = () => {
+    const values = registerForm.getValues();
+    const hasErrors = registerForm.formState.errors;
+    const hasValidationErrors = validationErrors.email || validationErrors.cpf;
+    
+    // Verificar se todos os campos obrigatórios estão preenchidos
+    const allFieldsFilled = values.email && 
+                           values.password && 
+                           values.confirmPassword && 
+                           values.name && 
+                           values.phone && 
+                           values.cpf;
+    
+    // Verificar se não há erros de validação
+    const noErrors = Object.keys(hasErrors).length === 0 && !hasValidationErrors;
+    
+    // Verificar se as senhas coincidem
+    const passwordsMatch = values.password === values.confirmPassword;
+    
+    // Verificar se o email é válido
+    const emailValid = values.email && values.email.includes('@');
+    
+    // Verificar se o CPF/CNPJ é válido (11 dígitos para CPF ou 14 para CNPJ)
+    const cleanedCpf = values.cpf ? values.cpf.replace(/\D/g, '') : '';
+    const cpfValid = cleanedCpf.length === 11 || cleanedCpf.length === 14;
+    
+    return allFieldsFilled && noErrors && passwordsMatch && emailValid && cpfValid;
+  };
+
+  // Atualizar valores do formulário quando mudarem
+  React.useEffect(() => {
+    const subscription = registerForm.watch((values) => {
+      setFormValues(values);
+    });
+    return () => subscription.unsubscribe();
+  }, [registerForm]);
+
   // Registro handler - DIRETO SEM MUTATION
   async function onRegisterSubmit(data: any) {
     setRegisterError(null); // Limpar erro anterior
+    setValidationErrors({}); // Limpar erros de validação
+    
+    // Verificar se há erros de validação
+    if (validationErrors.email || validationErrors.cpf) {
+      setRegisterError("Por favor, corrija os erros antes de continuar");
+      return;
+    }
+    
     setLoading(true);
     const { confirmPassword, ...registerData } = data;
+    // Normalizar CPF/CNPJ antes do envio
+    if (registerData.cpf) {
+      registerData.cpf = registerData.cpf.replace(/\D/g, '');
+    }
     
     try {
 
@@ -251,48 +354,31 @@ export default function AuthPage() {
       }
       
     } catch (error: any) {
-      
-      
-      // Tratamento específico de erros
+      // Exibir exatamente a mensagem retornada pelo backend
+      const serverMessage = error?.message || "Verifique seus dados e tente novamente.";
       let errorTitle = "Erro ao cadastrar";
-      let errorMessage = "Verifique seus dados e tente novamente.";
-      
-      if (error.message) {
-        if (error.message.includes('400') || error.message.includes('Bad Request')) {
-          if (error.message.includes('email') && error.message.includes('já está cadastrado')) {
-            errorTitle = "Email já cadastrado";
-            errorMessage = "Este email já possui uma conta. Tente fazer login ou use outro email.";
-          } else if (error.message.includes('CPF') || error.message.includes('cpf')) {
-            errorTitle = "CPF inválido";
-            errorMessage = "Verifique se o CPF está correto e tente novamente.";
-          } else if (error.message.includes('telefone') || error.message.includes('phone')) {
-            errorTitle = "Telefone inválido";
-            errorMessage = "Verifique se o telefone está correto e tente novamente.";
-          } else {
-            errorTitle = "Dados inválidos";
-            errorMessage = "Verifique se todos os campos estão preenchidos corretamente.";
-          }
-        } else if (error.message.includes('409') || error.message.includes('Conflict')) {
-          errorTitle = "Email já cadastrado";
-          errorMessage = "Este email já possui uma conta. Tente fazer login ou use outro email.";
-        } else if (error.message.includes('500') || error.message.includes('Internal Server Error')) {
-          errorTitle = "Erro no servidor";
-          errorMessage = "Ocorreu um erro interno. Tente novamente em alguns minutos.";
-        } else if (error.message.includes('Network') || error.message.includes('fetch')) {
-          errorTitle = "Erro de conexão";
-          errorMessage = "Verifique sua conexão com a internet e tente novamente.";
-        } else if (error.message.includes('Asaas')) {
-          errorTitle = "Erro no sistema de pagamento";
-          errorMessage = "Não foi possível criar sua conta no momento. Tente novamente em alguns minutos.";
-        } else {
-          errorMessage = error.message;
-        }
+
+      const msg = serverMessage.toLowerCase();
+      if (msg.includes('email') && msg.includes('já está cadastrado')) {
+        errorTitle = "Email já cadastrado";
+      } else if ((msg.includes('cpf') || msg.includes('cnpj')) && msg.includes('já está cadastrado')) {
+        errorTitle = "CPF/CNPJ já cadastrado";
+      } else if (msg.includes('todos os campos obrigatórios')) {
+        errorTitle = "Campos obrigatórios";
+      } else if (msg.includes('cpf/cnpj inválido') || (msg.includes('cpf') && msg.includes('inválido'))) {
+        errorTitle = "CPF/CNPJ inválido";
+      } else if (msg.includes('500') || msg.includes('internal server error')) {
+        errorTitle = "Erro no servidor";
+      } else if (msg.includes('network') || msg.includes('fetch')) {
+        errorTitle = "Erro de conexão";
+      } else if (msg.includes('asaas')) {
+        errorTitle = "Erro no sistema de pagamento";
       }
 
-      setRegisterError(errorMessage);
+      setRegisterError(serverMessage);
       toast({ 
         title: errorTitle, 
-        description: errorMessage, 
+        description: serverMessage, 
         variant: "destructive" 
       });
     } finally {
@@ -429,12 +515,21 @@ export default function AuthPage() {
                   type="email"
                   placeholder="E-mail"
                   {...registerForm.register("email")}
-                  className="h-10 bg-white border border-[#58c9d1]/30 rounded-lg text-gray-900 placeholder:text-gray-500 focus:border-[#58c9d1] pl-10 text-sm"
+                  className={`h-10 bg-white border rounded-lg text-gray-900 placeholder:text-gray-500 focus:border-[#58c9d1] pl-10 text-sm ${
+                    validationErrors.email ? 'border-red-500' : 'border-[#58c9d1]/30'
+                  }`}
                   autoComplete="email"
+                  onChange={(e) => {
+                    registerForm.setValue("email", e.target.value);
+                    validateEmail(e.target.value);
+                  }}
                 />
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-[#58c9d1] h-4 w-4" />
                 {registerForm.formState.errors.email && (
                   <p className="text-xs text-red-500 mt-1">{registerForm.formState.errors.email.message as string}</p>
+                )}
+                {validationErrors.email && (
+                  <p className="text-xs text-red-500 mt-1">{validationErrors.email}</p>
                 )}
               </div>
               <div className="relative">
@@ -538,24 +633,40 @@ export default function AuthPage() {
               <div className="relative">
                 <Input
                   type="text"
-                  placeholder="CPF"
+                  placeholder="CPF/CNPJ"
                   {...registerForm.register("cpf")}
-                  className="h-10 bg-white border border-[#58c9d1]/30 rounded-lg text-gray-900 placeholder:text-gray-500 focus:border-[#58c9d1] pl-10 text-sm"
-                  maxLength={18}
+                  className={`h-10 bg-white border rounded-lg text-gray-900 placeholder:text-gray-500 focus:border-[#58c9d1] pl-10 text-sm ${
+                    validationErrors.cpf ? 'border-red-500' : 'border-[#58c9d1]/30'
+                  }`}
+                  maxLength={20}
                   autoComplete="cpf"
+                  onChange={(e) => {
+                    registerForm.setValue("cpf", e.target.value);
+                    validateCpf(e.target.value);
+                  }}
                 />
                 <IdCard className="absolute left-3 top-1/2 -translate-y-1/2 text-[#58c9d1] h-4 w-4" />
                 {registerForm.formState.errors.cpf && (
                   <p className="text-xs text-red-500 mt-1">{registerForm.formState.errors.cpf.message as string}</p>
                 )}
+                {validationErrors.cpf && (
+                  <p className="text-xs text-red-500 mt-1">{validationErrors.cpf}</p>
+                )}
+                <p className="text-xs text-gray-500 mt-1">
+                  Digite apenas números (11 para CPF ou 14 para CNPJ)
+                </p>
               </div>
               <div className="text-xs text-gray-500 text-center">
                 Ao continuar, você concorda com os <span className="underline cursor-pointer">Termos do Serviço</span> e o <span className="underline cursor-pointer">Aviso de Privacidade</span>.
               </div>
               <Button 
                 type="submit" 
-                className="w-full h-10 mt-2 bg-[#58c9d1] text-white font-medium shadow-md hover:bg-[#58c9d1]/90 transition-all" 
-                disabled={loading}
+                className={`w-full h-10 mt-2 font-medium shadow-md transition-all ${
+                  isFormValid() && !loading
+                    ? 'bg-[#58c9d1] text-white hover:bg-[#58c9d1]/90' 
+                    : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                }`}
+                disabled={loading || !isFormValid()}
               >
                 {loading ? (
                   <span className="flex items-center gap-2 justify-center text-sm">
@@ -568,6 +679,26 @@ export default function AuthPage() {
                   </span>
                 )}
               </Button>
+              
+              {/* Mensagem de status do formulário */}
+              {!isFormValid() && !loading && (
+                <div className="mt-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-600 text-center">
+                    {!formValues.email || !formValues.name || !formValues.phone || !formValues.cpf 
+                      ? "Preencha todos os campos obrigatórios"
+                      : !formValues.password || !formValues.confirmPassword
+                      ? "Defina uma senha e confirme"
+                      : formValues.password !== formValues.confirmPassword
+                      ? "As senhas não coincidem"
+                      : formValues.cpf && (formValues.cpf.replace(/\D/g, '').length < 11 || formValues.cpf.replace(/\D/g, '').length > 14)
+                      ? "CPF deve ter 11 dígitos ou CNPJ deve ter 14 dígitos"
+                      : validationErrors.email || validationErrors.cpf
+                      ? "Corrija os erros nos campos destacados"
+                      : "Preencha todos os campos para continuar"
+                    }
+                  </p>
+                </div>
+              )}
               
               {/* Mensagem de erro do registro */}
               {registerError && (

@@ -17,7 +17,7 @@ export const users = pgTable("users", {
   isVerified: boolean("is_verified").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   asaasCustomerId: varchar('asaas_customer_id', { length: 64 }),
-  cpf: varchar('cpf', { length: 18 }).notNull(), // CPF/CNPJ obrigatório
+  cpf: varchar('cpf', { length: 18 }).notNull().unique(), // CPF/CNPJ obrigatório e único
   valortaxa: doublePrecision("valor_taxa").default(1.75), // Taxa personalizada do usuário em reais (padrão R$ 1,75)
 });
 

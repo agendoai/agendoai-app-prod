@@ -156,8 +156,33 @@ router.post("/register", async (req, res) => {
   try {
     const { email, password, name, cpf, userType, phone } = req.body;
 
-    if (!email || !password || !name || !userType || (userType === "client" && (!cpf || !phone))) {
+    if (!email || !password || !name || !userType || ((userType === "client" || userType === "provider") && (!cpf || !phone))) {
       return res.status(400).json({ message: "Todos os campos obrigatórios devem ser preenchidos" });
+    }
+
+    // Validação básica de CPF/CNPJ para clientes e providers
+    function validateCpfCnpj(value: string): boolean {
+      const cleanValue = (value || '').replace(/\D/g, '');
+      return cleanValue.length === 11 || cleanValue.length === 14;
+    }
+
+    const cleanedCpf = (cpf || '').replace(/\D/g, '');
+    
+    // Validar CPF/CNPJ para clientes e providers
+    if (userType === "client" || userType === "provider") {
+      if (!cpf) {
+        return res.status(400).json({ message: "CPF/CNPJ é obrigatório." });
+      }
+      
+      if (!validateCpfCnpj(cpf)) {
+        return res.status(400).json({ message: "CPF/CNPJ inválido." });
+      }
+      
+      // Verificar unicidade do CPF/CNPJ
+      const existingByCpf = await storage.getUserByCpf(cleanedCpf);
+      if (existingByCpf) {
+        return res.status(400).json({ message: "Este CPF/CNPJ já está cadastrado." });
+      }
     }
 
     const existingUser = await storage.getUserByEmail(email);
@@ -176,7 +201,7 @@ router.post("/register", async (req, res) => {
       const asaasResult = await createAsaasCustomer({
         name,
         email,
-        cpfCnpj: cpf,
+        cpfCnpj: cleanedCpf,
         mobilePhone: phone
       });
       if (!asaasResult.success) {
@@ -189,8 +214,8 @@ router.post("/register", async (req, res) => {
       email,
       password: hashedPassword,
       name,
-      cpf,
-      phone,
+      cpf: userType === "client" || userType === "provider" ? cleanedCpf : null,
+      phone: userType === "client" || userType === "provider" ? phone : null,
       userType,
       asaasCustomerId,
     });
@@ -228,6 +253,48 @@ router.post("/register", async (req, res) => {
       message: (err && typeof err === 'object' && 'message' in err) ? (err as any).message : "Ocorreu um erro ao processar sua solicitação.",
       stack: process.env.NODE_ENV === 'development' && err && typeof err === 'object' && 'stack' in err ? (err as any).stack : undefined
     });
+  }
+});
+
+// Rotas para validação em tempo real
+router.post("/check-email", async (req, res) => {
+  try {
+    const { email } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ message: "Email é obrigatório" });
+    }
+    
+    const existingUser = await storage.getUserByEmail(email);
+    
+    return res.status(200).json({ 
+      exists: !!existingUser,
+      message: existingUser ? "Email já cadastrado" : "Email disponível"
+    });
+  } catch (error) {
+    console.error("Erro ao verificar email:", error);
+    return res.status(500).json({ message: "Erro interno do servidor" });
+  }
+});
+
+router.post("/check-cpf", async (req, res) => {
+  try {
+    const { cpf } = req.body;
+    
+    if (!cpf) {
+      return res.status(400).json({ message: "CPF é obrigatório" });
+    }
+    
+    const cleanedCpf = cpf.replace(/\D/g, '');
+    const existingUser = await storage.getUserByCpf(cleanedCpf);
+    
+    return res.status(200).json({ 
+      exists: !!existingUser,
+      message: existingUser ? "CPF já cadastrado" : "CPF disponível"
+    });
+  } catch (error) {
+    console.error("Erro ao verificar CPF:", error);
+    return res.status(500).json({ message: "Erro interno do servidor" });
   }
 });
 

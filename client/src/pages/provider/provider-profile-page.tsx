@@ -419,7 +419,7 @@ export default function ProviderProfilePage() {
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         toast({
           title: "Câmera não disponível",
-          description: "Seu navegador não suporta acesso à câmera. Tente usar um navegador mais recente.",
+          description: "Seu navegador não suporta acesso à câmera. Tente usar um navegador mais recente ou escolha uma foto da galeria.",
           variant: "destructive",
         });
         return;
@@ -429,7 +429,7 @@ export default function ProviderProfilePage() {
       if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1' && !window.location.hostname.includes('192.168.')) {
         toast({
           title: "HTTPS necessário",
-          description: "O acesso à câmera requer HTTPS. Certifique-se de que está usando uma conexão segura.",
+          description: "O acesso à câmera requer HTTPS. Certifique-se de que está usando uma conexão segura, ou escolha uma foto da galeria.",
           variant: "destructive",
         });
         return;
@@ -508,7 +508,7 @@ export default function ProviderProfilePage() {
         stream.getTracks().forEach(track => track.stop());
         toast({
           title: "Erro ao carregar câmera",
-          description: "Não foi possível carregar a câmera. Tente novamente.",
+          description: "Não foi possível carregar a câmera. Tente novamente ou escolha uma foto da galeria.",
           variant: "destructive",
         });
       });
@@ -520,8 +520,8 @@ export default function ProviderProfilePage() {
       let errorTitle = "Erro na câmera";
       
       if (error.name === 'NotAllowedError') {
-        errorTitle = "Permissão da câmera necessária";
-        errorMessage = "Para trocar sua foto de " + (type === 'profile' ? 'perfil' : 'capa') + ", precisamos acessar sua câmera. Por favor, permita o acesso à câmera e tente novamente, ou escolha uma foto da galeria.";
+        errorTitle = "Permissão da câmera negada";
+        errorMessage = "Para trocar sua foto de " + (type === 'profile' ? 'perfil' : 'capa') + ", precisamos acessar sua câmera. Por favor, permita o acesso à câmera nas configurações do navegador e tente novamente, ou escolha uma foto da galeria.";
         
         // Mostrar opções novamente após erro de permissão
         setTimeout(() => {
@@ -530,7 +530,7 @@ export default function ProviderProfilePage() {
         
       } else if (error.name === 'NotFoundError') {
         errorTitle = "Câmera não encontrada";
-        errorMessage = "Nenhuma câmera encontrada. Verifique se há uma câmera conectada ou escolha uma foto da galeria.";
+        errorMessage = "Nenhuma câmera encontrada no dispositivo. Verifique se há uma câmera conectada ou escolha uma foto da galeria.";
         
         // Mostrar opções novamente após erro de câmera não encontrada
         setTimeout(() => {
@@ -548,7 +548,7 @@ export default function ProviderProfilePage() {
         
       } else if (error.name === 'OverconstrainedError') {
         errorTitle = "Configuração não suportada";
-        errorMessage = "As configurações da câmera não são suportadas. Tente usar a opção 'Escolher da Galeria'.";
+        errorMessage = "As configurações da câmera não são suportadas pelo dispositivo. Tente usar a opção 'Escolher da Galeria'.";
         
         // Mostrar opções novamente após erro de configuração
         setTimeout(() => {
@@ -587,141 +587,52 @@ export default function ProviderProfilePage() {
         return;
       }
 
-      // Mostrar toast de carregamento
-      toast({
-        title: "Acessando câmera...",
-        description: "Solicitando permissão para acessar a câmera.",
-      });
-
-      // Configurações de vídeo
-      const videoConstraints = {
-        video: { 
-          facingMode: 'user', // Câmera frontal
-          width: { ideal: type === 'cover' ? 1200 : 800, max: 1920 },
-          height: { ideal: type === 'cover' ? 600 : 800, max: 1920 }
-        },
-        audio: false
-      };
-
-      // Solicitar acesso à câmera
-      const stream = await navigator.mediaDevices.getUserMedia(videoConstraints);
-
-      // Criar um elemento de vídeo temporário
-      const video = document.createElement('video');
-      video.srcObject = stream;
-      video.autoplay = true;
-      video.muted = true;
-      video.playsInline = true;
-      
-      // Configurações de vídeo
-      video.setAttribute('webkit-playsinline', 'true');
-      video.setAttribute('playsinline', 'true');
-      video.style.width = '100%';
-      video.style.height = 'auto';
-
-      // Criar um canvas para capturar a foto
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-
-      // Aguardar o vídeo carregar
-      video.addEventListener('loadedmetadata', () => {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        
-        // Desenhar o frame atual no canvas
-        ctx?.drawImage(video, 0, 0);
-        
-        // Converter para blob
-        canvas.toBlob(async (blob) => {
-          if (blob) {
-            // Criar um arquivo a partir do blob
-            const file = new File([blob], `camera-capture-${type}.jpg`, { type: 'image/jpeg' });
-            
-            // Fazer upload diretamente
-            if (type === 'profile') {
-              await uploadProfileImage(file);
-            } else {
-              await uploadCoverImage(file);
-            }
-            
-            toast({
-              title: "Foto capturada!",
-              description: `A foto de ${type === 'profile' ? 'perfil' : 'capa'} foi capturada e enviada com sucesso.`,
-            });
-          }
-          
-          // Parar a câmera
-          stream.getTracks().forEach(track => track.stop());
-        }, 'image/jpeg', 0.8);
-      });
-
-      // Tratar erro de carregamento do vídeo
-      video.addEventListener('error', () => {
-        stream.getTracks().forEach(track => track.stop());
+      // Verificar tamanho do arquivo (máximo 5MB)
+      if (file.size > 5 * 1024 * 1024) {
         toast({
-          title: "Erro ao carregar câmera",
-          description: "Não foi possível carregar a câmera. Tente novamente.",
+          title: "Arquivo muito grande",
+          description: "A imagem deve ter no máximo 5MB. Tente redimensionar ou escolher uma imagem menor.",
           variant: "destructive",
         });
-      });
-
-    } catch (error: any) {
-      
-      
-      let errorMessage = "Não foi possível acessar a câmera.";
-      let errorTitle = "Erro na câmera";
-      
-      if (error.name === 'NotAllowedError') {
-        errorTitle = "Permissão da câmera necessária";
-        errorMessage = "Para trocar sua foto de " + (type === 'profile' ? 'perfil' : 'capa') + ", precisamos acessar sua câmera. Por favor, permita o acesso à câmera e tente novamente, ou escolha uma foto da galeria.";
-        
-        // Mostrar opções novamente após erro de permissão
-        setTimeout(() => {
-          setShowImageSourceModal(true);
-        }, 2000);
-        
-      } else if (error.name === 'NotFoundError') {
-        errorTitle = "Câmera não encontrada";
-        errorMessage = "Nenhuma câmera encontrada. Verifique se há uma câmera conectada ou escolha uma foto da galeria.";
-        
-        // Mostrar opções novamente após erro de câmera não encontrada
-        setTimeout(() => {
-          setShowImageSourceModal(true);
-        }, 2000);
-        
-      } else if (error.name === 'NotReadableError') {
-        errorTitle = "Câmera em uso";
-        errorMessage = "A câmera está sendo usada por outro aplicativo. Feche outros apps que possam estar usando a câmera ou escolha uma foto da galeria.";
-        
-        // Mostrar opções novamente após erro de câmera em uso
-        setTimeout(() => {
-          setShowImageSourceModal(true);
-        }, 2000);
-        
-      } else if (error.name === 'OverconstrainedError') {
-        errorTitle = "Configuração não suportada";
-        errorMessage = "As configurações da câmera não são suportadas. Tente usar a opção 'Escolher da Galeria'.";
-        
-        // Mostrar opções novamente após erro de configuração
-        setTimeout(() => {
-          setShowImageSourceModal(true);
-        }, 1500);
-        
-      } else if (error.name === 'SecurityError') {
-        errorTitle = "Erro de segurança";
-        errorMessage = "Erro de segurança. Certifique-se de que está usando HTTPS ou localhost, ou escolha uma foto da galeria.";
-        
-        // Mostrar opções novamente após erro de segurança
-        setTimeout(() => {
-          setShowImageSourceModal(true);
-        }, 2000);
+        return;
       }
+
+      // Criar FormData para enviar o arquivo
+      const formData = new FormData();
+      formData.append('image', file);
       
+      // Fazer upload para Cloudinary
+      const response = await apiCall(`/api/users/${user?.id}/profile-image-cloudinary`, {
+        method: 'POST',
+        body: formData,
+      });
+      
+      if (response.ok) {
+        await response.json();
+        
+        // Invalidar todas as queries relacionadas ao provider
+        queryClient.invalidateQueries({ queryKey: ["/api/provider-settings"] });
+        queryClient.invalidateQueries({ queryKey: ["/api/user"] });
+        queryClient.invalidateQueries({ queryKey: ["user"] });
+        
+        // Refetch imediato dos dados do provider
+        refetch();
+        
+        toast({
+          title: "Sucesso",
+          description: "Imagem de perfil atualizada com sucesso!",
+        });
+      } else {
+        throw new Error('Erro no upload');
+      }
+    } catch (error) {
       toast({
-        title: errorTitle,
-        description: errorMessage,
+        title: "Erro no upload",
+        description: "Não foi possível atualizar a imagem de perfil.",
         variant: "destructive",
       });
+    } finally {
+      setUploadingProfileImage(false);
     }
   };
 
@@ -744,8 +655,8 @@ export default function ProviderProfilePage() {
       // Verificar tamanho do arquivo (máximo 5MB)
       if (file.size > 5 * 1024 * 1024) {
         toast({
-          title: "Erro no upload",
-          description: "O arquivo é muito grande. Tamanho máximo: 5MB",
+          title: "Arquivo muito grande",
+          description: "A imagem deve ter no máximo 5MB. Tente redimensionar ou escolher uma imagem menor.",
           variant: "destructive",
         });
         return;
